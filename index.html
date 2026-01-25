@@ -1,0 +1,315 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mr. TMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            animation: {
+              'scale-in': 'scaleIn 0.2s ease-out forwards',
+              'flash-red': 'flashRed 0.5s ease-in-out',
+              'pulse-red': 'pulseRed 1.5s infinite',
+              'fade-in': 'fadeIn 0.3s ease-out forwards',
+              'bounce-short': 'bounceShort 0.5s ease-in-out 1',
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'ghost-pulse': 'ghostPulse 4s ease-in-out infinite',
+              'ghost-pulse-inverse': 'ghostPulseInverse 4s ease-in-out infinite',
+              'shimmer': 'shimmer 2s infinite linear',
+              'alive': 'alive 3s ease-in-out infinite',
+            },
+            keyframes: {
+              scaleIn: {
+                '0%': { transform: 'scale(0.95)', opacity: '0' },
+                '100%': { transform: 'scale(1)', opacity: '1' },
+              },
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              flashRed: {
+                '0%': { backgroundColor: 'var(--slot-conflict-bg)' },
+                '50%': { backgroundColor: 'rgba(252, 165, 165, 0.5)' }, /* red-300 with opacity */
+                '100%': { backgroundColor: 'var(--slot-conflict-bg)' },
+              },
+              pulseRed: {
+                '0%, 100%': { boxShadow: '0 0 0 2px #ef4444' },
+                '50%': { boxShadow: '0 0 0 2px #f87171' },
+              },
+              bounceShort: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10%)' },
+              },
+              ghostPulse: {
+                '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+                '50%': { opacity: '0.4', transform: 'scale(1.02)' },
+              },
+              ghostPulseInverse: {
+                '0%, 100%': { opacity: '0.4', transform: 'scale(1.02)' },
+                '50%': { opacity: '1', transform: 'scale(1)' },
+              },
+              shimmer: {
+                '0%': { transform: 'translateX(-100%)' },
+                '100%': { transform: 'translateX(100%)' },
+              },
+              alive: {
+                '0%, 100%': { opacity: '1', filter: 'brightness(100%) saturate(100%)' },
+                '50%': { opacity: '0.8', filter: 'brightness(110%) saturate(130%)' },
+              }
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Combined Google Fonts: Latin + Urdu (Gulzar, Amiri, Aref Ruqaa, Noto Nastaliq) -->
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Gulzar&family=Noto+Nastaliq+Urdu:wght@400;700&family=Anton&family=Antonio:wght@400;700&family=Bebas+Neue&family=Bodoni+Moda:opsz,wght@6..96,400..900&family=Bungee+Spice&family=Fjalla+One&family=Instrument+Serif:ital@0;1&family=Lato:wght@400;700&family=Merriweather:wght@400;700;900&family=Monoton&family=Montserrat:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Playfair+Display:wght@400;700&family=Playwrite+CU:wght@100..400&family=Roboto:wght@400;500;700&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+    <style>
+      /* Helper to improve rendering of Urdu fonts */
+      .font-urdu {
+        font-family: 'Gulzar', 'Noto Nastaliq Urdu', serif;
+        line-height: 1.8;
+        font-weight: normal;
+      }
+
+      :root {
+        --subject-red-bg: #fee2e2; --subject-red-text: #991b1b; --subject-red-border: #fecaca;
+        --subject-sky-bg: #e0f2fe; --subject-sky-text: #0369a1; --subject-sky-border: #bae6fd;
+        --subject-green-bg: #dcfce7; --subject-green-text: #166534; --subject-green-border: #bbf7d0;
+        --subject-yellow-bg: #fef9c3; --subject-yellow-text: #854d0e; --subject-yellow-border: #fef08a;
+        --subject-purple-bg: #f3e8ff; --subject-purple-text: #6b21a8; --subject-purple-border: #e9d5ff;
+        --subject-pink-bg: #fce7f3; --subject-pink-text: #9d174d; --subject-pink-border: #fbcfe8;
+        --subject-indigo-bg: #e0e7ff; --subject-indigo-text: #3730a3; --subject-indigo-border: #c7d2fe;
+        --subject-teal-bg: #ccfbf1; --subject-teal-text: #134e4a; --subject-teal-border: #99f6e4;
+        --subject-orange-bg: #ffedd5; --subject-orange-text: #9a3412; --subject-orange-border: #fed7aa;
+        --subject-lime-bg: #ecfccb; --subject-lime-text: #4d7c0f; --subject-lime-border: #d9f99d;
+        --subject-cyan-bg: #cffafe; --subject-cyan-text: #0e7490; --subject-cyan-border: #a5f3fc;
+        --subject-emerald-bg: #d1fae5; --subject-emerald-text: #065f46; --subject-emerald-border: #a7f3d0;
+        --subject-fuchsia-bg: #fae8ff; --subject-fuchsia-text: #86198f; --subject-fuchsia-border: #f5d0fe;
+        --subject-rose-bg: #ffe4e6; --subject-rose-text: #9f1239; --subject-rose-border: #fecdd3;
+        --subject-amber-bg: #fef3c7; --subject-amber-text: #92400e; --subject-amber-border: #fde68a;
+        --subject-blue-bg: #dbeafe; --subject-blue-text: #1e40af; --subject-blue-border: #bfdbfe;
+        --subject-default-bg: #f3f4f6; --subject-default-text: #374151; --subject-default-border: #e5e7eb;
+      }
+
+      /* Base Theme Variables (Fallbacks) */
+      /* These are overridden by JS injection in App.tsx for runtime customization */
+      
+      .light {
+        /* Clean & Professional */
+        --bg-primary: #f8fafc; /* Slate 50 */
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #f1f5f9; /* Slate 100 */
+        --text-primary: #0f172a; /* Slate 900 */
+        --text-secondary: #475569; /* Slate 600 */
+        --text-placeholder: #94a3b8;
+        --border-primary: #e2e8f0;
+        --border-secondary: #cbd5e1;
+        --accent-primary: #6366f1; /* Indigo 500 */
+        --accent-primary-hover: #4f46e5;
+        --accent-text: #ffffff;
+        --accent-secondary: #eef2ff;
+        --accent-secondary-hover: #e0e7ff;
+        --slot-available-bg: rgba(99, 102, 241, 0.08);
+        --slot-conflict-bg: rgba(239, 68, 68, 0.15);
+        --slot-disabled-bg: #f1f5f9;
+      }
+
+      .dark {
+        /* Modern Deep Slate */
+        --bg-primary: #0f172a; /* Slate 900 */
+        --bg-secondary: #1e293b; /* Slate 800 */
+        --bg-tertiary: #334155; /* Slate 700 */
+        --text-primary: #f8fafc; /* Slate 50 */
+        --text-secondary: #cbd5e1; /* Slate 300 */
+        --text-placeholder: #64748b;
+        --border-primary: #334155;
+        --border-secondary: #475569;
+        --accent-primary: #8b5cf6; /* Violet 500 */
+        --accent-primary-hover: #7c3aed;
+        --accent-text: #ffffff;
+        --accent-secondary: #2e1065;
+        --accent-secondary-hover: #4c1d95;
+        --slot-available-bg: rgba(139, 92, 246, 0.15);
+        --slot-conflict-bg: rgba(248, 113, 113, 0.2);
+        --slot-disabled-bg: #1e293b;
+      }
+      
+      .contrast {
+        /* High Contrast B/W */
+        --bg-primary: #ffffff;
+        --bg-secondary: #f3f4f6;
+        --bg-tertiary: #e5e7eb;
+        --text-primary: #000000;
+        --text-secondary: #374151;
+        --border-primary: #000000;
+        --border-secondary: #4b5563;
+        --accent-primary: #000000;
+        --accent-primary-hover: #333333;
+        --accent-text: #ffffff;
+        --accent-secondary: #e5e7eb;
+        --accent-secondary-hover: #d1d5db;
+        --slot-available-bg: #dcfce7;
+        --slot-conflict-bg: #fee2e2;
+        --slot-disabled-bg: #9ca3af;
+      }
+      
+      .mint {
+        /* Fresh Teal */
+        --bg-primary: #f0fdfa; /* Teal 50 */
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #ccfbf1;
+        --text-primary: #042f2e;
+        --text-secondary: #115e59;
+        --border-primary: #99f6e4;
+        --border-secondary: #5eead4;
+        --accent-primary: #0d9488; /* Teal 600 */
+        --accent-primary-hover: #0f766e;
+        --accent-text: #ffffff;
+        --accent-secondary: #d1fae5;
+        --accent-secondary-hover: #a7f3d0;
+        --slot-available-bg: rgba(13, 148, 136, 0.1);
+        --slot-conflict-bg: rgba(239, 68, 68, 0.15);
+        --slot-disabled-bg: #f0fdfa;
+      }
+      
+      .ocean {
+        /* Sky Blue */
+        --bg-primary: #f0f9ff; /* Sky 50 */
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #e0f2fe;
+        --text-primary: #082f49;
+        --text-secondary: #0369a1;
+        --border-primary: #bae6fd;
+        --border-secondary: #7dd3fc;
+        --accent-primary: #0284c7; /* Sky 600 */
+        --accent-primary-hover: #0369a1;
+        --accent-text: #ffffff;
+        --accent-secondary: #e0f2fe;
+        --accent-secondary-hover: #bae6fd;
+        --slot-available-bg: rgba(2, 132, 199, 0.1);
+        --slot-conflict-bg: rgba(239, 68, 68, 0.15);
+        --slot-disabled-bg: #f0f9ff;
+      }
+
+      .sunset {
+        /* Warm Orange */
+        --bg-primary: #fff7ed; /* Orange 50 */
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #ffedd5;
+        --text-primary: #431407;
+        --text-secondary: #9a3412;
+        --border-primary: #fed7aa;
+        --border-secondary: #fdba74;
+        --accent-primary: #ea580c; /* Orange 600 */
+        --accent-primary-hover: #c2410c;
+        --accent-text: #ffffff;
+        --accent-secondary: #ffedd5;
+        --accent-secondary-hover: #fed7aa;
+        --slot-available-bg: rgba(234, 88, 12, 0.1);
+        --slot-conflict-bg: rgba(153, 27, 27, 0.15);
+        --slot-disabled-bg: #fff7ed;
+      }
+
+      .rose {
+        /* Soft Rose */
+        --bg-primary: #fff1f2; /* Rose 50 */
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #ffe4e6;
+        --text-primary: #881337;
+        --text-secondary: #be123c;
+        --border-primary: #fecdd3;
+        --border-secondary: #fda4af;
+        --accent-primary: #e11d48; /* Rose 600 */
+        --accent-primary-hover: #be123c;
+        --accent-text: #ffffff;
+        --accent-secondary: #ffe4e6;
+        --accent-secondary-hover: #fecdd3;
+        --slot-available-bg: rgba(225, 29, 72, 0.1);
+        --slot-conflict-bg: rgba(153, 27, 27, 0.15);
+        --slot-disabled-bg: #fff1f2;
+      }
+      
+      .amoled {
+        /* Pure Black OLED */
+        --bg-primary: #000000;
+        --bg-secondary: #121212;
+        --bg-tertiary: #1e1e1e;
+        --text-primary: #ffffff;
+        --text-secondary: #a3a3a3;
+        --border-primary: #262626;
+        --border-secondary: #404040;
+        --accent-primary: #22d3ee; /* Cyan 400 */
+        --accent-primary-hover: #06b6d4;
+        --accent-text: #000000;
+        --accent-secondary: #164e63;
+        --accent-secondary-hover: #0e7490;
+        --slot-available-bg: rgba(34, 211, 238, 0.15);
+        --slot-conflict-bg: rgba(248, 113, 113, 0.2);
+        --slot-disabled-bg: #121212;
+      }
+
+      /* Custom Select Style Override */
+      select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+      }
+      html[dir="rtl"] select {
+        background-position: left 0.5rem center;
+        padding-right: 0.75rem;
+        padding-left: 2.5rem;
+      }
+      select:focus {
+        ring-width: 2px;
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 3px var(--slot-available-bg);
+      }
+
+      option, input, textarea, button { font-family: inherit; }
+      
+      .drop-target-available { outline: 2px dashed var(--accent-primary); outline-offset: -4px; background-color: var(--slot-available-bg) !important; }
+      .drop-target-conflict { outline: 2px dashed #ef4444; outline-offset: -4px; background-color: var(--slot-conflict-bg) !important; }
+      .unscheduled-drop-target { outline: 2px dashed #ef4444; outline-offset: -4px; background-color: var(--slot-conflict-bg) !important; }
+      .period-ghost { opacity: 0.4 !important; background-color: var(--bg-tertiary) !important; border-style: dashed !important; color: var(--text-secondary) !important; }
+      .period-ghost > * { visibility: hidden; }
+      .drop-conflict-flash { animation: flashRed 0.5s ease-in-out; }
+      .period-conflict { animation: pulseRed 1.5s infinite; box-shadow: 0 0 0 2px #ef4444; }
+
+      @media print {
+        body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; background-color: #fff !important; }
+        .no-print, .no-print * { display: none !important; }
+      }
+    </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-[var(--bg-primary)]">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
