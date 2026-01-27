@@ -1,3 +1,4 @@
+
 import type { SchoolClass, Adjustment, TimetableGridData, DownloadLanguage, DownloadDesignConfig, Teacher, SchoolConfig, Subject, PeriodTime, Break, Period, LeaveDetails, AttendanceData, TriangleCorner } from '../types';
 import { translations } from '../i18n';
 import { allDays } from '../types';
@@ -28,22 +29,6 @@ const teacherColorNames = [
   'subject-fuchsia', 'subject-rose', 'subject-amber', 'subject-blue', 'subject-indigo'
 ];
 
-const COLOR_HEX_MAP: Record<string, string> = {
-    'subject-red': '#fee2e2', 'subject-sky': '#e0f2fe', 'subject-green': '#dcfce7', 'subject-yellow': '#fef9c3',
-    'subject-purple': '#f3e8ff', 'subject-pink': '#fce7f3', 'subject-indigo': '#e0e7ff', 'subject-teal': '#ccfbf1',
-    'subject-orange': '#ffedd5', 'subject-lime': '#ecfccb', 'subject-cyan': '#cffafe', 'subject-emerald': '#d1fae5',
-    'subject-fuchsia': '#fae8ff', 'subject-rose': '#ffe4e6', 'subject-amber': '#fef3c7', 'subject-blue': '#dbeafe',
-    'subject-default': '#f3f4f6'
-};
-
-const TEXT_HEX_MAP: Record<string, string> = {
-    'subject-red': '#991b1b', 'subject-sky': '#0369a1', 'subject-green': '#166534', 'subject-yellow': '#854d0e',
-    'subject-purple': '#6b21a8', 'subject-pink': '#9d174d', 'subject-indigo': '#3730a3', 'subject-teal': '#134e4a',
-    'subject-orange': '#9a3412', 'subject-lime': '#4d7c0f', 'subject-cyan': '#0e7490', 'subject-emerald': '#065f46',
-    'subject-fuchsia': '#86198f', 'subject-rose': '#9f1239', 'subject-amber': '#92400e', 'subject-blue': '#1e40af',
-    'subject-default': '#374151'
-};
-
 const renderText = (lang: DownloadLanguage, en: string, ur: string) => {
     const urduStyle = `font-family: ${URDU_FONT_STACK} !important; direction: rtl; unicode-bidi: embed; line-height: 1.8; display: inline-block; padding-top: 2px; font-weight: normal;`;
     const urduSpan = `<span class="font-urdu" style="${urduStyle}">${ur}</span>`;
@@ -72,6 +57,16 @@ const toCsvRow = (cells: any[]) => cells.map(c => {
     return str;
 }).join(',');
 
+const isDateInVacation = (dateStr: string, session?: any) => {
+    if (!session || !session.vacations) return false;
+    const d = new Date(dateStr);
+    return session.vacations.some((v: any) => {
+        const start = new Date(v.startDate);
+        const end = new Date(v.endDate);
+        return d >= start && d <= end;
+    });
+};
+
 const calculateRangeWorkload = (
     teacherId: string, 
     startDate: string, 
@@ -79,7 +74,8 @@ const calculateRangeWorkload = (
     classes: SchoolClass[], 
     adjustments: Record<string, Adjustment[]>,
     leaveDetails: Record<string, Record<string, LeaveDetails>> = {},
-    schoolConfig: SchoolConfig
+    schoolConfig: SchoolConfig,
+    sessionData?: any // Pass full session data to check vacations
 ): WorkloadStats => {
     
     const start = new Date(startDate);
@@ -94,6 +90,10 @@ const calculateRangeWorkload = (
 
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().split('T')[0];
+        
+        // Skip vacations
+        if (isDateInVacation(dateStr, sessionData)) continue;
+
         const dayIndex = d.getDay();
         const dayName = dayMap[dayIndex] as keyof TimetableGridData;
         
@@ -196,7 +196,8 @@ export const calculateWorkloadStats = (
     leaveDetails: Record<string, Record<string, LeaveDetails>> = {},
     startDate?: string,
     endDate?: string,
-    schoolConfig?: SchoolConfig 
+    schoolConfig?: SchoolConfig,
+    sessionData?: any
 ): WorkloadStats => {
     const dailyCounts: { [key: string]: number } = {};
     allDays.forEach(day => dailyCounts[day.toLowerCase()] = 0);
@@ -250,12 +251,19 @@ export const calculateWorkloadStats = (
         let curr = new Date(startDate);
         const end = new Date(endDate);
         while (curr <= end) {
-            datesToCheck.push(curr.toISOString().split('T')[0]);
+            const dStr = curr.toISOString().split('T')[0];
+            if (!isDateInVacation(dStr, sessionData)) {
+                datesToCheck.push(dStr);
+            }
             curr.setDate(curr.getDate() + 1);
         }
     } else {
         const keys = new Set([...Object.keys(adjustments), ...Object.keys(leaveDetails)]);
-        datesToCheck.push(...Array.from(keys));
+        Array.from(keys).forEach(dStr => {
+             if (!isDateInVacation(dStr, sessionData)) {
+                datesToCheck.push(dStr);
+            }
+        });
     }
 
     let substitutionsTaken = 0;
@@ -786,7 +794,7 @@ export const generateClassTimetableHtml = (classItem: SchoolClass, lang: Downloa
                     }
                 }
                 for (let r = 0; r < rowspan; r++) visited[pIdx + r][dIdx] = true;
-                rowHtml += `<td ${rowspan > 1 ? `rowspan="${rowspan}"` : ''}>${current.html}</td>`;
+                rowHtml += `<td ${rowspan > 1 ? `rowspan="${rowspan}"` : ''} >${current.html}</td>`;
             }
             tableRows += `<tr>${rowHtml}</tr>`;
         }
@@ -954,7 +962,7 @@ export const generateAdjustmentsReportHtml = (
     schoolConfig: SchoolConfig,
     date: string,
     absentTeacherIds: string[] = [],
-    signature?: string // Fix for Expected 9-10 arguments, but got 11.
+    signature?: string 
 ): string[] => {
     const { en: enT, ur: urT } = translations;
     const tr = (key: string) => lang === 'ur' ? (urT as any)[key] : (enT as any)[key];
@@ -1065,7 +1073,6 @@ export const generateBasicInformationHtml = (t: any, lang: DownloadLanguage, des
     return pages.length === 1 ? pages[0] : pages;
 };
 
-// --- FIX: Added exported function generateBasicInformationExcel ---
 export const generateBasicInformationExcel = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, classes: SchoolClass[], teachers: Teacher[]) => {
     const { en: enT, ur: urT } = translations;
     const tr = (key: string) => lang === 'ur' ? (urT as any)[key] : (enT as any)[key];
@@ -1420,70 +1427,30 @@ export const generateAttendanceReportHtml = (
                 '%'
             ];
             
-            const categories = ['High', 'Middle', 'Primary', 'GrandTotal'];
-            let summaryRows = '';
-            
-            categories.forEach(cat => {
+            const cats = ['High', 'Middle', 'Primary'];
+            const summaryRows = cats.map(cat => {
                 const s = stats[cat];
-                if (cat !== 'GrandTotal' && s.total === 0) return;
-                
-                const percentage = s.total > 0 ? ((s.present / s.total) * 100).toFixed(1) + '%' : '0.0%';
-                const catLabel = cat === 'GrandTotal' ? tr('Grand Total', 'کل میزان') : tr(cat, (translations['ur'] as any)[cat.toLowerCase()] || cat);
-                const bgStyle = cat === 'GrandTotal' ? 'background-color: #f3f4f6; font-weight: 900;' : '';
+                if (!s) return '';
+                const p = s.total > 0 ? ((s.present / s.total) * 100).toFixed(1) + '%' : '0.0%';
+                return `<tr><td style="font-weight: bold;">${tr(cat, cat === 'High' ? 'ہائی' : (cat === 'Middle' ? 'مڈل' : 'پرائمری'))}</td><td>${s.total}</td><td>${s.absent}</td><td>${s.sick}</td><td>${s.leave}</td><td>${s.present}</td><td>${p}</td></tr>`;
+            }).join('');
 
-                summaryRows += `
-                    <tr style="${bgStyle}">
-                        <td style="text-align: left; font-weight: bold;">${catLabel}</td>
-                        <td>${s.total}</td>
-                        <td style="color: #dc2626;">${s.absent}</td>
-                        <td style="color: #ea580c;">${s.sick}</td>
-                        <td style="color: #2563eb;">${s.leave}</td>
-                        <td style="background-color: #f0fdf4; font-weight: bold; color: #166534;">${s.present}</td>
-                        <td style="font-weight: bold;">${percentage}</td>
-                    </tr>
-                `;
-            });
+            const gt = stats.GrandTotal;
+            const gp = gt.total > 0 ? ((gt.present / gt.total) * 100).toFixed(1) + '%' : '0.0%';
+            const grandTotalRow = `<tr style="background-color: #e5e7eb; font-weight: 900;"><td>${tr('Total', 'کل')}</td><td>${gt.total}</td><td>${gt.absent}</td><td>${gt.sick}</td><td>${gt.leave}</td><td>${gt.present}</td><td>${gp}</td></tr>`;
 
-            summaryTable = `
-                <div style="margin-top: 8px; break-inside: avoid;">
-                    <h3 style="font-size: 1.1em; margin-bottom: 8px; border-bottom: 2px solid #000; display: inline-block; padding-bottom: 2px;">${tr('Section Wise Summary', 'سیکشن وائز خلاصہ')}</h3>
-                    <table style="width: 100%;">
-                        <thead>
-                            <tr>${summaryHeaders.map(h => `<th>${h}</th>`).join('')}</tr>
-                        </thead>
-                        <tbody>
-                            ${summaryRows}
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            summaryTable = `<div style="margin-top: 20px; break-inside: avoid;"><h3 style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">${tr('Summary', 'خلاصہ')}</h3><table style="width: 100%;"><thead><tr>${summaryHeaders.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${summaryRows}${grandTotalRow}</tbody></table></div>`;
         }
 
-        const customStyles = `
-            <style>
-                table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-                th, td { border: 1px solid ${design?.table?.borderColor || '#000000'}; padding: ${design?.table?.cellPadding || 8}px; text-align: center; word-wrap: break-word; font-size: ${design?.table?.fontSize || 14}px; line-height: 1.1; }
-                th { background-color: ${design?.table?.headerBgColor || '#f3f4f6'}; color: ${design?.table?.headerColor || '#000000'}; font-weight: bold; }
-                tr:nth-child(even) { background-color: ${design?.table?.altRowColor || '#f9fafb'}; }
-                th:nth-child(1) { width: 10%; }
-                th:nth-child(2) { width: 24%; }
-                th:nth-child(3), th:nth-child(4), th:nth-child(5), th:nth-child(6), th:nth-child(7) { width: 8%; }
-                th:nth-child(8) { width: 10%; }
-                th:nth-child(9) { width: 16%; }
-            </style>
-        `;
-
-        const locale = lang === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB';
-        const dateStr = dateObj.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        const title = tr('Student Attendance Report', 'طلباء کی حاضری رپورٹ');
+        const customStyles = `<style>table { width: 100%; border-collapse: collapse; font-size: ${design?.table?.fontSize || 14}px; } th, td { border: 1px solid ${design?.table?.borderColor || '#000000'}; padding: ${design?.table?.cellPadding || 8}px; text-align: center; line-height: 1.1; } th { background-color: ${design?.table?.headerBgColor || '#f3f4f6'}; color: ${design?.table?.headerColor || '#000000'}; font-weight: bold; } tr:nth-child(even) { background-color: ${design?.table?.altRowColor || '#f9fafb'}; }</style>`;
         const tableHtml = `${customStyles}<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${tableRows}</tbody></table>${summaryTable}`;
-        pages.push(generateReportHTML(schoolConfig, design, `${title} - ${dateStr}`, lang, tableHtml, '', i + 1, totalPagesCount));
+        const reportTitle = `${tr('Attendance Report', 'رپورٹ حاضری')} - ${dateObj.toLocaleDateString(lang === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+        pages.push(generateReportHTML(schoolConfig, design, reportTitle, lang, tableHtml, '', i + 1, totalPagesCount));
     }
 
     return pages.length === 1 ? pages[0] : pages;
 };
 
-// --- FIX: Added exported function generateAttendanceReportExcel ---
 export const generateAttendanceReportExcel = (
     t: any,
     lang: DownloadLanguage,
@@ -1498,12 +1465,16 @@ export const generateAttendanceReportExcel = (
     const tr = (key: string) => lang === 'ur' ? (urT as any)[key] : (enT as any)[key];
     
     const visibleClasses = classes.filter(c => c.id !== 'non-teaching-duties');
-    const header = [tr('class'), tr('classInCharge'), tr('totalStudents'), tr('absent'), tr('sick'), tr('leave'), tr('present'), '%'];
+    const header = [tr('Class', 'کلاس'), tr('In Charge', 'انچارج'), tr('Total', 'کل'), tr('Absent', 'غیر حاضر'), tr('Sick', 'بیمار'), tr('Leave', 'رخصت'), tr('Present', 'حاضر'), '%'];
     const rows: (string | number)[][] = [header];
 
     const dayAdjustments = adjustments[date] || [];
     const dayLeaves = leaveDetails[date] || {};
     const dayAttendance = attendance[date] || {};
+
+    const stats: Record<string, { total: number, absent: number, sick: number, leave: number, present: number }> = {
+        GrandTotal: { total: 0, absent: 0, sick: 0, leave: 0, present: 0 }
+    };
 
     visibleClasses.forEach(c => {
         const inChargeId = c.inCharge;
@@ -1533,19 +1504,22 @@ export const generateAttendanceReportExcel = (
         const sick = data?.sick || 0;
         const leaveCount = data?.leave || 0;
         const present = total - (abs + sick + leaveCount);
-        const percentage = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
+        const percentage = total > 0 ? ((present / total) * 100).toFixed(1) + '%' : '0.0%';
 
-        rows.push([
-            lang === 'ur' ? c.nameUr : c.nameEn,
-            activeInChargeName,
-            total,
-            abs,
-            sick,
-            leaveCount,
-            present,
-            percentage
-        ]);
+        stats.GrandTotal.total += total;
+        stats.GrandTotal.absent += abs;
+        stats.GrandTotal.sick += sick;
+        stats.GrandTotal.leave += leaveCount;
+        stats.GrandTotal.present += present;
+
+        rows.push([lang === 'ur' ? c.nameUr : c.nameEn, activeInChargeName, total, abs, sick, leaveCount, present, percentage]);
     });
+
+    const gt = stats.GrandTotal;
+    const gp = gt.total > 0 ? ((gt.present / gt.total) * 100).toFixed(1) + '%' : '0.0%';
+    
+    rows.push([]);
+    rows.push([tr('Grand Total', 'کل تعداد'), '', gt.total, gt.absent, gt.sick, gt.leave, gt.present, gp]);
 
     downloadCsv(rows.map(toCsvRow).join('\n'), `Attendance_Report_${date}.csv`);
 };

@@ -1,3 +1,4 @@
+
 export type Language = 'en' | 'ur';
 export type Page = 'home' | 'classTimetable' | 'teacherTimetable' | 'alternativeTimetable' | 'attendance' | 'dataEntry' | 'settings';
 export type DataEntryTab = 'class' | 'teacher' | 'subject' | 'jointPeriods' | 'structure' | 'lesson' | 'importExport' | 'school';
@@ -115,6 +116,13 @@ export interface Break {
     beforePeriod: number; // The break happens BEFORE this period number (1-based)
 }
 
+export interface Vacation {
+    id: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+}
+
 export interface AttendanceData {
     present: number;
     absent: number;
@@ -150,6 +158,7 @@ export interface TimetableSession {
       default: PeriodTime | null;
       friday: PeriodTime | null;
   };
+  vacations?: Vacation[];
 }
 
 export interface LeaveDetails {

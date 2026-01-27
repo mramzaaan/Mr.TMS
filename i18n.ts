@@ -50,6 +50,7 @@ const enTranslations = {
     submitAttendance: 'Submit Attendance',
     downloadAttendanceJson: 'Download JSON',
     uploadAttendanceJson: 'Upload JSON',
+    onVacation: 'On Vacation',
 
     // Data Entry
     addTeacher: 'Add Teacher',
@@ -97,6 +98,9 @@ const enTranslations = {
     selectClassesAndSubjects: 'Select Class and Subject pairs',
     selectAClass: 'Select a Class',
     selectATeacher: 'Select a Teacher',
+    vacations: 'School Vacations',
+    addVacation: 'Add Vacation',
+    vacationName: 'Vacation Name',
     
     // Add Lesson Form
     addLesson: 'Add Lesson',
@@ -403,6 +407,7 @@ const urTranslations = {
     submitAttendance: 'حاضری جمع کرائیں',
     downloadAttendanceJson: 'JSON ڈاؤن لوڈ کریں',
     uploadAttendanceJson: 'JSON اپ لوڈ کریں',
+    onVacation: 'چھٹی',
 
     addTeacher: 'استاد شامل کریں',
     addSubject: 'مضمون شامل کریں',
@@ -448,6 +453,9 @@ const urTranslations = {
     selectClassesAndSubjects: 'کلاس اور مضمون منتخب کریں',
     selectAClass: 'کلاس منتخب کریں',
     selectATeacher: 'استاد منتخب کریں',
+    vacations: 'سکول کی چھٹیاں',
+    addVacation: 'چھٹی شامل کریں',
+    vacationName: 'چھٹی کا نام',
     
     // Add Lesson Form
     addLesson: 'سبق شامل کریں',
@@ -478,7 +486,7 @@ const urTranslations = {
     highlightTeacher: 'استاد کو نمایاں کریں',
     clearTimetable: 'ٹائم ٹیبل صاف کریں',
     clearTimetableConfirm: 'کیا آپ واقعی اس کلاس کا پورا ٹائم ٹیبل صاف کرنا چاہتے ہیں؟ یہ عمل واپس نہیں کیا جا سکتا۔',
-    teacherConflictWarning: 'استاد का تصادم',
+    teacherConflictWarning: 'استاد کا تصادم',
     teacherConflictConfirmation: '{teacherName} پہلے سے اس وقت مصروف ہیں۔ کیا آپ انہیں پھر بھی تفویض کرنا چاہتے ہیں؟',
     copyTimetable: 'ٹائم ٹیبل کاپی کریں',
     sendToInCharge: 'انچارج کو بھیجیں',

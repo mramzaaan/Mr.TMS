@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { SchoolConfig, DayConfig, PeriodTime, Break, TimetableGridData, TimetableSession, DownloadDesignConfig } from '../types';
+import type { SchoolConfig, DayConfig, PeriodTime, Break, TimetableGridData, TimetableSession, DownloadDesignConfig, Vacation } from '../types';
 import { allDays, generateUniqueId } from '../types';
 import PrintPreview from './PrintPreview';
 import DownloadModal from './DownloadModal';
@@ -45,23 +45,27 @@ const TimetableStructureForm: React.FC<TimetableStructureFormProps> = ({ t, scho
       default: null,
       friday: null
   });
+  const [localVacations, setLocalVacations] = useState<Vacation[]>(currentTimetableSession?.vacations || []);
 
   const [activeTimingTab, setActiveTimingTab] = useState<'default' | 'friday'>('default');
   const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [isAddingVacation, setIsAddingVacation] = useState(false);
+  const [newVacation, setNewVacation] = useState<Vacation>({ id: '', name: '', startDate: '', endDate: '' });
 
-  // CRITICAL FIX: Watch for changes in the effective configuration (e.g. after import)
   useEffect(() => {
     if (effectiveConfig.daysConfig) setLocalDaysConfig(effectiveConfig.daysConfig);
     if (effectiveConfig.periodTimings) setLocalPeriodTimings(effectiveConfig.periodTimings);
     if (effectiveConfig.breaks) setLocalBreaks(effectiveConfig.breaks);
     if (effectiveConfig.assembly) setLocalAssembly(effectiveConfig.assembly);
+    if (currentTimetableSession?.vacations) setLocalVacations(currentTimetableSession.vacations);
   }, [
       // Watch deep properties to trigger re-render when import happens
       JSON.stringify(effectiveConfig.daysConfig),
       JSON.stringify(effectiveConfig.periodTimings),
       JSON.stringify(effectiveConfig.breaks),
       JSON.stringify(effectiveConfig.assembly),
+      JSON.stringify(currentTimetableSession?.vacations),
       currentTimetableSession?.id
   ]); 
 
@@ -208,7 +212,8 @@ const TimetableStructureForm: React.FC<TimetableStructureFormProps> = ({ t, scho
             daysConfig: localDaysConfig,
             periodTimings: localPeriodTimings,
             breaks: localBreaks,
-            assembly: localAssembly
+            assembly: localAssembly,
+            vacations: localVacations
         }));
         alert('Timetable structure saved to current session.');
       } else {
@@ -227,6 +232,25 @@ const TimetableStructureForm: React.FC<TimetableStructureFormProps> = ({ t, scho
     onUpdateSchoolConfig({
       downloadDesigns: { ...schoolConfig.downloadDesigns, schoolTimings: newDesign }
     });
+  };
+
+  // Vacation Handlers
+  const handleAddVacation = () => {
+      setNewVacation({ id: generateUniqueId(), name: '', startDate: '', endDate: '' });
+      setIsAddingVacation(true);
+  };
+
+  const handleConfirmAddVacation = () => {
+      if (newVacation.name && newVacation.startDate && newVacation.endDate) {
+          setLocalVacations(prev => [...prev, newVacation]);
+          setIsAddingVacation(false);
+      } else {
+          alert('Please fill all vacation fields');
+      }
+  };
+
+  const handleDeleteVacation = (id: string) => {
+      setLocalVacations(prev => prev.filter(v => v.id !== id));
   };
 
   // Construct a temporary config object reflecting current form state for preview
@@ -274,6 +298,55 @@ const TimetableStructureForm: React.FC<TimetableStructureFormProps> = ({ t, scho
                     {t.save}
                 </button>
             </div>
+        </div>
+
+        {/* Vacation Management */}
+        <div className="bg-[var(--bg-tertiary)]/50 p-4 rounded-lg border border-[var(--border-secondary)] mb-6">
+            <div className="flex justify-between items-center mb-4">
+                <h4 className="text-lg font-semibold text-[var(--text-primary)]">{t.vacations}</h4>
+                <button onClick={handleAddVacation} className="px-3 py-1.5 text-sm font-bold bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-secondary)] rounded-lg hover:bg-[var(--accent-secondary-hover)]">
+                    + {t.addVacation}
+                </button>
+            </div>
+            
+            {isAddingVacation && (
+                <div className="mb-4 p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--accent-primary)] animate-scale-in grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                    <div>
+                        <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">{t.vacationName}</label>
+                        <input type="text" value={newVacation.name} onChange={e => setNewVacation({...newVacation, name: e.target.value})} className="w-full p-2 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded text-sm text-[var(--text-primary)]" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">{t.startDate}</label>
+                        <input type="date" value={newVacation.startDate} onChange={e => setNewVacation({...newVacation, startDate: e.target.value})} className="w-full p-2 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded text-sm text-[var(--text-primary)]" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">{t.endDate}</label>
+                        <input type="date" value={newVacation.endDate} onChange={e => setNewVacation({...newVacation, endDate: e.target.value})} className="w-full p-2 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded text-sm text-[var(--text-primary)]" />
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={handleConfirmAddVacation} className="flex-1 py-2 bg-[var(--accent-primary)] text-white rounded font-bold text-sm">Save</button>
+                        <button onClick={() => setIsAddingVacation(false)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded font-bold text-sm">Cancel</button>
+                    </div>
+                </div>
+            )}
+
+            {localVacations.length === 0 ? (
+                <p className="text-sm text-[var(--text-secondary)] italic">No vacations scheduled.</p>
+            ) : (
+                <div className="space-y-2">
+                    {localVacations.map(vacation => (
+                        <div key={vacation.id} className="flex justify-between items-center p-3 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg">
+                            <div>
+                                <span className="font-bold text-[var(--text-primary)] mr-2">{vacation.name}</span>
+                                <span className="text-xs text-[var(--text-secondary)]">({vacation.startDate} to {vacation.endDate})</span>
+                            </div>
+                            <button onClick={() => handleDeleteVacation(vacation.id)} className="text-red-500 hover:text-red-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
 
         <div className="space-y-3">

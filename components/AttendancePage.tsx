@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Language, SchoolClass, TimetableSession, AttendanceData, SchoolConfig, DownloadDesignConfig } from '../types';
 import AttendanceForm from './AttendanceForm';
@@ -17,7 +18,7 @@ interface AttendancePageProps {
 
 const PrintIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" />
     </svg>
 );
 
@@ -33,7 +34,7 @@ const DownloadIcon = () => (
     </svg>
 );
 
-const AttendancePage: React.FC<AttendancePageProps> = ({ t, language, classes, currentTimetableSession, onUpdateSession, onUpdateSchoolConfig, schoolConfig }) => {
+export const AttendancePage: React.FC<AttendancePageProps> = ({ t, language, classes, currentTimetableSession, onUpdateSession, onUpdateSchoolConfig, schoolConfig }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
@@ -54,6 +55,15 @@ const AttendancePage: React.FC<AttendancePageProps> = ({ t, language, classes, c
 
   const selectedClass = visibleClasses.find(c => c.id === selectedClassId);
   const attendanceRecord = currentTimetableSession.attendance?.[selectedDate]?.[selectedClassId || ''];
+
+  const vacationToday = useMemo(() => {
+    return currentTimetableSession.vacations?.find(v => {
+        const start = new Date(v.startDate);
+        const end = new Date(v.endDate);
+        const current = new Date(selectedDate);
+        return current >= start && current <= end;
+    });
+  }, [selectedDate, currentTimetableSession.vacations]);
 
   // Logic to determine who is submitting attendance
   const submitterInfo = useMemo(() => {
@@ -263,7 +273,14 @@ const AttendancePage: React.FC<AttendancePageProps> = ({ t, language, classes, c
         </div>
       </div>
 
-      {selectedClass ? (
+      {vacationToday && (
+          <div className="mb-8 p-6 bg-orange-100 border-l-4 border-orange-500 text-orange-700 rounded-r-lg shadow-md animate-scale-in">
+              <h3 className="font-bold text-lg mb-1">{t.onVacation}: {vacationToday.name}</h3>
+              <p className="text-sm">Attendance submission is disabled for school vacation days.</p>
+          </div>
+      )}
+
+      {!vacationToday && selectedClass ? (
         <div className="animate-scale-in">
             <AttendanceForm 
                 t={t}
@@ -274,11 +291,9 @@ const AttendancePage: React.FC<AttendancePageProps> = ({ t, language, classes, c
                 submitterName={submitterInfo.name}
             />
         </div>
-      ) : (
+      ) : !vacationToday ? (
         <p className="text-center text-[var(--text-secondary)] italic py-10">No class selected</p>
-      )}
+      ) : null}
     </div>
   );
 };
-
-export default AttendancePage;

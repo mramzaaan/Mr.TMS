@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Language, Page, SchoolClass, Subject, Teacher, TimetableGridData, Adjustment, TimetableSession, UserData, SchoolConfig, DataEntryTab, Period, DownloadDesignConfig, DownloadDesigns, GroupSet, JointPeriod, LeaveDetails, PeriodTime, Break, AttendanceData } from './types';
 import { translations } from './i18n';
@@ -5,8 +6,8 @@ import HomePage from './components/HomePage';
 import DataEntryPage from './components/DataEntryPage';
 import ClassTimetablePage from './components/ClassTimetablePage';
 import { TeacherTimetablePage } from './components/TeacherTimetablePage';
-import { AlternativeTimetablePage } from './components/AdjustmentsPage';
-import AttendancePage from './components/AttendancePage';
+import { AlternativeTimetablePage } from './components/AlternativeTimetablePage';
+import { AttendancePage } from './components/AttendancePage';
 import SettingsPage from './components/SettingsPage';
 import { generateUniqueId, allDays } from './types';
 import BottomNavBar from './components/BottomNavBar';
@@ -216,6 +217,7 @@ const App: React.FC = () => {
         dataToLoad.timetableSessions.forEach(session => {
             if (!session.subjects) session.subjects = []; if (!session.teachers) session.teachers = []; if (!session.classes) session.classes = []; if (!session.jointPeriods) session.jointPeriods = []; if (!session.leaveDetails) session.leaveDetails = {}; if (!session.adjustments) session.adjustments = {};
             if (!session.daysConfig) session.daysConfig = dataToLoad.schoolConfig.daysConfig; if (!session.periodTimings) session.periodTimings = dataToLoad.schoolConfig.periodTimings; if (!session.breaks) session.breaks = dataToLoad.schoolConfig.breaks; if (!session.assembly) session.assembly = dataToLoad.schoolConfig.assembly;
+            if (!session.vacations) session.vacations = []; // Init Vacations
             session.teachers.forEach(teacher => { if (!(teacher as any).gender) (teacher as any).gender = 'Male'; delete (teacher as any).designation; delete (teacher as any).qualification; });
             session.classes.forEach(c => { if (!c.timetable) { c.timetable = { Monday: Array.from({ length: 8 }, () => []), Tuesday: Array.from({ length: 8 }, () => []), Wednesday: Array.from({ length: 8 }, () => []), Thursday: Array.from({ length: 8 }, () => []), Friday: Array.from({ length: 8 }, () => []), Saturday: Array.from({ length: 8 }, () => []) }; } else { if (!c.timetable.Saturday) c.timetable.Saturday = Array.from({ length: 8 }, () => []); } if (!c.subjects || !Array.isArray(c.subjects)) c.subjects = []; c.subjects.forEach(s => { if ((s as any).combinedGroupId) delete (s as any).combinedGroupId; }); });
         });
@@ -356,7 +358,7 @@ const App: React.FC = () => {
     const openConfirmation = (title: string, message: React.ReactNode, onConfirm: () => void) => { setConfirmationState({ isOpen: true, title, message, onConfirm }); };
     const updateCurrentSession = useCallback((updater: (session: TimetableSession) => TimetableSession) => { if (!currentTimetableSessionId) return; setUserData(prev => { const newSessions = prev.timetableSessions.map(session => session.id === currentTimetableSessionId ? updater(session) : session); return { ...prev, timetableSessions: newSessions }; }); }, [currentTimetableSessionId, setUserData]);
 
-    const handleCreateTimetableSession = (name: string, startDate: string, endDate: string) => { const newSession: TimetableSession = { id: generateUniqueId(), name, startDate, endDate, subjects: [], teachers: [], classes: [], jointPeriods: [], adjustments: {}, leaveDetails: {}, daysConfig: userData.schoolConfig.daysConfig, periodTimings: userData.schoolConfig.periodTimings, breaks: userData.schoolConfig.breaks, assembly: userData.schoolConfig.assembly }; setUserData(prev => ({ ...prev, timetableSessions: [...prev.timetableSessions, newSession] })); setCurrentTimetableSessionId(newSession.id); };
+    const handleCreateTimetableSession = (name: string, startDate: string, endDate: string) => { const newSession: TimetableSession = { id: generateUniqueId(), name, startDate, endDate, subjects: [], teachers: [], classes: [], jointPeriods: [], adjustments: {}, leaveDetails: {}, daysConfig: userData.schoolConfig.daysConfig, periodTimings: userData.schoolConfig.periodTimings, breaks: userData.schoolConfig.breaks, assembly: userData.schoolConfig.assembly, vacations: [] }; setUserData(prev => ({ ...prev, timetableSessions: [...prev.timetableSessions, newSession] })); setCurrentTimetableSessionId(newSession.id); };
     const handleUpdateTimetableSession = (id: string, name: string, startDate: string, endDate: string) => { setUserData(prev => ({ ...prev, timetableSessions: prev.timetableSessions.map(s => s.id === id ? { ...s, name, startDate, endDate } : s) })); };
     const handleDeleteTimetableSession = (id: string) => { openConfirmation(t.delete, t.areYouSure, () => { setUserData(prev => { const newSessions = prev.timetableSessions.filter(s => s.id !== id); if (currentTimetableSessionId === id) { setCurrentTimetableSessionId(newSessions.length > 0 ? newSessions[0].id : null); } return { ...prev, timetableSessions: newSessions }; }); }); };
     
@@ -365,6 +367,7 @@ const App: React.FC = () => {
         if (!session.periodTimings) session.periodTimings = userData.schoolConfig.periodTimings; 
         if (!session.breaks) session.breaks = userData.schoolConfig.breaks; 
         if (!session.assembly) session.assembly = userData.schoolConfig.assembly; 
+        if (!session.vacations) session.vacations = [];
         
         setUserData(prev => { 
             const sessionExists = prev.timetableSessions.some(s => s.id === session.id); 
