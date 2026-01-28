@@ -113,7 +113,7 @@ const PeriodStack: React.FC<PeriodStackProps> = ({ periods, onDragStart, onDragE
               contextNameJsx = language === 'ur' ? <span className="font-urdu">کوئی استاد نہیں</span> : 'No Teacher';
               titleString = `${subject.nameEn} - No Teacher`;
           }
-      } else { // displayContext === 'class'
+      } else { // displayContext === 'class' (Teacher Timetable View: Shows Classes)
           const classIds = [...new Set(periods.map(p => p.classId))];
           const relevantClasses = classes.filter(c => classIds.includes(c.id));
           
@@ -214,8 +214,19 @@ const PeriodStack: React.FC<PeriodStackProps> = ({ periods, onDragStart, onDragE
         )}
         
         <div className={`flex-1 min-w-0 pr-1 flex flex-col justify-between h-full ${firstPeriod.jointPeriodId || groupInfo ? 'pt-2' : ''}`}>
-            <p className="font-bold text-xs truncate pt-1">{subjectNameJsx}</p>
-            <p className="text-[10px] truncate opacity-90 text-right">{contextNameJsx}</p>
+            {displayContext === 'class' ? (
+                <>
+                    {/* Class Name (Context): Larger, Top-Left */}
+                    <p className="font-black text-sm truncate pt-1 text-left leading-tight">{contextNameJsx}</p>
+                    {/* Subject Name: Smaller, Bottom-Right */}
+                    <p className="text-[10px] font-medium truncate opacity-90 text-right leading-tight">{subjectNameJsx}</p>
+                </>
+            ) : (
+                <>
+                    <p className="font-bold text-xs truncate pt-1 text-left leading-tight">{subjectNameJsx}</p>
+                    <p className="text-[10px] truncate opacity-90 text-right leading-tight">{contextNameJsx}</p>
+                </>
+            )}
         </div>
         {showCount && count > 1 && (
             <div className="count-badge ml-1 flex-shrink-0 bg-white/70 text-gray-800 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border border-gray-300">

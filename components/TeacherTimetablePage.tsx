@@ -4,7 +4,7 @@ import { allDays, generateUniqueId } from '../types';
 import PeriodStack from './PeriodStack';
 import TeacherAvailabilitySummary from './TeacherAvailabilitySummary';
 import PrintPreview from './PrintPreview';
-import TeacherCommunicationModal from './TeacherCommunicationModal';
+import { TeacherCommunicationModal } from './TeacherCommunicationModal';
 import DownloadModal from './DownloadModal';
 import { generateTeacherTimetableHtml, calculateWorkloadStats } from './reportUtils';
 import NoSessionPlaceholder from './NoSessionPlaceholder';
@@ -49,11 +49,11 @@ interface TeacherTimetablePageProps {
   canRedo?: boolean;
 }
 
-const teacherColorNames = [
-  'subject-sky', 'subject-green', 'subject-yellow', 'subject-red',
-  'subject-purple', 'subject-pink', 'subject-orange', 'subject-teal',
-  'subject-lime', 'subject-cyan', 'subject-emerald', 'subject-fuchsia',
-  'subject-rose', 'subject-amber', 'subject-blue', 'subject-indigo'
+const cmykPalette = [
+  'subject-cyan', 'subject-fuchsia', 'subject-yellow', 'subject-sky',
+  'subject-pink', 'subject-lime', 'subject-red', 'subject-green',
+  'subject-blue', 'subject-purple', 'subject-orange', 'subject-teal',
+  'subject-emerald', 'subject-rose', 'subject-amber', 'subject-indigo'
 ];
 
 type SortField = 'date' | 'period' | 'type' | 'class' | 'subject' | 'teacher';
@@ -98,56 +98,46 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
   const maxPeriods = useMemo(() => Math.max(...activeDays.map(day => schoolConfig.daysConfig?.[day]?.periodCount ?? 8)), [activeDays, schoolConfig.daysConfig]);
   const periodLabels = useMemo(() => Array.from({length: maxPeriods}, (_, i) => (i + 1).toString()), [maxPeriods]);
 
-  // Stable hashing function to get a color based on Class + Subject
-  const getCombinationColor = useCallback((periods: Period[]) => {
-      const p = periods[0];
-      const key = `${p.classId}-${p.subjectId}-${p.jointPeriodId || ''}`;
-      let hash = 0;
-      for (let i = 0; i < key.length; i++) {
-          hash = key.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      const index = Math.abs(hash) % teacherColorNames.length;
-      return teacherColorNames[index];
-  }, []);
-
-  // Compute a subject-to-color map for the Communication Modal to use
-  const computedSubjectColorMapForTeacher = useMemo(() => {
-    const map = new Map<string, string>();
-    if (!selectedTeacherId) return map;
-    
-    classes.forEach(c => {
-      c.subjects.forEach(s => {
-        if (s.teacherId === selectedTeacherId) {
-          // Emulate getCombinationColor's key structure logic
-          const key = `${c.id}-${s.subjectId}-`; // Assuming non-joint for base subject list
-          let hash = 0;
-          for (let i = 0; i < key.length; i++) {
-              hash = key.charCodeAt(i) + ((hash << 5) - hash);
-          }
-          const index = Math.abs(hash) % teacherColorNames.length;
-          map.set(s.subjectId, teacherColorNames[index]);
-        }
+  const teacherSpecificColorMap = useMemo(() => {
+      if (!selectedTeacherId) return new Map<string, string>();
+      const combinations = new Set<string>();
+      
+      // Gather all (Class, Subject) pairs
+      classes.forEach(c => {
+          // Check subjects list
+          c.subjects.forEach(s => {
+              if (s.teacherId === selectedTeacherId) {
+                  combinations.add(`${c.id}-${s.subjectId}`);
+              }
+          });
       });
-    });
-    
-    jointPeriods.forEach(jp => {
-        if (jp.teacherId === selectedTeacherId) {
-            jp.assignments.forEach(assign => {
-                const key = `${assign.classId}-${assign.subjectId}-${jp.id}`;
-                let hash = 0;
-                for (let i = 0; i < key.length; i++) {
-                    hash = key.charCodeAt(i) + ((hash << 5) - hash);
-                }
-                const index = Math.abs(hash) % teacherColorNames.length;
-                // Note: If a subject appears in multiple classes, this map might overwrite.
-                // However, for the Modal's grouping by subjectId, this provides a stable mapping.
-                map.set(assign.subjectId, teacherColorNames[index]);
-            });
-        }
-    });
+      
+      // Also ensure Joint Periods are covered
+      jointPeriods.forEach(jp => {
+          if (jp.teacherId === selectedTeacherId) {
+              jp.assignments.forEach(a => combinations.add(`${a.classId}-${a.subjectId}`));
+          }
+      });
 
-    return map;
+      const sorted = Array.from(combinations).sort();
+      const map = new Map<string, string>();
+      
+      sorted.forEach((key, index) => {
+          map.set(key, cmykPalette[index % cmykPalette.length]);
+      });
+      return map;
   }, [selectedTeacherId, classes, jointPeriods]);
+
+  const getCombinationColor = useCallback((periods: Period[]) => {
+      if (!periods.length) return 'subject-default';
+      const p = periods[0];
+      // Use classId and subjectId to determine color. 
+      // If it's a joint period group (multiple periods), they should share the same color if they are the same logical block.
+      // However, joint periods typically link multiple classes. 
+      // We pick the first period in the stack to determine the color.
+      const key = `${p.classId}-${p.subjectId}`;
+      return teacherSpecificColorMap.get(key) || 'subject-default';
+  }, [teacherSpecificColorMap]);
 
   // Construct Teacher's Timetable View from Class Data
   const teacherTimetableData = useMemo(() => {
@@ -818,7 +808,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
                 subjects={subjects}
                 classes={classes}
                 schoolConfig={schoolConfig}
-                subjectColorMap={computedSubjectColorMapForTeacher}
+                subjectColorMap={teacherSpecificColorMap}
             />
         </>
       )}

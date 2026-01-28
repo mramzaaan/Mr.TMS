@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { Language, SchoolClass, Subject, Teacher, TimetableGridData, Adjustment, SchoolConfig, Period, LeaveDetails, DownloadDesignConfig, TimetableSession } from '../types';
 import PrintPreview from './PrintPreview';
@@ -17,7 +18,6 @@ const ImportExportIcon = () => (
 );
 const ImportIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m-4-4v12" /></svg>;
 const ChevronDown = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>;
-const ChevronUp = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>;
 const DoubleBookedWarningIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline-block" viewBox="0 0 20 20" fill="currentColor">
       <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1-1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -127,7 +127,7 @@ const SignatureModal: React.FC<{
             try {
                 await onFinalSave(canvas.toDataURL());
                 onClose();
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Submission failed", err);
             } finally {
                 setIsSubmitting(false);
@@ -499,7 +499,6 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
   const findAvailableTeachers = useCallback((periodIndex: number, period: Period): TeacherWithStatus[] => {
     if (!dayOfWeek) return [];
     
-    // FIX: Fixed typo 'busyThrough substitution' to 'busyThroughSubstitution'
     const busyThroughSubstitution = new Set(dailyAdjustments.filter(adj => adj.periodIndex === periodIndex).map(adj => adj.substituteTeacherId));
     
     const allTeachersWithStatus = teachers
@@ -593,7 +592,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
   
   const handleSaveAdjustments = () => {
     onSetAdjustments(selectedDate, dailyAdjustments);
-    alert(t.saveAdjustments);
+    alert(`${t.saveAdjustments}`);
   };
   
   const openModal = (mode: 'teacher' | 'class' = 'teacher', id: string = '') => {
@@ -783,7 +782,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     const dataStr = JSON.stringify(exportData, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
     const dateRangeStr = exportStartDate === exportEndDate ? exportStartDate : `${exportStartDate}_to_${exportEndDate}`;
     link.download = `mr_timetable_data_${dateRangeStr}.json`;
@@ -799,20 +798,23 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const json = e.target?.result as string;
-        const imported: any[] = JSON.parse(json);
+        const json = e.target?.result;
+        if (typeof json !== 'string') return;
+        const imported: any = JSON.parse(json);
         if (!Array.isArray(imported)) throw new Error("Invalid format");
+        
+        const importedArray = imported as any[];
 
         onUpdateSession((session) => {
             const newAdjustments = { ...session.adjustments };
             const newLeaveDetails = { ...session.leaveDetails };
 
-            const isNewFormat = imported.length > 0 && (imported[0].adjustments !== undefined || imported[0].leaveDetails !== undefined);
+            const isNewFormat = importedArray.length > 0 && (importedArray[0].adjustments !== undefined || importedArray[0].leaveDetails !== undefined);
 
             if (isNewFormat) {
-                imported.forEach(dayData => {
+                importedArray.forEach((dayData: any) => {
                     const { date, adjustments: dayAdjs, leaveDetails: dayLeaves } = dayData;
-                    if (date) {
+                    if (typeof date === 'string') {
                         if (Array.isArray(dayAdjs)) {
                             newAdjustments[date] = dayAdjs.map((adj: any) => ({
                                 ...adj,
@@ -826,12 +828,12 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                 });
                 alert("Data imported successfully (Leaves & Adjustments).");
             } else {
-                const isMultiDate = imported.some(item => item.date);
+                const isMultiDate = importedArray.some((item: any) => item.date);
 
                 if (isMultiDate) {
-                    const grouped: Record<string, Adjustment[]> = imported.reduce((acc: Record<string, Adjustment[]>, item: any) => {
+                    const grouped: Record<string, Adjustment[]> = importedArray.reduce((acc: Record<string, Adjustment[]>, item: any) => {
                         const date = item.date;
-                        if (date) {
+                        if (typeof date === 'string') {
                             if (!acc[date]) acc[date] = [];
                             const { date: _, ...adj } = item;
                             acc[date].push({ ...adj, id: generateUniqueId() });
@@ -844,19 +846,19 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                         const importedTeacherIds = [...new Set(adjs.map(adj => adj.originalTeacherId))];
                         if (importedTeacherIds.length > 0) {
                             const dayLeaves = newLeaveDetails[date] || {};
-                            importedTeacherIds.forEach((id: any) => {
+                            importedTeacherIds.forEach((id: string) => {
                                 if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
                             });
                             newLeaveDetails[date] = dayLeaves;
                         }
                     });
                 } else {
-                    const transformed = imported.map(adj => ({ ...adj, id: generateUniqueId(), day: dayOfWeek as keyof TimetableGridData }));
+                    const transformed = importedArray.map((adj: any) => ({ ...adj, id: generateUniqueId(), day: dayOfWeek as keyof TimetableGridData }));
                     newAdjustments[selectedDate] = transformed;
-                    const importedTeacherIds = [...new Set(transformed.map((adj: any) => adj.originalTeacherId))];
+                    const importedTeacherIds = [...new Set(transformed.map((adj: any) => adj.originalTeacherId))].filter((id): id is string => typeof id === 'string');
                     if (importedTeacherIds.length > 0) {
                         const dayLeaves = newLeaveDetails[selectedDate] || {};
-                        importedTeacherIds.forEach((id: any) => {
+                        importedTeacherIds.forEach((id: string) => {
                             if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
                         });
                         newLeaveDetails[selectedDate] = dayLeaves;
@@ -914,8 +916,9 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     const msgT = translations[messageLanguage];
     const dateStr = date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 
-    let message;
-    if (adjustment.conflictDetails) {
+    let message: string;
+    const conflictDetails = adjustment.conflictDetails;
+    if (conflictDetails) {
         message = msgT.substituteNotificationMessageDoubleBook
             .replace('{teacherName}', respectfulName)
             .replace('{date}', dateStr)
@@ -925,7 +928,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             .replace('{subjectName}', messageLanguage === 'ur' ? subject.nameUr : subject.nameEn)
             .replace('{roomNumber}', schoolClass.roomNumber || '-')
             .replace('{originalTeacherName}', messageLanguage === 'ur' ? originalTeacher.nameUr : originalTeacher.nameEn)
-            .replace('{conflictClassName}', messageLanguage === 'ur' ? adjustment.conflictDetails.classNameUr : adjustment.conflictDetails.classNameEn);
+            .replace('{conflictClassName}', messageLanguage === 'ur' ? conflictDetails.classNameUr : conflictDetails.classNameEn);
     } else {
         message = msgT.notificationTemplateDefault
             .replace('{teacherName}', respectfulName)
@@ -980,7 +983,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
         });
         fullMessage += `\n`;
     });
-    navigator.clipboard.writeText(fullMessage).then(() => alert(t.messagesCopied));
+    navigator.clipboard.writeText(fullMessage).then(() => alert(`${t.messagesCopied}`));
   };
   
   const handleSavePrintDesign = (newDesign: DownloadDesignConfig) => {
@@ -998,7 +1001,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             t, langForImage, design, dailyAdjustments, teachers, classes, subjects, schoolConfig, selectedDate, absentTeacherIds, signature
           );
 
-          const lastPageHtml = pagesHtml[pagesHtml.length - 1];
+          const lastPageHtml = Array.isArray(pagesHtml) ? pagesHtml[pagesHtml.length - 1] : pagesHtml;
 
           const tempContainer = document.createElement('div');
           const isPortrait = design.page.orientation === 'portrait';
@@ -1037,14 +1040,19 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           if (blob) {
               const file = new File([blob], `Signed_Adjustments_${selectedDate}.png`, { type: 'image/png' });
               
-              // Attempt Share - FIX: Casting navigator for missing definitions
+              // Attempt Share
               if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
                   try {
                       await (navigator as any).share({ files: [file], title: `Signed Adjustments - ${selectedDate}` });
-                  } catch (shareErr: any) {
+                  } catch (error: any) {
                       // Silently handle cancellation
-                      if (shareErr.name !== 'AbortError') {
-                          throw shareErr;
+                      if (error?.name !== 'AbortError') {
+                          console.warn("Share failed, falling back to download", error);
+                          // Fallback to download manually if share fails but not aborted
+                          const link = document.createElement('a');
+                          link.href = canvas.toDataURL('image/png');
+                          link.download = `Signed_Adjustments_${selectedDate}.png`;
+                          link.click();
                       }
                   }
               } else {
@@ -1057,7 +1065,8 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           }
       } catch (err: any) {
           console.error("Image generation failed", err);
-          alert("Failed to generate and share image. Please try again.");
+          const msg = err instanceof Error ? err.message : String(err);
+          alert(`Failed to generate and share image. Please try again. (${msg})`);
       } finally {
           setIsGeneratingImage(false);
       }
@@ -1296,7 +1305,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
              <button onClick={handleSaveAdjustments} title={t.saveAdjustments} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg></button>
             <button onClick={() => setIsImportExportOpen(true)} title="Import / Export" className="p-2 text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] transition-colors"><ImportExportIcon /></button>
             <input type="file" ref={fileInputRef} onChange={handleImportJson} accept=".json" className="hidden" />
-            <button onClick={() => setIsPrintPreviewOpen(true)} disabled={dailyAdjustments.length === 0} title={t.printViewAction} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg></button>
+            <button onClick={() => setIsPrintPreviewOpen(true)} disabled={dailyAdjustments.length === 0} title={t.printViewAction} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg></button>
             <button onClick={handleCancelAlternativeTimetable} disabled={dailyAdjustments.length === 0 && absentTeacherIds.length === 0} title={t.cancelAlternativeTimetable} className="p-2 text-sm font-medium text-red-600 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
       </div>

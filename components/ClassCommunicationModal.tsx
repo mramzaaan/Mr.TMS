@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { SchoolClass, Teacher, TimetableGridData, Subject, SchoolConfig, CardStyle, TriangleCorner, Period } from '../types';
 import { allDays } from '../types';
@@ -52,7 +53,6 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
   subjectColorMap
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [copyFeedback, setCopyFeedback] = useState('');
   const [mergePatterns, setMergePatterns] = useState(schoolConfig.downloadDesigns.class.table.mergeIdenticalPeriods ?? true);
 
   const themeColors = useMemo(() => {
@@ -70,44 +70,12 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
     [schoolConfig.daysConfig]
   );
 
-  const timetableMessage = useMemo(() => {
-    let message = `*Class Timetable: ${selectedClass.nameEn} / ${selectedClass.nameUr}*\n`;
-    message += `*Class In-Charge: ${inChargeTeacher.nameEn} / ${inChargeTeacher.nameUr}*\n\n`;
-
-    activeDays.forEach(day => {
-      const periodsForDay: { periodIndex: number, text: string }[] = [];
-      for (let i = 0; i < 12; i++) {
-        const slot = selectedClass.timetable[day]?.[i] || [];
-        if (slot.length > 0) {
-          const slotText = slot.map(period => {
-            const subject = subjects.find(s => s.id === period.subjectId);
-            const teacher = teachers.find(t => t.id === period.teacherId);
-            return subject && teacher ? `${subject.nameEn} (${teacher.nameEn})` : '';
-          }).filter(Boolean).join(' / ');
-          
-          if (slotText) {
-            periodsForDay.push({ periodIndex: i, text: slotText });
-          }
-        }
-      }
-
-      if (periodsForDay.length > 0) {
-        message += `*${t[day.toLowerCase()]}*\n`;
-        periodsForDay.forEach(p => {
-          message += `- P${p.periodIndex + 1}: ${p.text}\n`;
-        });
-        message += '\n';
-      }
-    });
-
-    return message.trim();
-  }, [selectedClass, inChargeTeacher, subjects, teachers, t, activeDays]);
-
   const generateTimetableImageHtml = () => {
       const allColorClasses = [...subjectColorNames, 'subject-default'];
       const cardStyle = schoolConfig.downloadDesigns.class.table.cardStyle || 'full';
       const triangleCorner = schoolConfig.downloadDesigns.class.table.triangleCorner || 'bottom-left';
       const outlineWidth = schoolConfig.downloadDesigns.class.table.outlineWidth || 2;
+      const badgeTarget = schoolConfig.downloadDesigns.class.table.badgeTarget || 'subject';
       
       // Fixed 1:1 Ratio
       const size = 1000;
@@ -196,7 +164,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
           .img-header {
             position: relative;
             z-index: 10;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
           }
 
           .img-school-name { 
@@ -204,7 +172,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             font-size: 44px; 
             color: ${themeColors.accent}; 
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
             line-height: 1;
@@ -216,71 +184,56 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             flex-direction: row;
             justify-content: space-between;
             align-items: center;
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 15px 30px;
-            border-left: 8px solid ${themeColors.accent};
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-            gap: 15px;
+            padding: 0 20px 10px 20px;
+            border-bottom: 2px solid ${themeColors.accent}30;
           }
           
           .info-class-name { 
-            font-size: 38px; 
+            font-size: 40px; 
             font-weight: 900; 
             color: #111827; 
             text-transform: uppercase; 
             line-height: 1;
-            flex-grow: 1;
             text-align: center;
             white-space: nowrap;
+            flex: 1;
+            padding: 0 10px;
           }
           
-          .info-label {
-            font-size: 11px;
-            font-weight: 900;
-            text-transform: uppercase;
-            color: #64748b;
-            letter-spacing: 0.05em;
-            margin-bottom: 5px;
-            display: block;
-          }
-
-          .info-value {
-            font-size: 16px;
-            font-weight: 800;
-            color: #334155;
-            white-space: normal;
-            line-height: 1.1;
-          }
-
           .info-stats-side { 
-            flex: 1;
-            max-width: 30%;
+            font-size: 16px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
           }
+
+          .compact-val { color: #1e293b; font-weight: 900; font-size: 18px; }
           
           .img-table { 
             width: 100%; 
-            border-collapse: separate; 
-            border-spacing: 8px; 
+            border-collapse: collapse; 
             table-layout: fixed; 
             flex-grow: 1; 
-            border: none; 
             position: relative;
             z-index: 10;
           }
           
           .img-table th { 
-            background-color: ${themeColors.accent};
-            color: white; 
+            background-color: transparent;
+            color: ${themeColors.accent}; 
             font-weight: 900; 
             text-transform: uppercase;
-            padding: 12px 6px;
-            border-radius: 10px;
-            font-size: 15px;
+            padding: 10px 4px;
+            font-size: 26px; /* Increased */
             line-height: 1;
             letter-spacing: 0.025em;
+            border: 1px solid #e2e8f0; /* Thin line */
           }
-          .img-table th:first-child { width: 50px; background: transparent; color: ${themeColors.accent}; }
+          .img-table th:first-child { width: 50px; background: transparent; }
           
           .period-label { 
             background-color: transparent !important; 
@@ -289,13 +242,15 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             font-size: 28px;
             text-align: center;
             line-height: 1;
+            border: 1px solid #e2e8f0; /* Thin line */
           }
           
           .slot-cell { 
             height: auto; 
-            padding: 0; 
+            padding: 4px; 
             background-color: transparent; 
-            border: none !important;
+            border: 1px solid #e2e8f0; /* Thin line */
+            vertical-align: top;
           }
           
           .card-wrapper {
@@ -304,12 +259,12 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             width: 100%;
             height: 100%;
             justify-content: flex-start;
-            gap: 4px;
+            gap: 2px;
           }
 
           .period-card-img { 
             flex: 1;
-            border-radius: 10px; 
+            border-radius: 6px; 
             line-height: 1; 
             box-sizing: border-box;
             display: flex;
@@ -321,7 +276,8 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             ${cardStyleCss}
             position: relative;
             height: 100%;
-            padding: 8px;
+            min-height: 80px;
+            padding: 6px;
           }
           .period-card-img p { margin: 0; padding: 0 1px; width: 100%; z-index: 10; position: relative; color: inherit !important; line-height: 1.1; }
           .period-subject { font-weight: 900; font-size: 18px; text-transform: uppercase; margin-bottom: 2px !important; }
@@ -346,7 +302,10 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                   color: ${TEXT_HEX_MAP[name]} !important;
                   opacity: ${cardStyle === 'full' ? 0.3 : 1.0};
               }
-              ${cardStyle === 'badge' ? `.${name} .period-subject { background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 2px 8px; border-radius: 12px; }` : ''}
+              ${cardStyle === 'badge' ? `
+                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 2px 8px; border-radius: 12px; display: inline-block;` : ''} }
+                  .${name} .period-teacher { ${badgeTarget === 'teacher' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 2px 8px; border-radius: 12px; display: inline-block;` : ''} }
+              ` : ''}
           `).join('\n')}
 
           .footer-watermark {
@@ -386,11 +345,20 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                       const tea = teachers.find(t => t.id === p.teacherId);
                       const colorName = subjectColorMap.get(p.teacherId) || 'subject-default';
                       const triangleHtml = (cardStyle === 'triangle' || cardStyle === 'full') ? `<div class="card-triangle"></div>` : '';
+                      
+                      let subjectBadgeStyle = '';
+                      let teacherBadgeStyle = '';
+                      if (cardStyle === 'badge') {
+                          const badgeCss = `background-color: var(--${colorName}-text); color: #fff !important; padding: 1px 6px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
+                          if (badgeTarget === 'teacher') teacherBadgeStyle = badgeCss;
+                          else subjectBadgeStyle = badgeCss; // default subject
+                      }
+                      
                       return `
                           <div class="period-card-img ${colorName}">
                               ${triangleHtml}
-                              <p class="period-subject">${sub?.nameEn || ''}</p>
-                              <p class="period-teacher">${tea?.nameEn || ''}</p>
+                              <p class="period-subject" style="${subjectBadgeStyle}">${sub?.nameEn || ''}</p>
+                              <p class="period-teacher" style="${teacherBadgeStyle}">${tea?.nameEn || ''}</p>
                           </div>
                       `;
                   }).join('');
@@ -413,7 +381,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
               const dayLimit = schoolConfig.daysConfig?.[dayName]?.periodCount ?? 8;
 
               if (r >= dayLimit) {
-                  rowHtml += '<td class="slot-cell" style="background: #f1f5f9; border-radius: 8px;"></td>';
+                  rowHtml += '<td class="slot-cell" style="background: #f8fafc;"></td>';
                   visited[r][c] = true;
                   continue;
               }
@@ -434,6 +402,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                       colspan++;
                   }
                   
+                  // Merge vertical
                   let canExtendVertical = true;
                   while (r + rowspan < maxPeriods && canExtendVertical) {
                       for (let j = 0; j < colspan; j++) {
@@ -475,13 +444,11 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             <div class="img-school-name">${schoolConfig.schoolNameEn}</div>
             <div class="header-info-row">
                 <div class="info-stats-side" style="text-align: left;">
-                    <span class="info-label">Room #</span>
-                    <span class="info-value">${selectedClass.roomNumber || '-'}</span>
+                    Rm: <span class="compact-val">${selectedClass.roomNumber || '-'}</span>
                 </div>
                 <div class="info-class-name">${selectedClass.nameEn}</div>
                 <div class="info-stats-side" style="text-align: right;">
-                    <span class="info-label">In-Charge</span>
-                    <span class="info-value">${inChargeTeacher.nameEn}</span>
+                    IC: <span class="compact-val">${inChargeTeacher.nameEn}</span>
                 </div>
             </div>
           </div>
@@ -564,7 +531,6 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
         try {
             if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
                  await navigator.clipboard.write([new ClipboardItem({[blob.type]: blob})]);
-                 setCopyFeedback(t.imageCopied);
             }
         } catch (clipboardError) {
             console.warn("Clipboard write failed", clipboardError);
@@ -589,7 +555,6 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            setCopyFeedback(t.imageDownloaded);
         }
 
         let phoneNumber = inChargeTeacher.contactNumber.replace(/\D/g, '');
@@ -606,7 +571,6 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
     } finally {
         if (tempContainer.parentNode) document.body.removeChild(tempContainer);
         setIsGenerating(false);
-        setTimeout(() => setCopyFeedback(''), 4000);
     }
   };
 
@@ -614,18 +578,11 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
     if (inChargeTeacher?.contactNumber) {
         let phoneNumber = inChargeTeacher.contactNumber.replace(/\D/g, '');
         if (phoneNumber.startsWith('0')) phoneNumber = '92' + phoneNumber.substring(1);
-        const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(timetableMessage)}`;
+        const url = `https://wa.me/${phoneNumber}`;
         window.open(url, '_blank');
     } else {
-        alert("In-charge teacher's contact number not found.");
+        alert("Teacher's contact number not found.");
     }
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(timetableMessage).then(() => {
-        setCopyFeedback(t.messagesCopied);
-        setTimeout(() => setCopyFeedback(''), 2000);
-    });
   };
 
   if (!isOpen) return null;
@@ -635,22 +592,11 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
       <div className="bg-[#1a2333] rounded-xl shadow-2xl w-full max-w-sm mx-4 flex flex-col border border-white/10" onClick={e => e.stopPropagation()}>
         <div className="p-5 border-b border-white/10 flex justify-between items-center bg-[#252f44]">
             <h3 className="text-xl font-black text-white uppercase tracking-tight">
-                Send to In-charge: {selectedClass.nameEn}
+                Send to Class In-Charge
             </h3>
         </div>
         
-        <div className="flex-grow p-5 overflow-y-auto bg-[#1a2333] max-h-[60vh] custom-scrollbar">
-          <pre className="text-sm text-blue-100 whitespace-pre-wrap font-sans opacity-90">
-            {timetableMessage}
-          </pre>
-        </div>
-        
-        <div className="flex-shrink-0 p-4 border-t border-white/10 space-y-3 bg-[#1a2333]">
-            <div className="flex gap-3">
-                <button onClick={onClose} className="px-4 py-3 text-sm font-black uppercase tracking-widest bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 flex-grow shadow-lg transition-all active:scale-95">{t.close}</button>
-                <button onClick={handleCopy} className="px-4 py-3 text-sm font-black uppercase tracking-widest bg-[#4a5568] text-white rounded-xl hover:bg-[#2d3748] flex-grow shadow-lg transition-all active:scale-95">{t.copyMessage}</button>
-            </div>
-            
+        <div className="flex-shrink-0 p-4 space-y-3 bg-[#1a2333]">
             <div className="flex items-center justify-between bg-[#252f44] p-3 rounded-xl border border-white/10">
                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Merge Patterns</span>
                 <button 
@@ -669,4 +615,18 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                     </div>
                 ) : (
                     <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" /></svg>
+                    <span>{t.sendAsImage}</span>
+                    </>
+                )}
+            </button>
+            <button onClick={handleSendWhatsApp} disabled={isGenerating} className="w-full h-16 flex items-center justify-center gap-3 px-4 py-4 text-sm font-black uppercase tracking-[0.2em] bg-[#128C7E] text-white rounded-xl hover:bg-[#075e54] disabled:opacity-50 shadow-2xl transition-all transform active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.905 6.03l-.419 1.533 1.519-.4zM15.53 17.53c-.07-.121-.267-.202-.56-.347-.297-.146-1.758-.868-2.031-.967-.272-.099-.47-.146-.669.146-.199.293-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.15-1.255-.463-2.39-1.475-1.134-1.012-1.31-1.36-1.899-2.258-.151-.231-.04-.355.043-.463.083-.107.185-.293.28-.439.095-.146.12-.245.18-.41.06-.164.03-.311-.015-.438-.046-.127-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.177-.008-.375-.01-1.04-.01h-.11c-.307.003-1.348-.043-1.348 1.438 0 1.482.791 2.906 1.439 3.82.648.913 2.51 3.96 6.12 5.368 3.61 1.408 3.61 1.054 4.258 1.034.648-.02 1.758-.715 2.006-1.413.248-.698.248-1.289.173-1.413z" /></svg>
+                <span>{t.sendViaWhatsApp}</span>
+            </button>
+            <button onClick={onClose} className="w-full py-3 text-sm font-black uppercase tracking-widest bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 shadow-lg transition-all active:scale-95">{t.close}</button>
+        </div>
+      </div>
+    </div>
+  );
+};

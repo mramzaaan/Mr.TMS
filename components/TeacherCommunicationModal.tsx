@@ -19,10 +19,10 @@ interface TeacherCommunicationModalProps {
 }
 
 const subjectColorNames = [
-  'subject-red', 'subject-sky', 'subject-green', 'subject-yellow',
-  'subject-purple', 'subject-pink', 'subject-indigo', 'subject-teal',
-  'subject-orange', 'subject-lime', 'subject-cyan', 'subject-emerald',
-  'subject-fuchsia', 'subject-rose', 'subject-amber', 'subject-blue'
+  'subject-cyan', 'subject-fuchsia', 'subject-yellow', 'subject-sky',
+  'subject-pink', 'subject-lime', 'subject-red', 'subject-green',
+  'subject-blue', 'subject-purple', 'subject-orange', 'subject-teal',
+  'subject-emerald', 'subject-rose', 'subject-amber', 'subject-indigo'
 ];
 
 const COLOR_HEX_MAP: Record<string, string> = {
@@ -41,7 +41,7 @@ const TEXT_HEX_MAP: Record<string, string> = {
     'subject-default': '#374151'
 };
 
-const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
+export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
   t,
   isOpen,
   onClose,
@@ -53,7 +53,6 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
   subjectColorMap
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [copyFeedback, setCopyFeedback] = useState('');
   const [mergePatterns, setMergePatterns] = useState(schoolConfig.downloadDesigns.teacher.table.mergeIdenticalPeriods ?? true);
 
   const themeColors = useMemo(() => {
@@ -83,43 +82,12 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
     return count;
   }, [teacherTimetableData, activeDays]);
 
-  const timetableMessage = useMemo(() => {
-    let message = `*${t.teacherTimetable}: ${selectedTeacher.nameEn} / ${selectedTeacher.nameUr}*\n\n`;
-
-    activeDays.forEach(day => {
-      const periodsForDay: { periodIndex: number, text: string }[] = [];
-      for (let i = 0; i < 12; i++) {
-        const slot = teacherTimetableData[day]?.[i] || [];
-        if (slot.length > 0) {
-          const slotText = slot.map(period => {
-            const subject = subjects.find(s => s.id === period.subjectId);
-            const schoolClass = classes.find(c => c.id === period.classId);
-            return subject && schoolClass ? `${subject.nameEn} (${schoolClass.nameEn})` : '';
-          }).filter(Boolean).join(' / ');
-          
-          if (slotText) {
-            periodsForDay.push({ periodIndex: i, text: slotText });
-          }
-        }
-      }
-
-      if (periodsForDay.length > 0) {
-        message += `*${t[day.toLowerCase()]}*\n`;
-        periodsForDay.forEach(p => {
-          message += `- P${p.periodIndex + 1}: ${p.text}\n`;
-        });
-        message += '\n';
-      }
-    });
-
-    return message.trim();
-  }, [selectedTeacher, teacherTimetableData, subjects, classes, t, activeDays]);
-
   const generateTimetableImageHtml = () => {
       const allColorClasses = [...subjectColorNames, 'subject-default'];
       const cardStyle = schoolConfig.downloadDesigns.teacher.table.cardStyle || 'full';
       const triangleCorner = schoolConfig.downloadDesigns.teacher.table.triangleCorner || 'bottom-left';
       const outlineWidth = schoolConfig.downloadDesigns.teacher.table.outlineWidth || 2;
+      const badgeTarget = schoolConfig.downloadDesigns.teacher.table.badgeTarget || 'subject';
       
       // Fixed 1:1 Ratio
       const size = 1000;
@@ -208,7 +176,7 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
           .img-header {
             position: relative;
             z-index: 10;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
           }
 
           .img-school-name { 
@@ -216,7 +184,7 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
             font-size: 44px; 
             color: ${themeColors.accent}; 
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
             line-height: 1;
@@ -228,70 +196,56 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
             flex-direction: row;
             justify-content: space-between;
             align-items: center;
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 15px 30px;
-            border-left: 8px solid ${themeColors.accent};
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-            gap: 15px;
+            padding: 0 20px 10px 20px;
+            border-bottom: 2px solid ${themeColors.accent}30;
           }
           
           .info-teacher-name { 
-            font-size: 38px; 
+            font-size: 40px; 
             font-weight: 900; 
             color: #111827; 
             text-transform: uppercase; 
             line-height: 1;
-            flex-grow: 1;
             text-align: center;
             white-space: nowrap;
+            flex: 1;
+            padding: 0 10px;
           }
           
-          .info-label {
-            font-size: 11px;
-            font-weight: 900;
-            text-transform: uppercase;
-            color: #64748b;
-            letter-spacing: 0.05em;
-            margin-bottom: 5px;
-            display: block;
-          }
-
-          .info-value {
-            font-size: 16px;
-            font-weight: 800;
-            color: #334155;
-            line-height: 1.1;
-          }
-
           .info-stats-side { 
-            flex: 1;
-            max-width: 30%;
+            font-size: 16px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
           }
+
+          .compact-val { color: #1e293b; font-weight: 900; font-size: 18px; }
           
           .img-table { 
             width: 100%; 
-            border-collapse: separate; 
-            border-spacing: 8px; 
+            border-collapse: collapse; 
             table-layout: fixed; 
             flex-grow: 1; 
-            border: none; 
             position: relative;
             z-index: 10;
           }
           
           .img-table th { 
-            background-color: ${themeColors.accent};
-            color: white; 
+            background-color: transparent;
+            color: ${themeColors.accent}; 
             font-weight: 900; 
             text-transform: uppercase;
-            padding: 12px 6px;
-            border-radius: 10px;
-            font-size: 15px;
+            padding: 10px 4px;
+            font-size: 26px; /* Increased font size */
             line-height: 1;
             letter-spacing: 0.025em;
+            border: 1px solid #e2e8f0; /* Thin line */
           }
-          .img-table th:first-child { width: 50px; background: transparent; color: ${themeColors.accent}; }
+          .img-table th:first-child { width: 50px; background: transparent; }
           
           .period-label { 
             background-color: transparent !important; 
@@ -300,13 +254,15 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
             font-size: 28px;
             text-align: center;
             line-height: 1;
+            border: 1px solid #e2e8f0; /* Thin line */
           }
           
           .slot-cell { 
             height: auto; 
-            padding: 0; 
+            padding: 4px; 
             background-color: transparent; 
-            border: none !important;
+            border: 1px solid #e2e8f0; /* Thin line */
+            vertical-align: top;
           }
           
           .card-wrapper {
@@ -315,28 +271,29 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
             width: 100%;
             height: 100%;
             justify-content: flex-start;
-            gap: 4px;
+            gap: 2px;
           }
 
-          .teacher-card-img { 
+          .period-card-img { 
             flex: 1;
-            border-radius: 10px; 
+            border-radius: 6px; 
             line-height: 1; 
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
+            justify-content: space-between;
+            align-items: stretch;
+            text-align: left;
             overflow: hidden;
             ${cardStyleCss}
             position: relative;
             height: 100%;
-            padding: 8px;
+            min-height: 80px;
+            padding: 6px;
           }
-          .teacher-card-img p { margin: 0; padding: 0 1px; width: 100%; z-index: 10; position: relative; color: inherit !important; line-height: 1.1; }
-          .period-subject { font-weight: 900; font-size: 18px; text-transform: uppercase; margin-bottom: 2px !important; }
-          .period-class { font-weight: 600; opacity: 0.9; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .period-card-img p { margin: 0; padding: 0 1px; width: 100%; z-index: 10; position: relative; color: inherit !important; line-height: 1.1; }
+          .period-class { font-weight: 900; font-size: 26px; text-transform: none; text-align: left; }
+          .period-subject { font-weight: 600; opacity: 0.9; font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
 
           .card-triangle {
               position: absolute;
@@ -347,7 +304,7 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
               z-index: 5;
           }
           
-          ${allColorClasses.map(name => `
+          ${[...subjectColorNames, 'subject-default'].map(name => `
               .${name} { 
                   ${cardStyle === 'full' ? `background-color: ${COLOR_HEX_MAP[name]}; color: ${TEXT_HEX_MAP[name]};` : `background-color: #ffffff; color: ${TEXT_HEX_MAP[name]};`}
                   border-color: ${TEXT_HEX_MAP[name]} !important; 
@@ -357,7 +314,10 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
                   color: ${TEXT_HEX_MAP[name]} !important;
                   opacity: ${cardStyle === 'full' ? 0.3 : 1.0};
               }
-              ${cardStyle === 'badge' ? `.${name} .period-subject { background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 2px 8px; border-radius: 12px; }` : ''}
+              ${cardStyle === 'badge' ? `
+                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 2px 8px; border-radius: 12px; display: inline-block;` : ''} }
+                  .${name} .period-class { ${badgeTarget === 'class' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 2px 8px; border-radius: 12px; display: inline-block;` : ''} }
+              ` : ''}
           `).join('\n')}
 
           .footer-watermark {
@@ -389,35 +349,23 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
               const day = activeDays[c];
               const slot = teacherTimetableData[day]?.[r] || [];
               if (slot.length > 0) {
-                  const groupedBySubject = new Map<string, { classNames: string[] }>();
-                  slot.forEach(p => {
+                  // Sort by subject then class
+                  const sortedPeriods = [...slot].sort((a, b) => a.subjectId.localeCompare(b.subjectId));
+                  const key = sortedPeriods.map(p => `${p.subjectId}:${p.classId}`).join('|');
+                  
+                  const cardsContent = sortedPeriods.map(p => {
                       const sub = subjects.find(s => s.id === p.subjectId);
-                      const cls = classes.find(cl => cl.id === p.classId);
-                      if (sub && cls) {
-                          if (!groupedBySubject.has(sub.id)) groupedBySubject.set(sub.id, { classNames: [] });
-                          groupedBySubject.get(sub.id)!.classNames.push(cls.nameEn);
-                      }
-                  });
-                  
-                  const sortedSubjectIds = Array.from(groupedBySubject.keys()).sort();
-                  const key = sortedSubjectIds.map(sid => `${sid}:${groupedBySubject.get(sid)!.classNames.sort().join(',')}`).join('|');
-                  
-                  const cardsContent = sortedSubjectIds.map(subId => {
-                      const data = groupedBySubject.get(subId)!;
-                      const sub = subjects.find(s => s.id === subId);
-                      const colorName = subjectColorMap.get(subId) || 'subject-default';
+                      const cls = classes.find(c => c.id === p.classId);
+                      // Use subjectColorMap which is keyed by "classId-subjectId"
+                      const colorKey = `${p.classId}-${p.subjectId}`;
+                      const colorName = subjectColorMap.get(colorKey) || 'subject-default';
                       const triangleHtml = (cardStyle === 'triangle' || cardStyle === 'full') ? `<div class="card-triangle"></div>` : '';
                       
-                      let subjectBadgeStyle = '';
-                      if (cardStyle === 'badge') {
-                          subjectBadgeStyle = `background-color: var(--${colorName}-text); color: #fff !important; padding: 1px 6px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
-                      }
-
                       return `
-                          <div class="teacher-card-img ${colorName}">
+                          <div class="period-card-img ${colorName}">
                               ${triangleHtml}
-                              <p class="period-subject" style="${subjectBadgeStyle}">${sub?.nameEn || ''}</p>
-                              <p class="period-class">${data.classNames.join(', ')}</p>
+                              <p class="period-class">${cls?.nameEn || ''}</p>
+                              <p class="period-subject">${sub?.nameEn || ''}</p>
                           </div>
                       `;
                   }).join('');
@@ -440,7 +388,7 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
               const dayLimit = schoolConfig.daysConfig?.[dayName]?.periodCount ?? 8;
 
               if (r >= dayLimit) {
-                  rowHtml += '<td class="slot-cell" style="background: #f1f5f9; border-radius: 8px;"></td>';
+                  rowHtml += '<td class="slot-cell" style="background: #f8fafc;"></td>';
                   visited[r][c] = true;
                   continue;
               }
@@ -455,15 +403,20 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
               let colspan = 1;
 
               if (mergePatterns) {
+                  // Merge horizontal
                   while (c + colspan < activeDays.length && grid[r][c + colspan] && grid[r][c + colspan]!.key === current.key && !visited[r][c + colspan]) {
+                      const dayLimitNext = schoolConfig.daysConfig?.[activeDays[c + colspan]]?.periodCount ?? 8;
+                      if (r >= dayLimitNext) break;
                       colspan++;
                   }
                   
+                  // Merge vertical
                   let canExtendVertical = true;
                   while (r + rowspan < maxPeriods && canExtendVertical) {
                       for (let j = 0; j < colspan; j++) {
                           const next = grid[r + rowspan][c + j];
-                          if (!next || next.key !== current.key || visited[r + rowspan][c + j]) {
+                          const dayLimitAt = schoolConfig.daysConfig?.[activeDays[c + j]]?.periodCount ?? 8;
+                          if (r + rowspan >= dayLimitAt || !next || next.key !== current.key || visited[r + rowspan][c + j]) {
                               canExtendVertical = false;
                               break;
                           }
@@ -483,7 +436,6 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
           tableRows += `<tr>${rowHtml}</tr>`;
       }
 
-      const teacherShortName = selectedTeacher.nameEn.split(' ').slice(0, 4).join(' ');
       const currentTimestamp = new Date().toLocaleString('en-GB', { 
         day: '2-digit', 
         month: 'short', 
@@ -500,13 +452,11 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
             <div class="img-school-name">${schoolConfig.schoolNameEn}</div>
             <div class="header-info-row">
                 <div class="info-stats-side" style="text-align: left;">
-                    <span class="info-label">Serial #</span>
-                    <span class="info-value">${selectedTeacher.serialNumber || '-'}</span>
+                    SR: <span class="compact-val">${selectedTeacher.serialNumber || '-'}</span>
                 </div>
-                <div class="info-teacher-name">${teacherShortName}</div>
+                <div class="info-teacher-name">${selectedTeacher.nameEn}</div>
                 <div class="info-stats-side" style="text-align: right;">
-                    <span class="info-label">Workload</span>
-                    <span class="info-value">${workload} ${workload === 1 ? 'Period' : 'Periods'}</span>
+                    Load: <span class="compact-val">${workload}</span>
                 </div>
             </div>
           </div>
@@ -531,14 +481,14 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
   };
 
   const handleSendImageAsPicture = async () => {
-    window.focus();
+    window.focus(); 
     if (!selectedTeacher?.contactNumber) {
         alert("Teacher's contact number not found.");
         return;
     }
     
     setIsGenerating(true);
-    
+
     const size = 1000;
     const width = size;
     const height = size;
@@ -569,7 +519,7 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
             logging: false,
             width: width,
             height: height,
-            windowWidth: width,
+            windowWidth: width, 
             windowHeight: height,
             onclone: (clonedDoc: Document) => {
                 const container = clonedDoc.querySelector('.timetable-image-container') as HTMLElement;
@@ -589,7 +539,6 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
         try {
             if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
                  await navigator.clipboard.write([new ClipboardItem({[blob.type]: blob})]);
-                 setCopyFeedback(t.imageCopied);
             }
         } catch (clipboardError) {
             console.warn("Clipboard write failed", clipboardError);
@@ -614,7 +563,6 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            setCopyFeedback(t.imageDownloaded);
         }
 
         let phoneNumber = selectedTeacher.contactNumber.replace(/\D/g, '');
@@ -626,12 +574,11 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
         }, 800);
         
     } catch (error) {
-        console.error("Error in WhatsApp send flow", error);
+        console.error("Error in image generation/sharing flow", error);
         alert("Failed to generate image.");
     } finally {
         if (tempContainer.parentNode) document.body.removeChild(tempContainer);
         setIsGenerating(false);
-        setTimeout(() => setCopyFeedback(''), 4000);
     }
   };
 
@@ -639,44 +586,30 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
     if (selectedTeacher?.contactNumber) {
         let phoneNumber = selectedTeacher.contactNumber.replace(/\D/g, '');
         if (phoneNumber.startsWith('0')) phoneNumber = '92' + phoneNumber.substring(1);
-        const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(timetableMessage)}`;
+        const url = `https://wa.me/${phoneNumber}`;
         window.open(url, '_blank');
     } else {
         alert("Teacher's contact number not found.");
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(timetableMessage).then(() => {
-        setCopyFeedback(t.messagesCopied);
-        setTimeout(() => setCopyFeedback(''), 2000);
-    });
-  };
-
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[101]" onClick={onClose}>
-      <div className="bg-[var(--bg-secondary)] rounded-xl shadow-2xl w-full max-w-sm mx-4 flex flex-col" onClick={e => e.stopPropagation()}>
-        <h3 className="text-xl font-bold p-5 border-b border-[var(--border-primary)] text-[var(--text-primary)]">
-          {t.sendToTeacher}: {selectedTeacher.nameEn}
-        </h3>
-        <div className="flex-grow p-5 overflow-y-auto bg-[var(--bg-tertiary)] max-h-[60vh] custom-scrollbar">
-          <pre className="text-sm text-[var(--text-primary)] whitespace-pre-wrap font-sans">
-            {timetableMessage}
-          </pre>
+      <div className="bg-[#1a2333] rounded-xl shadow-2xl w-full max-w-sm mx-4 flex flex-col border border-white/10" onClick={e => e.stopPropagation()}>
+        <div className="p-5 border-b border-white/10 flex justify-between items-center bg-[#252f44]">
+            <h3 className="text-xl font-black text-white uppercase tracking-tight">
+                Send to Teacher
+            </h3>
         </div>
-        <div className="flex-shrink-0 p-4 border-t border-[var(--border-primary)] space-y-3">
-            <div className="flex justify-center gap-3">
-                <button onClick={onClose} className="px-4 py-3 text-sm font-semibold bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 flex-grow shadow-md transition-all active:scale-95">{t.close}</button>
-                <button onClick={handleCopy} className="px-4 py-3 text-sm font-semibold bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex-grow shadow-md transition-all active:scale-95">{t.copyMessage}</button>
-            </div>
-            
-            <div className="flex items-center justify-between bg-[var(--bg-tertiary)] p-3 rounded-xl border border-[var(--border-secondary)]">
-                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">Merge Patterns</span>
+        
+        <div className="flex-shrink-0 p-4 space-y-3 bg-[#1a2333]">
+            <div className="flex items-center justify-between bg-[#252f44] p-3 rounded-xl border border-white/10">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Merge Patterns</span>
                 <button 
                     onClick={() => setMergePatterns(!mergePatterns)}
-                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${mergePatterns ? 'bg-[var(--accent-primary)]' : 'bg-gray-300'}`}
+                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${mergePatterns ? 'bg-[var(--accent-primary)]' : 'bg-gray-600'}`}
                 >
                     <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${mergePatterns ? 'translate-x-4' : 'translate-x-0'}`} />
                 </button>
@@ -699,11 +632,9 @@ const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps> = ({
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.905 6.03l-.419 1.533 1.519-.4zM15.53 17.53c-.07-.121-.267-.202-.56-.347-.297-.146-1.758-.868-2.031-.967-.272-.099-.47-.146-.669.146-.199.293-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.15-1.255-.463-2.39-1.475-1.134-1.012-1.31-1.36-1.899-2.258-.151-.231-.04-.355.043-.463.083-.107.185-.293.28-.439.095-.146.12-.245.18-.41.06-.164.03-.311-.015-.438-.046-.127-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.177-.008-.375-.01-1.04-.01h-.11c-.307.003-1.348-.043-1.348 1.438 0 1.482.791 2.906 1.439 3.82.648.913 2.51 3.96 6.12 5.368 3.61 1.408 3.61 1.054 4.258 1.034.648-.02 1.758-.715 2.006-1.413.248-.698.248-1.289.173-1.413z" /></svg>
                 <span>{t.sendViaWhatsApp}</span>
             </button>
-            {copyFeedback && <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mt-1 text-center animate-pulse">{copyFeedback}</p>}
+            <button onClick={onClose} className="w-full py-3 text-sm font-black uppercase tracking-widest bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 shadow-lg transition-all active:scale-95">{t.close}</button>
         </div>
       </div>
     </div>
   );
 };
-
-export default TeacherCommunicationModal;

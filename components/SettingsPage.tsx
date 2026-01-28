@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Language, SchoolConfig, SchoolClass, Teacher, Subject, Adjustment, DownloadDesignConfig, FontFamily, LeaveDetails, AttendanceData, CardStyle, TriangleCorner } from '../types';
 import type { Theme, NavPosition, NavDesign, NavShape, ThemeColors } from '../App';
@@ -499,6 +500,21 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     });
   };
 
+  const handleBadgeTargetChange = (type: 'class' | 'teacher', target: 'subject' | 'teacher' | 'class') => {
+    onUpdateSchoolConfig({
+        downloadDesigns: {
+            ...schoolConfig.downloadDesigns,
+            [type]: {
+                ...schoolConfig.downloadDesigns[type],
+                table: {
+                    ...schoolConfig.downloadDesigns[type].table,
+                    badgeTarget: target
+                }
+            }
+        }
+    });
+  };
+
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8 pb-24">
        {isAboutOpen && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-fade-in" onClick={() => setIsAboutOpen(false)}><div className="bg-[var(--bg-secondary)] rounded-2xl shadow-2xl p-8 max-w-sm w-full transform transition-all scale-100" onClick={e => e.stopPropagation()}><div className="text-center mb-8"><div className="flex justify-center mb-4">{schoolConfig.schoolLogoBase64 ? (<img src={schoolConfig.schoolLogoBase64} alt="School Logo" className="w-64 h-64 object-contain rounded-xl shadow-sm bg-white p-1" />) : (<div className="w-48 h-48 bg-blue-100 rounded-full flex items-center justify-center text-blue-500 shadow-inner"><svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>)}</div><h3 className="text-2xl font-bold text-[var(--text-primary)] mb-1">About Mr. TMS</h3><p className="text-[var(--text-secondary)] text-sm">Timetable Management System</p></div><div className="space-y-4"><a href="https://wa.me/923009541797" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-[#e9f5e9] hover:bg-[#dceddd] border border-[#c8e6c9] rounded-xl transition-all group"><div className="p-2 bg-white rounded-full text-[#25D366] shadow-sm"><WhatsAppLogo /></div><div className="text-left"><div className="font-bold text-gray-800 text-sm">Contact Support</div><div className="text-xs text-gray-600">+92 300 9541797</div></div></a><a href="https://whatsapp.com/channel/0029VaU50UPADTOEpHNSJa0r" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-[#e9f5e9] hover:bg-[#dceddd] border border-[#c8e6c9] rounded-xl transition-all group"><div className="p-2 bg-white rounded-full text-[#25D366] shadow-sm"><BroadcastIcon /></div><div className="text-left"><div className="font-bold text-gray-800 text-sm">WhatsApp Channel</div><div className="text-xs text-gray-600">Stay updated with news</div></div></a></div><button onClick={() => setIsAboutOpen(false)} className="mt-8 w-full py-2 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">Close</button></div></div>)}
@@ -601,7 +617,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
         <div className="bg-[var(--bg-secondary)] rounded-lg shadow-md border border-[var(--border-primary)] mb-8 overflow-hidden">
             <button className="w-full flex justify-between items-center p-6 text-left" onClick={() => setIsDesignDefaultsOpen(!isDesignDefaultsOpen)}>
-                <h3 className="text-xl font-bold text-[var(--text-primary)]">Document & Image Design</h3>
+                <h3 className="text-xl font-bold text-[var(--text-primary)]">Class and Teacher Communication</h3>
                 <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transform transition-transform text-[var(--text-secondary)] ${isDesignDefaultsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </button>
             <div className={`grid transition-all duration-500 ${isDesignDefaultsOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
@@ -633,6 +649,19 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                         {cardStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                     </select>
                                 </div>
+                                {schoolConfig.downloadDesigns.class.table.cardStyle === 'badge' && (
+                                    <div className="animate-scale-in">
+                                        <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Badge Target</label>
+                                        <select 
+                                            value={schoolConfig.downloadDesigns.class.table.badgeTarget || 'subject'}
+                                            onChange={(e) => handleBadgeTargetChange('class', e.target.value as any)}
+                                            className="w-full p-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-lg text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] outline-none"
+                                        >
+                                            <option value="subject">Subject</option>
+                                            <option value="teacher">Teacher</option>
+                                        </select>
+                                    </div>
+                                )}
                                 {schoolConfig.downloadDesigns.class.table.cardStyle === 'outline' && (
                                     <div className="animate-scale-in">
                                         <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Outline Thickness (px)</label>
@@ -689,6 +718,19 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                         {cardStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                     </select>
                                 </div>
+                                {schoolConfig.downloadDesigns.teacher.table.cardStyle === 'badge' && (
+                                    <div className="animate-scale-in">
+                                        <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Badge Target</label>
+                                        <select 
+                                            value={schoolConfig.downloadDesigns.teacher.table.badgeTarget || 'subject'}
+                                            onChange={(e) => handleBadgeTargetChange('teacher', e.target.value as any)}
+                                            className="w-full p-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-lg text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] outline-none"
+                                        >
+                                            <option value="subject">Subject</option>
+                                            <option value="class">Class</option>
+                                        </select>
+                                    </div>
+                                )}
                                 {schoolConfig.downloadDesigns.teacher.table.cardStyle === 'outline' && (
                                     <div className="animate-scale-in">
                                         <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Outline Thickness (px)</label>
@@ -893,7 +935,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                             <ReportCard title={t.schoolTimings} description="Bell schedule for regular days and Friday." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorGradient="from-amber-500 to-orange-600" onClick={() => setIsSchoolTimingsPreviewOpen(true)} />
                             <ReportCard title={t.classTimetable} description="Print timetables for selected classes." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg>} colorGradient="from-violet-500 to-purple-600" onClick={handleClassTimetableClick} />
                             <ReportCard title={t.teacherTimetable} description="Print timetables for selected teachers." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>} colorGradient="from-emerald-500 to-green-600" onClick={handleTeacherTimetableClick} />
-                            <ReportCard title={t.workloadSummaryReport} description="Weekly period counts for teachers." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} colorGradient="from-rose-500 to-pink-600" onClick={handleWorkloadReportClick} />
+                            <ReportCard title={t.workloadSummaryReport} description="Weekly period counts for teachers." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} colorGradient="from-rose-500 to-pink-600" onClick={handleWorkloadReportClick} />
                             <ReportCard title={t.alternative} description="Daily adjustments and substitution slip." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>} colorGradient="from-indigo-500 to-violet-600" onClick={() => setIsAlternativePreviewOpen(true)} />
                             <ReportCard title={t.attendanceReport} description="Daily student attendance with class in-charge." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} colorGradient="from-emerald-500 to-teal-600" onClick={() => setIsAttendanceReportPreviewOpen(true)} />
                         </div>
