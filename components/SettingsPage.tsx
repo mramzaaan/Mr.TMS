@@ -623,7 +623,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
         <div className="bg-[var(--bg-secondary)] rounded-lg shadow-md border border-[var(--border-primary)] mb-8 overflow-hidden">
             <button className="w-full flex justify-between items-center p-6 text-left" onClick={() => setIsDesignDefaultsOpen(!isDesignDefaultsOpen)}>
-                <h3 className="text-xl font-bold text-[var(--text-primary)]">Class and Teacher Communication</h3>
+                <h3 className="text-xl font-bold text-[var(--text-primary)]">Design Defaults</h3>
                 <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transform transition-transform text-[var(--text-secondary)] ${isDesignDefaultsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </button>
             <div className={`grid transition-all duration-500 ${isDesignDefaultsOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>

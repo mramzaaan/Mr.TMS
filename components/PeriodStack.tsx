@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import type { Period, Language, Subject, Teacher, SchoolClass, JointPeriod } from '../types';
 
@@ -223,8 +222,10 @@ const PeriodStack: React.FC<PeriodStackProps> = ({ periods, onDragStart, onDragE
                 </>
             ) : (
                 <>
-                    <p className="font-bold text-xs truncate pt-1 text-left leading-tight">{subjectNameJsx}</p>
-                    <p className="text-[10px] truncate opacity-90 text-right leading-tight">{contextNameJsx}</p>
+                    {/* Subject Name: Increased size (base), Font Black, Top-Left */}
+                    <p className="font-black text-base truncate pt-0.5 text-left leading-tight">{subjectNameJsx}</p>
+                    {/* Teacher Name: Smaller, Font Bold, Bottom-Right */}
+                    <p className="text-[11px] font-bold truncate opacity-90 text-right leading-tight">{contextNameJsx}</p>
                 </>
             )}
         </div>

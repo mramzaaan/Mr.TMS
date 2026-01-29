@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import type { Period, Language, Subject, Teacher, SchoolClass, JointPeriod } from '../types';
 
@@ -145,10 +144,12 @@ const PeriodCard: React.FC<PeriodCardProps> = ({ period, onDragStart, onDragEnd,
       
       <div className={`flex flex-col justify-between flex-grow ${groupInfo || period.jointPeriodId ? 'pt-3' : ''}`}>
         <div>
-            <p className="font-bold leading-tight truncate">{subjectName}</p>
+            {/* Subject: Larger, Black Font */}
+            <p className="font-black text-base leading-tight truncate">{subjectName}</p>
         </div>
         <div>
-            <p className="text-[10px] leading-tight truncate opacity-80 w-full text-right">{contextName}</p>
+            {/* Teacher/Context: Smaller, Bold, Right Aligned */}
+            <p className="text-[11px] font-bold leading-tight truncate opacity-90 w-full text-right">{contextName}</p>
         </div>
       </div>
 

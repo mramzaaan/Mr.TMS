@@ -25,6 +25,17 @@ const subjectColorNames = [
   'subject-emerald', 'subject-rose', 'subject-amber', 'subject-indigo'
 ];
 
+const cardStyles: { label: string; value: CardStyle }[] = [
+    { label: 'Full Color', value: 'full' },
+    { label: 'Outline', value: 'outline' },
+    { label: 'Text Only', value: 'text' },
+    { label: 'Triangle', value: 'triangle' },
+    { label: 'Glass', value: 'glass' },
+    { label: 'Gradient', value: 'gradient' },
+    { label: 'Minimal', value: 'minimal-left' },
+    { label: 'Badge', value: 'badge' }
+];
+
 const COLOR_HEX_MAP: Record<string, string> = {
     'subject-red': '#fee2e2', 'subject-sky': '#e0f2fe', 'subject-green': '#dcfce7', 'subject-yellow': '#fef9c3',
     'subject-purple': '#f3e8ff', 'subject-pink': '#fce7f3', 'subject-indigo': '#e0e7ff', 'subject-teal': '#ccfbf1',
@@ -54,6 +65,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [mergePatterns, setMergePatterns] = useState(schoolConfig.downloadDesigns.teacher.table.mergeIdenticalPeriods ?? true);
+  const [selectedCardStyle, setSelectedCardStyle] = useState<CardStyle>(schoolConfig.downloadDesigns.teacher.table.cardStyle || 'full');
 
   const themeColors = useMemo(() => {
     if (typeof window === 'undefined') return { accent: '#0d9488', bg: '#ffffff', text: '#111827' };
@@ -84,7 +96,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
 
   const generateTimetableImageHtml = () => {
       const allColorClasses = [...subjectColorNames, 'subject-default'];
-      const cardStyle = schoolConfig.downloadDesigns.teacher.table.cardStyle || 'full';
+      const cardStyle = selectedCardStyle;
       const triangleCorner = schoolConfig.downloadDesigns.teacher.table.triangleCorner || 'bottom-left';
       const outlineWidth = schoolConfig.downloadDesigns.teacher.table.outlineWidth || 2;
       const badgeTarget = schoolConfig.downloadDesigns.teacher.table.badgeTarget || 'subject';
@@ -488,15 +500,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       `;
   };
 
-  const handleSendImageAsPicture = async () => {
-    window.focus(); 
-    if (!selectedTeacher?.contactNumber) {
-        alert("Teacher's contact number not found.");
-        return;
-    }
-    
-    setIsGenerating(true);
-
+  const generateAndGetBlob = async (): Promise<Blob | null> => {
     const size = 1000;
     const width = size;
     const height = size;
@@ -521,7 +525,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
 
         const targetElement = tempContainer.children[0] as HTMLElement;
         const canvas = await html2canvas(targetElement, { 
-            scale: 2.5, 
+            scale: 3, // Increased quality
             useCORS: true,
             backgroundColor: '#ffffff',
             logging: false,
@@ -538,67 +542,106 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             }
         });
         
-        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-        if (!blob) throw new Error("Canvas to Blob failed");
+        // Use PNG for clipboard compatibility
+        return await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+    } catch (error) {
+        console.error("Canvas generation failed", error);
+        return null;
+    } finally {
+        if (tempContainer.parentNode) document.body.removeChild(tempContainer);
+    }
+  };
 
-        let shareSuccessful = false;
-        const file = new File([blob], `timetable_${selectedTeacher.nameEn.replace(/\s/g, '_')}.png`, { type: 'image/png' });
+  const handleSendImageAsPicture = async () => {
+    window.focus(); 
+    setIsGenerating(true);
 
+    const blob = await generateAndGetBlob();
+    if (!blob) {
+        alert("Failed to generate image.");
+        setIsGenerating(false);
+        return;
+    }
+
+    const file = new File([blob], `timetable_${selectedTeacher.nameEn.replace(/\s/g, '_')}.png`, { type: 'image/png' });
+
+    // Try Share API (Mobile)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                files: [file],
+                title: 'Timetable',
+                text: `Timetable for ${selectedTeacher.nameEn}`
+            });
+            setIsGenerating(false);
+            return;
+        } catch (error) {
+            console.log("Share cancelled or failed, falling back to download.");
+        }
+    }
+
+    // Fallback: Download
+    const dataUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(dataUrl);
+    
+    setIsGenerating(false);
+  };
+
+  const handleSendWhatsApp = async () => {
+    if (!selectedTeacher?.contactNumber) {
+        alert("Teacher's contact number not found.");
+        return;
+    }
+    
+    setIsGenerating(true);
+    const blob = await generateAndGetBlob();
+
+    if (blob) {
+        let copied = false;
         try {
             if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
                  await navigator.clipboard.write([new ClipboardItem({[blob.type]: blob})]);
+                 copied = true;
             }
         } catch (clipboardError) {
             console.warn("Clipboard write failed", clipboardError);
         }
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({ files: [file], title: `${selectedTeacher.nameEn} Timetable` });
-                shareSuccessful = true;
-            } catch (shareError: any) {
-                if (shareError.name !== 'AbortError') {
-                    console.warn("Share failed, falling back to download", shareError);
-                }
-            }
+        if (!copied) {
+             // Fallback: Download image so user can manually attach
+             const dataUrl = URL.createObjectURL(blob);
+             const link = document.createElement('a');
+             link.href = dataUrl;
+             link.download = `timetable_${selectedTeacher.nameEn.replace(/\s/g, '_')}.png`;
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+             URL.revokeObjectURL(dataUrl);
+             alert("Could not copy to clipboard. Image downloaded. Please attach manually in WhatsApp.");
+        } else {
+             // alert("Image copied! Paste in WhatsApp.");
         }
 
-        if (!shareSuccessful) {
-            const dataUrl = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.href = dataUrl;
-            link.download = `timetable_${selectedTeacher.nameEn.replace(/\s/g, '_')}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        let phoneNumber = selectedTeacher.contactNumber.replace(/\D/g, '');
-        if (phoneNumber.startsWith('0')) phoneNumber = '92' + phoneNumber.substring(1);
-        
-        setTimeout(() => {
-             const url = `https://wa.me/${phoneNumber}`;
-             window.open(url, '_blank');
-        }, 800);
-        
-    } catch (error) {
-        console.error("Error in image generation/sharing flow", error);
-        alert("Failed to generate image.");
-    } finally {
-        if (tempContainer.parentNode) document.body.removeChild(tempContainer);
-        setIsGenerating(false);
-    }
-  };
-
-  const handleSendWhatsApp = () => {
-    if (selectedTeacher?.contactNumber) {
+        // Open WhatsApp
         let phoneNumber = selectedTeacher.contactNumber.replace(/\D/g, '');
         if (phoneNumber.startsWith('0')) phoneNumber = '92' + phoneNumber.substring(1);
         const url = `https://wa.me/${phoneNumber}`;
-        window.open(url, '_blank');
+        
+        // Slight delay to allow UI to update if needed
+        setTimeout(() => {
+             window.open(url, '_blank');
+        }, 500);
     } else {
-        alert("Teacher's contact number not found.");
+        alert("Failed to generate image.");
     }
+
+    setIsGenerating(false);
   };
 
   if (!isOpen) return null;
@@ -613,6 +656,18 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
         </div>
         
         <div className="flex-shrink-0 p-4 space-y-3 bg-[#1a2333]">
+            
+            <div className="flex flex-col gap-2 bg-[#252f44] p-3 rounded-xl border border-white/10">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Card Design</label>
+                <select 
+                    value={selectedCardStyle} 
+                    onChange={(e) => setSelectedCardStyle(e.target.value as CardStyle)}
+                    className="w-full bg-[#1a2333] text-white text-xs font-bold rounded-lg border border-white/10 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                >
+                    {cardStyles.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+            </div>
+
             <div className="flex items-center justify-between bg-[#252f44] p-3 rounded-xl border border-white/10">
                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Merge Patterns</span>
                 <button 
@@ -632,13 +687,13 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
                 ) : (
                     <>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" /></svg>
-                    <span>{t.sendAsImage}</span>
+                    <span>SEND AS PICTURE</span>
                     </>
                 )}
             </button>
             <button onClick={handleSendWhatsApp} disabled={isGenerating} className="w-full h-16 flex items-center justify-center gap-3 px-4 py-4 text-sm font-black uppercase tracking-[0.2em] bg-[#128C7E] text-white rounded-xl hover:bg-[#075e54] disabled:opacity-50 shadow-2xl transition-all transform active:scale-95">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.905 6.03l-.419 1.533 1.519-.4zM15.53 17.53c-.07-.121-.267-.202-.56-.347-.297-.146-1.758-.868-2.031-.967-.272-.099-.47-.146-.669.146-.199.293-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.15-1.255-.463-2.39-1.475-1.134-1.012-1.31-1.36-1.899-2.258-.151-.231-.04-.355.043-.463.083-.107.185-.293.28-.439.095-.146.12-.245.18-.41.06-.164.03-.311-.015-.438-.046-.127-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.177-.008-.375-.01-1.04-.01h-.11c-.307.003-1.348-.043-1.348 1.438 0 1.482.791 2.906 1.439 3.82.648.913 2.51 3.96 6.12 5.368 3.61 1.408 3.61 1.054 4.258 1.034.648-.02 1.758-.715 2.006-1.413.248-.698.248-1.289.173-1.413z" /></svg>
-                <span>{t.sendViaWhatsApp}</span>
+                <span>SEND VIA WHATSAPP</span>
             </button>
             <button onClick={onClose} className="w-full py-3 text-sm font-black uppercase tracking-widest bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 shadow-lg transition-all active:scale-95">{t.close}</button>
         </div>

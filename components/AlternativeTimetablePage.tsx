@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { Language, SchoolClass, Subject, Teacher, TimetableGridData, Adjustment, SchoolConfig, Period, LeaveDetails, DownloadDesignConfig, TimetableSession } from '../types';
 import PrintPreview from './PrintPreview';
@@ -789,6 +788,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleImportJson = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -796,19 +796,20 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = () => {
       try {
-        const json = reader.result;
-        // Fix: Ensure json is a string before parsing
-        if (typeof json !== 'string') {
+        const result = reader.result;
+        // Fix: Ensure result is a string before parsing
+        if (typeof result !== 'string') {
              throw new Error("Invalid file content");
         }
-        const imported: any[] = JSON.parse(json);
+        // Fix: Explicitly cast result to string to satisfy TypeScript
+        const imported: any[] = JSON.parse(result as string);
         if (!Array.isArray(imported)) throw new Error("Invalid format");
 
         onUpdateSession((session) => {
             const newAdjustments = { ...session.adjustments };
-            const newLeaveDetails = { ...session.leaveDetails };
+            const newLeaveDetails: Record<string, Record<string, LeaveDetails>> = { ...(session.leaveDetails || {}) };
 
             const isNewFormat = imported.length > 0 && (imported[0].adjustments !== undefined || imported[0].leaveDetails !== undefined);
 
@@ -833,8 +834,8 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
 
                 if (isMultiDate) {
                     const grouped: Record<string, Adjustment[]> = imported.reduce((acc: Record<string, Adjustment[]>, item: any) => {
-                        const date = item.date;
-                        if (date) {
+                        const date = String(item.date); // Fix: Ensure date is string
+                        if (item.date) {
                             if (!acc[date]) acc[date] = [];
                             const { date: _, ...adj } = item;
                             acc[date].push({ ...adj, id: generateUniqueId() });
@@ -847,7 +848,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                         const importedTeacherIds = [...new Set(adjs.map(adj => adj.originalTeacherId))];
                         if (importedTeacherIds.length > 0) {
                             const dayLeaves = newLeaveDetails[date] || {};
-                            importedTeacherIds.forEach((id: any) => {
+                            importedTeacherIds.forEach((id: string) => { // Fix: explicit string
                                 if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
                             });
                             newLeaveDetails[date] = dayLeaves;
@@ -856,10 +857,10 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                 } else {
                     const transformed = imported.map(adj => ({ ...adj, id: generateUniqueId(), day: dayOfWeek as keyof TimetableGridData }));
                     newAdjustments[selectedDate] = transformed;
-                    const importedTeacherIds = [...new Set(transformed.map((adj: any) => adj.originalTeacherId))];
+                    const importedTeacherIds = [...new Set(transformed.map((adj: any) => String(adj.originalTeacherId)))]; // Fix: explicit string mapping
                     if (importedTeacherIds.length > 0) {
                         const dayLeaves = newLeaveDetails[selectedDate] || {};
-                        importedTeacherIds.forEach((id: any) => {
+                        importedTeacherIds.forEach((id: string) => { // Fix: explicit string
                             if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
                         });
                         newLeaveDetails[selectedDate] = dayLeaves;
@@ -878,7 +879,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
         setIsImportExportOpen(false); 
       } catch (error: any) { 
           console.error(error);
-          alert("Failed to import."); 
+          alert(error instanceof Error ? error.message : "Failed to import."); 
       }
     };
     reader.readAsText(file);
