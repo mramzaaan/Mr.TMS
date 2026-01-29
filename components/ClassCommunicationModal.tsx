@@ -581,7 +581,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
         const url = `https://wa.me/${phoneNumber}`;
         window.open(url, '_blank');
     } else {
-        alert("Teacher's contact number not found.");
+        alert("In-charge teacher's contact number not found.");
     }
   };
 

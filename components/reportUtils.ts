@@ -19,6 +19,7 @@ export interface WorkloadStats {
   possiblePeriodsInRange?: number;
 }
 
+// Updated Robust Urdu Font Stack using Google Fonts (Gulzar is prioritized)
 const URDU_FONT_STACK = "'Gulzar', 'Noto Nastaliq Urdu', serif";
 
 const teacherColorNames = [
@@ -64,6 +65,128 @@ const isDateInVacation = (dateStr: string, session?: any) => {
         const end = new Date(v.endDate);
         return d >= start && d <= end;
     });
+};
+
+const calculateRangeWorkload = (
+    teacherId: string, 
+    startDate: string, 
+    endDate: string, 
+    classes: SchoolClass[], 
+    adjustments: Record<string, Adjustment[]>,
+    leaveDetails: Record<string, Record<string, LeaveDetails>> = {},
+    schoolConfig: SchoolConfig,
+    sessionData?: any // Pass full session data to check vacations
+): WorkloadStats => {
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const dayMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    let scheduledInRange = 0;
+    let rangeLeaves = 0; 
+    let rangeSubs = 0;   
+    let daysInRange = 0;
+    let possiblePeriodsInRange = 0;
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        
+        // Skip vacations
+        if (isDateInVacation(dateStr, sessionData)) continue;
+
+        const dayIndex = d.getDay();
+        const dayName = dayMap[dayIndex] as keyof TimetableGridData;
+        
+        // @ts-ignore
+        const dayConfig = schoolConfig.daysConfig[dayName];
+        if (!dayConfig || !dayConfig.active) continue;
+        
+        daysInRange++;
+        possiblePeriodsInRange += dayConfig.periodCount;
+        
+        const teacherLeave = leaveDetails[dateStr]?.[teacherId];
+        const isOnDuty = teacherLeave?.reason === 'On Duty';
+        
+        const dayAdjustments = adjustments[dateStr] || [];
+
+        for (let pIndex = 0; pIndex < 12; pIndex++) {
+            const periodsInSlot: Period[] = [];
+            classes.forEach(c => {
+                c.timetable[dayName]?.[pIndex]?.forEach(p => {
+                    if (p.teacherId === teacherId) periodsInSlot.push(p);
+                });
+            });
+
+            if (periodsInSlot.length > 0) {
+                 const processedJointIds = new Set<string>();
+                 periodsInSlot.forEach(p => {
+                     let isLoadUnit = false;
+                     if (p.jointPeriodId) {
+                         if (!processedJointIds.has(p.jointPeriodId)) {
+                             isLoadUnit = true;
+                             processedJointIds.add(p.jointPeriodId);
+                         }
+                     } else {
+                         isLoadUnit = true;
+                     }
+
+                     if (isLoadUnit) {
+                         scheduledInRange++;
+                         let missed = false;
+
+                         if (!isOnDuty) {
+                             if (teacherLeave) {
+                                 if (teacherLeave.leaveType === 'full') {
+                                     missed = true;
+                                 } else if (teacherLeave.leaveType === 'half') {
+                                     if (teacherLeave.periods && teacherLeave.periods.length > 0) {
+                                         missed = teacherLeave.periods.includes(pIndex + 1);
+                                     } else if ((pIndex + 1) >= teacherLeave.startPeriod) {
+                                         missed = true;
+                                     }
+                                 }
+                             }
+
+                             if (!missed) {
+                                 const subOut = dayAdjustments.some(adj => 
+                                     adj.originalTeacherId === teacherId &&
+                                     adj.periodIndex === pIndex &&
+                                     adj.classId === p.classId
+                                 );
+                                 if (subOut) missed = true;
+                             }
+                         }
+
+                         if (missed) {
+                             rangeLeaves++;
+                         }
+                     }
+                 });
+            }
+
+            const subsIn = dayAdjustments.filter(adj => adj.periodIndex === pIndex && adj.substituteTeacherId === teacherId);
+            if (subsIn.length > 0) {
+                rangeSubs++; 
+            }
+        }
+    }
+
+    const netLoad = (scheduledInRange - rangeLeaves) + rangeSubs;
+
+    return {
+        dailyCounts: {},
+        weeklyPeriods: 0,
+        jointPeriodsCount: 0,
+        substitutionsTaken: 0,
+        leavesTaken: 0,
+        totalWorkload: 0,
+        daysInRange,
+        scheduledInRange,
+        rangeLeaves,
+        rangeSubs,
+        netLoad,
+        possiblePeriodsInRange
+    };
 };
 
 export const calculateWorkloadStats = (
@@ -391,7 +514,7 @@ export const getPrintStyles = (design: DownloadDesignConfig) => {
         font-size: ${table.fontSize}px;
         color: ${table.bodyColor || '#000000'};
         font-family: '${table.fontFamily}', sans-serif;
-        line-height: 1.1; 
+        line-height: 1.1; /* Tighter line height for better canvas centering */
         box-sizing: border-box;
         overflow: visible !important;
         position: relative;
@@ -477,119 +600,18 @@ const generateReportHTML = (
     `;
 };
 
-export const generateBasicInformationHtml = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, classes: SchoolClass[], teachers: Teacher[], schoolConfig: SchoolConfig): string => {
-    const title = lang === 'ur' ? translations.ur.basicInformation : translations.en.basicInformation;
-    
-    // Classes Table
-    let classesTable = `<h3>Classes</h3><table><thead><tr><th>Name</th><th>In-Charge</th><th>Room</th><th>Students</th></tr></thead><tbody>`;
-    classes.forEach(c => {
-        const teacher = teachers.find(t => t.id === c.inCharge);
-        classesTable += `<tr><td>${renderText(lang, c.nameEn, c.nameUr)}</td><td>${teacher ? renderText(lang, teacher.nameEn, teacher.nameUr) : '-'}</td><td>${c.roomNumber}</td><td>${c.studentCount}</td></tr>`;
+const formatCompressedClassNames = (classIds: string[], classes: SchoolClass[], lang: DownloadLanguage): string => {
+    const getClass = (id: string) => classes.find(c => c.id === id);
+    const sortedIds = [...classIds].sort((a, b) => {
+        const cA = getClass(a); const cB = getClass(b); if (!cA || !cB) return 0;
+        if (cA.serialNumber !== undefined && cB.serialNumber !== undefined) return cA.serialNumber - cB.serialNumber;
+        return cA.nameEn.localeCompare(cA.nameEn, undefined, { numeric: true });
     });
-    classesTable += `</tbody></table>`;
-
-    // Teachers Table
-    let teachersTable = `<h3>Teachers</h3><table><thead><tr><th>Name</th><th>Contact</th><th>Serial #</th></tr></thead><tbody>`;
-    teachers.forEach(t => {
-        teachersTable += `<tr><td>${renderText(lang, t.nameEn, t.nameUr)}</td><td>${t.contactNumber}</td><td>${t.serialNumber || '-'}</td></tr>`;
-    });
-    teachersTable += `</tbody></table>`;
-
-    return generateReportHTML(schoolConfig, design, title, lang, classesTable + '<br/>' + teachersTable);
-};
-
-export const generateBasicInformationExcel = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, classes: SchoolClass[], teachers: Teacher[]) => {
-    const classRows = classes.map(c => {
-        const teacher = teachers.find(t => t.id === c.inCharge);
-        return {
-            Type: 'Class',
-            Name: lang === 'ur' ? c.nameUr : c.nameEn,
-            InCharge: teacher ? (lang === 'ur' ? teacher.nameUr : teacher.nameEn) : '-',
-            Room: c.roomNumber,
-            Count: c.studentCount
-        };
-    });
-    const teacherRows = teachers.map(t => ({
-        Type: 'Teacher',
-        Name: lang === 'ur' ? t.nameUr : t.nameEn,
-        InCharge: t.contactNumber,
-        Room: t.serialNumber,
-        Count: ''
-    }));
-    
-    const csv = ['Type,Name,Detail 1,Detail 2,Detail 3'];
-    [...classRows, ...teacherRows].forEach(r => {
-        csv.push(toCsvRow([r.Type, r.Name, r.InCharge, r.Room, r.Count]));
-    });
-    downloadCsv(csv.join('\n'), 'Basic_Information.csv');
-};
-
-export const generateByPeriodHtml = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, schoolConfig: SchoolConfig, classes: SchoolClass[], teachers: Teacher[]): string => {
-    const title = lang === 'ur' ? translations.ur.byPeriod : translations.en.byPeriod;
-    const activeDays = allDays.filter(day => schoolConfig.daysConfig?.[day]?.active ?? true);
-    
-    let content = '';
-    
-    activeDays.forEach(day => {
-        const periodCount = schoolConfig.daysConfig?.[day]?.periodCount ?? 8;
-        content += `<h3>${day}</h3><table><thead><tr><th>Period</th><th>Free Teachers</th></tr></thead><tbody>`;
-        
-        for (let i = 0; i < periodCount; i++) {
-            const freeTeachers = teachers.filter(t => {
-                // check if teacher is assigned to any class in this period
-                return !classes.some(c => c.timetable[day]?.[i]?.some(p => p.teacherId === t.id));
-            });
-            
-            const names = freeTeachers.map(t => renderText(lang, t.nameEn, t.nameUr)).join(', ');
-            content += `<tr><td>${i + 1}</td><td>${names}</td></tr>`;
-        }
-        content += `</tbody></table><br/>`;
-    });
-
-    return generateReportHTML(schoolConfig, design, title, lang, content);
-};
-
-export const generateByPeriodExcel = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, schoolConfig: SchoolConfig, classes: SchoolClass[], teachers: Teacher[]) => {
-    const activeDays = allDays.filter(day => schoolConfig.daysConfig?.[day]?.active ?? true);
-    const csv = ['Day,Period,Free Teachers'];
-    
-    activeDays.forEach(day => {
-        const periodCount = schoolConfig.daysConfig?.[day]?.periodCount ?? 8;
-        for (let i = 0; i < periodCount; i++) {
-            const freeTeachers = teachers.filter(t => !classes.some(c => c.timetable[day]?.[i]?.some(p => p.teacherId === t.id)));
-            const names = freeTeachers.map(t => lang === 'ur' ? t.nameUr : t.nameEn).join(', ');
-            csv.push(toCsvRow([day, i + 1, names]));
-        }
-    });
-    downloadCsv(csv.join('\n'), 'Free_Teachers.csv');
-};
-
-export const generateWorkloadSummaryHtml = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, teachers: Teacher[], schoolConfig: SchoolConfig, classes: SchoolClass[], adjustments: Record<string, Adjustment[]>, leaveDetails: any, startDate: string, endDate: string, mode: string): string => {
-    const title = lang === 'ur' ? translations.ur.workloadSummaryReport : translations.en.workloadSummaryReport;
-    const headers = `<tr><th>Teacher</th><th>Total</th><th>Subst.</th><th>Leaves</th><th>Net</th></tr>`;
-    
-    let rows = '';
-    teachers.forEach(teacher => {
-        const stats = calculateWorkloadStats(teacher.id, classes, adjustments, leaveDetails, startDate, endDate, schoolConfig);
-        const name = renderText(lang, teacher.nameEn, teacher.nameUr);
-        // Net load = scheduled + substitutions - leaves
-        const net = stats.weeklyPeriods + stats.substitutionsTaken - stats.leavesTaken; 
-        rows += `<tr><td>${name}</td><td>${stats.weeklyPeriods}</td><td>${stats.substitutionsTaken}</td><td>${stats.leavesTaken}</td><td>${net}</td></tr>`;
-    });
-
-    const table = `<table><thead>${headers}</thead><tbody>${rows}</tbody></table>`;
-    return generateReportHTML(schoolConfig, design, title, lang, table, `Date: ${startDate} to ${endDate}`);
-};
-
-export const generateWorkloadSummaryExcel = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, teachers: Teacher[], schoolConfig: SchoolConfig, classes: SchoolClass[], adjustments: Record<string, Adjustment[]>, leaveDetails: any, startDate: string, endDate: string, mode: string) => {
-    const csv = ['Teacher,Total Scheduled,Substitutions,Leaves,Net Load'];
-    teachers.forEach(teacher => {
-        const stats = calculateWorkloadStats(teacher.id, classes, adjustments, leaveDetails, startDate, endDate, schoolConfig);
-        const name = lang === 'ur' ? teacher.nameUr : teacher.nameEn;
-        const net = stats.weeklyPeriods + stats.substitutionsTaken - stats.leavesTaken;
-        csv.push(toCsvRow([name, stats.weeklyPeriods, stats.substitutionsTaken, stats.leavesTaken, net]));
-    });
-    downloadCsv(csv.join('\n'), 'Workload_Summary.csv');
+    const items = sortedIds.map(id => { const c = getClass(id); if (!c) return null; const name = lang === 'ur' ? c.nameUr : c.nameEn; const lastSpaceIndex = name.lastIndexOf(' '); if (lastSpaceIndex !== -1) { return { prefix: name.substring(0, lastSpaceIndex), suffix: name.substring(lastSpaceIndex + 1) }; } return { prefix: name, suffix: '' }; }).filter(Boolean) as { prefix: string, suffix: string }[];
+    const grouped = new Map<string, string[]>();
+    items.forEach(({ prefix, suffix }) => { if (!grouped.has(prefix)) grouped.set(prefix, []); if (suffix && !grouped.get(prefix)!.includes(suffix)) { grouped.get(prefix)!.push(suffix); } });
+    const parts: string[] = []; for (const [prefix, suffixes] of grouped) { if (suffixes.length > 0) { const separator = lang === 'ur' ? '، ' : ', '; parts.push(`${prefix} ${suffixes.join(separator)}`); } else { parts.push(prefix); } }
+    return parts.join('-');
 };
 
 export const generateSchoolTimingsHtml = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, schoolConfig: SchoolConfig): string => {
@@ -670,7 +692,6 @@ export const generateClassTimetableHtml = (classItem: SchoolClass, lang: Downloa
     const triangleCorner = design.table.triangleCorner || 'bottom-left';
     const outlineWidth = design.table.outlineWidth || 2;
     const mergePatterns = design.table.mergeIdenticalPeriods ?? true;
-    const badgeTarget = design.table.badgeTarget || 'subject';
 
     let triangleStyles = '';
     const triangleSize = 24; 
@@ -705,7 +726,7 @@ export const generateClassTimetableHtml = (classItem: SchoolClass, lang: Downloa
             cardStyleCss = `background-color: transparent !important; border: none !important; box-shadow: none !important;`;
         }
 
-        const customStyles = `<style>:root { ${cssColors} } .cell-wrapper { display: flex; flex-direction: column; gap: 2px; width: 100%; height: 100%; box-sizing: border-box; } .glossy-box { flex: 1; min-width: 0; border-radius: 4px; padding: 2px 4px; align-self: stretch; height: 100%; display: flex; flex-direction: column; justify-content: ${flexAlign}; ${cardStyleCss} position: relative; overflow: hidden; box-sizing: border-box; } .subject-text { text-align: left; font-weight: 900; font-size: 1.2em; line-height: 1.1; text-transform: none; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #000000; } .teacher-text { text-align: right; font-size: 1em; font-weight: 700; opacity: 1; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #000000; line-height: 1.1; } .card-triangle { position: absolute; width: 0; height: 0; border-style: solid; ${triangleStyles} z-index: 5; } ${teacherColorNames.map(name => `.${name} { background-color: var(--${name}-bg); color: var(--${name}-text); border-color: var(--${name}-text) !important; } .${name} .subject-text, .${name} .teacher-text, .${name} .subject-name, .${name} .class-list { color: var(--${name}-text) !important; } .${name} .card-triangle { color: var(--${name}-text) !important; }`).join('')} td { padding: ${design.table.cellPadding}px !important; height: auto !important; min-height: 62px; border-color: ${design.table.borderColor} !important; vertical-align: top !important; } table { table-layout: fixed; width: 100%; border-color: ${design.table.borderColor} !important; } .disabled-cell { background-color: #e5e7eb; }</style>`;
+        const customStyles = `<style>:root { ${cssColors} } .cell-wrapper { display: flex; flex-direction: column; gap: 2px; width: 100%; height: 100%; box-sizing: border-box; } .glossy-box { flex: 1; min-width: 0; border-radius: 4px; padding: 2px 4px; align-self: stretch; height: 100%; display: flex; flex-direction: column; justify-content: ${flexAlign}; ${cardStyleCss} position: relative; overflow: hidden; box-sizing: border-box; } .subject-text { text-align: left; font-weight: 900; font-size: 1.2em; line-height: 1.1; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #000000; } .teacher-text { text-align: right; font-size: 1em; font-weight: 700; opacity: 1; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #000000; line-height: 1.1; } .card-triangle { position: absolute; width: 0; height: 0; border-style: solid; ${triangleStyles} z-index: 5; } ${teacherColorNames.map(name => `.${name} { background-color: var(--${name}-bg); color: var(--${name}-text); border-color: var(--${name}-text) !important; } .${name} .subject-text, .${name} .teacher-text, .${name} .subject-name, .${name} .class-list { color: var(--${name}-text) !important; } .${name} .card-triangle { color: var(--${name}-text) !important; }`).join('')} td { padding: ${design.table.cellPadding}px !important; height: auto !important; min-height: 62px; border-color: ${design.table.borderColor} !important; vertical-align: top !important; } table { table-layout: fixed; width: 100%; border-color: ${design.table.borderColor} !important; } .disabled-cell { background-color: #e5e7eb; }</style>`;
         const align1 = lang === 'ur' ? 'right' : 'left'; const align2 = 'center'; const align3 = lang === 'ur' ? 'left' : 'right';
         const detailsHtml = `<div style="width: 100%; display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1em;"><div style="text-align: ${align1}; flex: 1;">${renderText(lang, classItem.nameEn, classItem.nameUr)}</div><div style="text-align: ${align2}; flex: 1;">${inChargeTeacher ? renderText(lang, inChargeTeacher.nameEn, inChargeTeacher.nameUr) : '-'}</div><div style="text-align: ${align3}; flex: 1;">${classItem.roomNumber}</div></div>`;
         const dayHeaders = chunkDays.map(day => { const dayKey = day.toLowerCase(); return `<th>${renderText(lang, (enT as any)[dayKey], (urT as any)[dayKey])}</th>`; }).join('');
@@ -730,14 +751,11 @@ export const generateClassTimetableHtml = (classItem: SchoolClass, lang: Downloa
                     const triangleHtml = (cardStyle === 'triangle' || cardStyle === 'full') ? `<div class="card-triangle"></div>` : '';
                     
                     let subjectBadgeStyle = '';
-                    let teacherBadgeStyle = '';
                     if (cardStyle === 'badge') {
-                        const badgeCss = `background-color: var(--${colorClass}-text); color: #fff !important; padding: 1px 6px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
-                        if (badgeTarget === 'teacher') teacherBadgeStyle = badgeCss;
-                        else subjectBadgeStyle = badgeCss; // Default to subject
+                        subjectBadgeStyle = `background-color: var(--${colorClass}-text); color: #fff !important; padding: 1px 6px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
                     }
                     
-                    return `<div class="glossy-box ${colorClass}">${triangleHtml}<span class="subject-text" style="${subjectBadgeStyle}" title="${subName.replace(/<[^>]*>/g, '')}">${subName}</span><span class="teacher-text" style="${teacherBadgeStyle}" title="${teaName.replace(/<[^>]*>/g, '')}">${teaName}</span></div>`;
+                    return `<div class="glossy-box ${colorClass}">${triangleHtml}<span class="subject-text" style="${subjectBadgeStyle}" title="${subName.replace(/<[^>]*>/g, '')}">${subName}</span><span class="teacher-text" title="${teaName.replace(/<[^>]*>/g, '')}">${teaName}</span></div>`;
                 }).join('');
                 grid[pIdx][dIdx] = { html: `<div class="cell-wrapper">${content}</div>`, key };
             });
@@ -804,7 +822,6 @@ export const generateTeacherTimetableHtml = (teacher: Teacher, lang: DownloadLan
     const triangleCorner = design.table.triangleCorner || 'bottom-left';
     const outlineWidth = design.table.outlineWidth || 2;
     const mergePatterns = design.table.mergeIdenticalPeriods ?? true;
-    const badgeTarget = design.table.badgeTarget || 'subject';
 
     let triangleStyles = '';
     const triangleSize = 24;
@@ -843,7 +860,7 @@ export const generateTeacherTimetableHtml = (teacher: Teacher, lang: DownloadLan
             cardStyleCss = `background-color: transparent !important; border: none !important; box-shadow: none !important;`;
         }
 
-        const customStyles = `<style>:root { ${cssColors} } .cell-content { display: flex; flex-direction: column; height: 100%; width: 100%; justify-content: center; gap: 2px; box-sizing: border-box; } .teacher-card { flex: 1; width: 100%; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; box-sizing: border-box; overflow: hidden; ${cardStyleCss} padding: 4px 6px; position: relative; height: 100%; } .teacher-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 45%; background: linear-gradient(to bottom, rgba(255,255,255,0.5), rgba(255,255,255,0)); pointer-events: none; z-index: 0; } .class-list { font-weight: 900; font-size: 1.6em; text-align: left; line-height: 1.0; margin-top: 2px; text-transform: none; color: #000000; text-shadow: 0 1px 0 rgba(255,255,255,0.5); z-index: 1; position: relative; } .subject-name { font-size: 1.35em; text-align: right; line-height: 1.1; font-weight: 700; margin-bottom: 2px; color: #000000; text-shadow: 0 1px 0 rgba(255,255,255,0.5); z-index: 1; position: relative; } .card-triangle { position: absolute; width: 0; height: 0; border-style: solid; ${triangleStyles} z-index: 5; } ${teacherColorNames.map(name => `.${name} { background-color: var(--${name}-bg); color: var(--${name}-text); border-color: var(--${name}-text) !important; } .${name} .subject-text, .${name} .teacher-text, .${name} .subject-name, .${name} .class-list { color: var(--${name}-text) !important; } .${name} .card-triangle { color: var(--${name}-text) !important; }`).join('')} td { padding: ${design.table.cellPadding}px !important; height: auto !important; min-height: 60px; border-color: ${design.table.borderColor} !important; vertical-align: top !important; } table { table-layout: fixed; width: 100%; border-spacing: 0; border-color: ${design.table.borderColor} !important; } .disabled-cell { background-color: #e5e7eb; }</style>`;
+        const customStyles = `<style>:root { ${cssColors} } .cell-content { display: flex; flex-direction: column; height: 100%; width: 100%; justify-content: center; gap: 2px; box-sizing: border-box; } .teacher-card { flex: 1; width: 100%; border-radius: 8px; display: flex; flex-direction: column; justify-content: ${flexAlign}; gap: 2px; box-sizing: border-box; overflow: hidden; ${cardStyleCss} padding: 4px 6px; position: relative; height: 100%; } .teacher-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 45%; background: linear-gradient(to bottom, rgba(255,255,255,0.5), rgba(255,255,255,0)); pointer-events: none; z-index: 0; } .subject-name { font-weight: 900; font-size: 1.2em; text-align: left; line-height: 1.1; margin-top: 2px; text-transform: uppercase; color: #000000; text-shadow: 0 1px 0 rgba(255,255,255,0.5); z-index: 1; position: relative; } .class-list { font-size: 1.0em; text-align: right; line-height: 1.1; font-weight: 700; margin-bottom: 2px; color: #000000; text-shadow: 0 1px 0 rgba(255,255,255,0.5); z-index: 1; position: relative; } .card-triangle { position: absolute; width: 0; height: 0; border-style: solid; ${triangleStyles} z-index: 5; } ${teacherColorNames.map(name => `.${name} { background-color: var(--${name}-bg); color: var(--${name}-text); border-color: var(--${name}-text) !important; } .${name} .subject-text, .${name} .teacher-text, .${name} .subject-name, .${name} .class-list { color: var(--${name}-text) !important; } .${name} .card-triangle { color: var(--${name}-text) !important; }`).join('')} td { padding: ${design.table.cellPadding}px !important; height: auto !important; min-height: 60px; border-color: ${design.table.borderColor} !important; vertical-align: top !important; } table { table-layout: fixed; width: 100%; border-spacing: 0; border-color: ${design.table.borderColor} !important; } .disabled-cell { background-color: #e5e7eb; }</style>`;
         const align1 = lang === 'ur' ? 'right' : 'left'; const align2 = 'center'; const align3 = lang === 'ur' ? 'left' : 'right';
         const detailsHtml = `<div style="width: 100%; display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1em;"><div style="text-align: ${align1}; flex: 1;"># ${teacher.serialNumber ?? '-'}</div><div style="text-align: ${align2}; flex: 1;">${renderText(lang, teacher.nameEn, teacher.nameUr)}</div><div style="text-align: ${align3}; flex: 1;">${workloadLabel}</div></div>`;
         const dayHeaders = chunkDays.map(day => `<th>${renderText(lang, (enT as any)[day.toLowerCase()], (urT as any)[day.toLowerCase()])}</th>`).join('');
@@ -879,14 +896,11 @@ export const generateTeacherTimetableHtml = (teacher: Teacher, lang: DownloadLan
                     const triangleHtml = (cardStyle === 'triangle' || cardStyle === 'full') ? `<div class="card-triangle"></div>` : '';
                     
                     let subjectBadgeStyle = '';
-                    let classBadgeStyle = '';
                     if (cardStyle === 'badge') {
-                        const badgeCss = `background-color: var(--${colorClass}-text); color: #fff !important; padding: 1px 6px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
-                        if (badgeTarget === 'class') classBadgeStyle = badgeCss;
-                        else subjectBadgeStyle = badgeCss; // default subject
+                        subjectBadgeStyle = `background-color: var(--${colorClass}-text); color: #fff !important; padding: 1px 6px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
                     }
 
-                    return `<div class="teacher-card ${colorClass}">${triangleHtml}<div class="class-list" style="${classBadgeStyle}">${classList}</div><div class="subject-name" style="${subjectBadgeStyle}">${subjectName}</div></div>`;
+                    return `<div class="teacher-card ${colorClass}">${triangleHtml}<div class="subject-name" style="${subjectBadgeStyle}">${subjectName}</div><div class="class-list">${classList}</div></div>`;
                 }).join('');
                 grid[pIdx][dIdx] = { html: `<div class="cell-content">${cards}</div>`, key };
             });
@@ -937,95 +951,345 @@ export const generateTeacherTimetableHtml = (teacher: Teacher, lang: DownloadLan
     return pages.length === 1 ? pages[0] : pages;
 };
 
-// --- New Functions to fix missing exports ---
-
 export const generateAdjustmentsReportHtml = (
-    t: any,
-    lang: DownloadLanguage,
-    design: DownloadDesignConfig,
+    t: any, 
+    lang: DownloadLanguage, 
+    design: DownloadDesignConfig, 
     adjustments: Adjustment[],
     teachers: Teacher[],
     classes: SchoolClass[],
     subjects: Subject[],
     schoolConfig: SchoolConfig,
     date: string,
-    absentTeacherIds: string[],
-    signature?: string
-): string | string[] => {
-    // Basic implementation for report generation. 
-    // In a real scenario, you would build the HTML structure for the adjustments table.
-    
-    const title = lang === 'ur' ? translations.ur.dailyAdjustments : translations.en.dailyAdjustments;
-    const dateFormatted = new Date(date).toLocaleDateString(lang === 'ur' ? 'ur-PK' : 'en-GB');
-    
-    let content = `<h3>Date: ${dateFormatted}</h3>`;
-    
-    // Add absent teachers list
-    if (absentTeacherIds.length > 0) {
-        const absentNames = absentTeacherIds.map(id => {
-            const teacher = teachers.find(t => t.id === id);
-            return teacher ? renderText(lang, teacher.nameEn, teacher.nameUr) : '';
-        }).join(', ');
-        content += `<p><strong>Absent Teachers:</strong> ${absentNames}</p>`;
+    absentTeacherIds: string[] = [],
+    signature?: string 
+): string[] => {
+    const { en: enT, ur: urT } = translations;
+    const trLocal = (key: string) => lang === 'ur' ? (urT as any)[key] : (enT as any)[key];
+    const dateObj = new Date(date);
+    const locale = lang === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB';
+    const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    const dateStr = dateObj.toLocaleDateString(locale, dateOptions);
+    const sortedAdjustments = [...adjustments].sort((a, b) => { const teacherA = teachers.find(t => t.id === a.originalTeacherId)?.nameEn || ''; const teacherB = teachers.find(t => t.id === b.originalTeacherId)?.nameEn || ''; return teacherA.localeCompare(teacherB) || a.periodIndex - b.periodIndex; });
+    const onLeaveTeachers = [...new Set([...sortedAdjustments.map(adj => adj.originalTeacherId), ...absentTeacherIds])].map(id => teachers.find(t => t.id === id)).filter(Boolean) as Teacher[];
+    const onLeaveText = onLeaveTeachers.map(t => { const en = t.nameEn.toUpperCase(); return renderText(lang, en, t.nameUr); }).join(', ');
+    const adjustmentsByTeacher = new Map<string, Adjustment[]>(); sortedAdjustments.forEach(adj => { if (!adjustmentsByTeacher.has(adj.originalTeacherId)) adjustmentsByTeacher.set(adj.originalTeacherId, []); adjustmentsByTeacher.get(adj.originalTeacherId)!.push(adj); });
+    const mergedRows: { originalTeacherId: string, teacher: Teacher | undefined, periodIndex: number, classIds: string[], subjectId: string, substituteTeacherId: string, conflictDetails?: Adjustment['conflictDetails'] }[] = [];
+    for (const [teacherId, teacherAdjustments] of adjustmentsByTeacher) { const teacher = teachers.find(t => t.id === teacherId); const groupMap = new Map<string, { classIds: string[], conflictDetails?: Adjustment['conflictDetails'], firstAdj: Adjustment }>(); teacherAdjustments.forEach(adj => { const key = `${adj.periodIndex}_${adj.subjectId}_${adj.substituteTeacherId}`; if (!groupMap.has(key)) groupMap.set(key, { classIds: [adj.classId], conflictDetails: adj.conflictDetails, firstAdj: adj }); else { const entry = groupMap.get(key)!; if (!entry.classIds.includes(adj.classId)) entry.classIds.push(adj.classId); if (adj.conflictDetails && !entry.conflictDetails) entry.conflictDetails = adj.conflictDetails; } }); const sortedGroups = Array.from(groupMap.values()).sort((a, b) => a.firstAdj.periodIndex - b.firstAdj.periodIndex); sortedGroups.forEach(g => { mergedRows.push({ originalTeacherId: teacherId, teacher: teacher, periodIndex: g.firstAdj.periodIndex, classIds: g.classIds, subjectId: g.firstAdj.subjectId, substituteTeacherId: g.firstAdj.substituteTeacherId, conflictDetails: g.conflictDetails }); }); }
+    const rowsPerPage = design.rowsPerPage || 25; const rowsPerFirstPage = design.rowsPerFirstPage || rowsPerPage; const totalItems = mergedRows.length; let totalPages = 1; if (totalItems > rowsPerFirstPage) totalPages = 1 + Math.ceil((totalItems - rowsPerFirstPage) / rowsPerPage);
+    const pages: string[] = []; let currentIndex = 0; const customDesign = JSON.parse(JSON.stringify(design));
+    const alignMap: Record<string, string> = { 'top': 'flex-start', 'middle': 'center', 'bottom': 'flex-end', 'center': 'center' };
+    const flexAlign = alignMap[design.table.verticalAlign || 'middle'] || 'center';
+    const customStyles = `<style> table td { padding: ${design.table.cellPadding}px !important; } .adj-cell-wrapper { display: flex; flex-direction: column; justify-content: ${flexAlign}; align-items: center; width: 100%; height: 100%; min-height: 1.2em; box-sizing: border-box; line-height: 1.1; } .rowspan-wrapper { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; line-height: 1.1; } </style>`;
+    const wrap = (content: string) => `<div class="adj-cell-wrapper">${content}</div>`;
+    for (let i = 0; i < totalPages; i++) {
+      const limit = i === 0 ? rowsPerFirstPage : rowsPerPage; const pageRows = mergedRows.slice(currentIndex, currentIndex + limit); currentIndex += limit;
+      const teacherCountsOnPage = new Map<string, number>(); pageRows.forEach(r => { const tid = r.originalTeacherId; teacherCountsOnPage.set(tid, (teacherCountsOnPage.get(tid) || 0) + 1); });
+      const renderedTeacherIdsOnPage = new Set<string>();
+      let tableRowsHtml = '';
+      pageRows.forEach(row => {
+          const tid = row.originalTeacherId; const isFirst = !renderedTeacherIdsOnPage.has(tid);
+          const sub = teachers.find(t => t.id === row.substituteTeacherId); const sbj = subjects.find(s => s.id === row.subjectId);
+          const classNames = formatCompressedClassNames(row.classIds, classes, lang);
+          tableRowsHtml += '<tr>';
+          if (isFirst) {
+              const span = teacherCountsOnPage.get(tid)!; const teacherName = row.teacher ? renderText(lang, row.teacher.nameEn, row.teacher.nameUr) : '';
+              tableRowsHtml += `<td rowspan="${span}" style="background-color: ${design.table.bodyBgColor || '#ffffff'}; position: relative; z-index: 10;"><div class="rowspan-wrapper">${teacherName}</div></td>`;
+              renderedTeacherIdsOnPage.add(tid);
+          }
+          const conflictClassName = row.conflictDetails ? (lang === 'ur' ? row.conflictDetails.classNameUr : row.conflictDetails.classNameEn) : '';
+          let teacherHtml = '';
+          if (sub) {
+              if (conflictClassName && lang === 'both') {
+                  const urduStyle = `font-family: ${URDU_FONT_STACK} !important; direction: rtl; unicode-bidi: embed; line-height: 1.8; display: inline-block; padding-top: 2px; font-weight: normal;`;
+                  teacherHtml = `<div style="display:flex; flex-direction:row; align-items:center; gap:4px; justify-content:center;"><div style="display:flex; flex-direction:column; justify-content:center; align-items:center; line-height:1.1;"><span>${sub.nameEn}</span><span style="${urduStyle} font-size: 0.9em;">${sub.nameUr}</span></div><span style="color: #dc2626; font-weight: bold; white-space: nowrap;">(${conflictClassName})</span></div>`;
+              } else {
+                  teacherHtml = renderText(lang, sub.nameEn, sub.nameUr);
+                  if (conflictClassName) teacherHtml += ` <span style="color: #dc2626; font-weight: bold;">(${conflictClassName})</span>`;
+              }
+          }
+          tableRowsHtml += `<td>${wrap((row.periodIndex + 1).toString())}</td><td>${wrap(classNames)}</td><td>${wrap(sbj ? renderText(lang, sbj.nameEn, sbj.nameUr) : '')}</td><td>${wrap(teacherHtml)}</td><td></td></tr>`;
+      });
+      const teachersOnLeaveHtml = `<div style="width: 100%; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 10px; color: #000; font-size: 0.85em;"><strong style="text-transform: uppercase;">${trLocal('absentTeachers')}:</strong> ${onLeaveText}</div>`;
+      // Signature Block injection
+      const signatureHtml = `<div style="margin-top: 20px; display: flex; justify-content: flex-end;"><div style="text-align: center; border-top: 1px solid #000; padding-top: 5px; width: 200px; position: relative;">${signature ? `<img src="${signature}" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); max-height: 60px; pointer-events: none; filter: grayscale(1) contrast(150%);" />` : ''}<strong>${trLocal('signature')}</strong></div></div>`;
+      const tableHtml = `${customStyles} ${teachersOnLeaveHtml}<table><thead><tr><th style="width: 10%;">${trLocal('absent')}</th><th style="width: 35px;">${trLocal('period')}</th><th>${trLocal('class')}</th><th>${trLocal('subject')}</th><th>${trLocal('substituteTeacher')}</th><th style="width: 15%;">${trLocal('signature')}</th></tr></thead><tbody>${tableRowsHtml}</tbody></table>${signatureHtml}`;
+      pages.push(generateReportHTML(schoolConfig, design, `${trLocal('substitution')} - ${dateStr}`, lang, tableHtml, '', i + 1, totalPages));
     }
-
-    // Add adjustments table
-    if (adjustments.length > 0) {
-        content += `<table><thead><tr><th>Period</th><th>Class</th><th>Subject</th><th>Original Teacher</th><th>Substitute</th></tr></thead><tbody>`;
-        adjustments.sort((a,b) => a.periodIndex - b.periodIndex).forEach(adj => {
-            const cls = classes.find(c => c.id === adj.classId);
-            const sub = subjects.find(s => s.id === adj.subjectId);
-            const orig = teachers.find(t => t.id === adj.originalTeacherId);
-            const subst = teachers.find(t => t.id === adj.substituteTeacherId);
-            
-            content += `<tr>
-                <td>${adj.periodIndex + 1}</td>
-                <td>${cls ? renderText(lang, cls.nameEn, cls.nameUr) : ''}</td>
-                <td>${sub ? renderText(lang, sub.nameEn, sub.nameUr) : ''}</td>
-                <td>${orig ? renderText(lang, orig.nameEn, orig.nameUr) : ''}</td>
-                <td>${subst ? renderText(lang, subst.nameEn, subst.nameUr) : ''}</td>
-            </tr>`;
-        });
-        content += `</tbody></table>`;
-    } else {
-        content += `<p>No adjustments recorded.</p>`;
-    }
-
-    if (signature) {
-        content += `<div style="margin-top: 40px; text-align: right;">
-            <img src="${signature}" style="height: 60px;" /><br/>
-            <span>Principal Signature</span>
-        </div>`;
-    }
-
-    return generateReportHTML(schoolConfig, design, title, lang, content);
+    return pages;
 };
 
-export const generateAdjustmentsExcel = (
-    t: any,
-    adjustments: Adjustment[],
-    teachers: Teacher[],
-    classes: SchoolClass[],
-    subjects: Subject[],
-    date: string
-) => {
-    const csv = ['Date,Period,Class,Subject,Original Teacher,Substitute Teacher'];
-    adjustments.forEach(adj => {
-        const cls = classes.find(c => c.id === adj.classId);
-        const sub = subjects.find(s => s.id === adj.subjectId);
-        const orig = teachers.find(t => t.id === adj.originalTeacherId);
-        const subst = teachers.find(t => t.id === adj.substituteTeacherId);
-        
-        csv.push(toCsvRow([
-            date,
-            adj.periodIndex + 1,
-            cls ? cls.nameEn : '',
-            sub ? sub.nameEn : '',
-            orig ? orig.nameEn : '',
-            subst ? subst.nameEn : ''
-        ]));
+export const generateBasicInformationHtml = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, classes: SchoolClass[], teachers: Teacher[], schoolConfig: SchoolConfig): string | string[] => {
+    const urduStyle = `font-family: ${URDU_FONT_STACK} !important; direction: rtl; unicode-bidi: embed; line-height: 1.8; font-weight: normal;`;
+    const trLocal = (en: string, ur: string) => { const urSpan = `<span class="font-urdu" style="${urduStyle}">${ur}</span>`; if (lang === 'en') return en; if (lang === 'ur') return urSpan; return `${en} / ${urSpan}`; };
+    
+    const rowsPerPage = design.rowsPerPage || 50;
+    const rowsPerFirstPage = design.rowsPerFirstPage || rowsPerPage;
+    const totalItems = classes.length;
+    let totalPagesCount = 1;
+    if (totalItems > rowsPerFirstPage) {
+        totalPagesCount = 1 + Math.ceil((totalItems - rowsPerFirstPage) / rowsPerPage);
+    }
+
+    const headers = [trLocal('#', '#'), trLocal('Class', 'کلاس'), trLocal('In Charge', 'انچارج'), trLocal('Room', 'کمرہ'), trLocal('Students', 'طلباء'), 'ENG', 'URD', '..'];
+    const pages: string[] = [];
+    let highTotal = 0; let middleTotal = 0; let primaryTotal = 0; let grandTotal = 0;
+
+    classes.forEach(c => {
+        const count = parseInt(String(c.studentCount), 10) || 0; grandTotal += count;
+        const cat = (c.category || '').trim().toLowerCase(); if (cat === 'high') highTotal += count; else if (cat === 'middle') middleTotal += count; else if (cat === 'primary') primaryTotal += count;
     });
-    downloadCsv(csv.join('\n'), `Adjustments_${date}.csv`);
+
+    let currentIdx = 0;
+    for (let i = 0; i < totalPagesCount; i++) {
+        const limit = i === 0 ? rowsPerFirstPage : rowsPerPage;
+        const pageClasses = classes.slice(currentIdx, currentIdx + limit);
+        currentIdx += limit;
+
+        let tableRows = '';
+        pageClasses.forEach((c, idx) => {
+            const rowIdx = (i === 0) ? idx : (rowsPerFirstPage + (i - 1) * rowsPerPage + idx);
+            const tea = teachers.find(t => t.id === c.inCharge); 
+            const inCharge = tea ? renderText(lang, tea.nameEn, tea.nameUr) : '-';
+            const name = renderText(lang, c.nameEn, c.nameUr); 
+            const serial = c.serialNumber || rowIdx + 1;
+            const count = parseInt(String(c.studentCount), 10) || 0;
+            tableRows += `<tr><td>${serial}</td><td style="text-align: left;">${name}</td><td style="text-align: left;">${inCharge}</td><td>${c.roomNumber}</td><td>${count}</td><td></td><td></td><td></td></tr>`;
+        });
+
+        const isLastPage = i === totalPagesCount - 1;
+        let summaryTable = '';
+        if (isLastPage) {
+            const summaryHeaders = [trLocal('High', 'ہائی'), trLocal('Middle', 'مڈل'), trLocal('Primary', 'پرائمری'), trLocal('Grand Total', 'کل تعداد')];
+            const summaryValues = [highTotal, middleTotal, primaryTotal, grandTotal];
+            summaryTable = `<div style="margin-top: 20px; break-inside: avoid;"><table style="width: 100%;"><thead><tr>${summaryHeaders.map(h => `<th style="width: 25%;">${h}</th>`).join('')}</tr></thead><tbody><tr>${summaryValues.map(v => `<td style="font-weight: bold; font-size: 1.2em;">${v}</td>`).join('')}</tr></tbody></table></div>`;
+        }
+
+        const customStyles = `<style>table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid ${design?.table?.borderColor || '#000000'}; padding: ${design?.table?.cellPadding || 8}px; text-align: center; line-height: 1.1; } th { background-color: ${design?.table?.headerBgColor || '#f3f4f6'}; color: ${design?.table?.headerColor || '#000000'}; font-weight: bold; } tr:nth-child(even) { background-color: ${design?.table?.altRowColor || '#f9fafb'}; }</style>`;
+        const tableHtml = `${customStyles}<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${tableRows}</tbody></table>${summaryTable}`;
+        pages.push(generateReportHTML(schoolConfig, design, trLocal('Basic Information', 'بنیادی معلومات'), lang, tableHtml, '', i + 1, totalPagesCount));
+    }
+
+    return pages.length === 1 ? pages[0] : pages;
+};
+
+export const generateBasicInformationExcel = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, classes: SchoolClass[], teachers: Teacher[]) => {
+    const { en: enT, ur: urT } = translations;
+    const trLocal = (key: string) => lang === 'ur' ? (urT as any)[key] : (enT as any)[key];
+    
+    const header = ['#', trLocal('class'), trLocal('classInCharge'), trLocal('roomNumber'), trLocal('studentCount')];
+    const rows: (string | number)[][] = [header];
+
+    let highTotal = 0; let middleTotal = 0; let primaryTotal = 0; let grandTotal = 0;
+
+    classes.forEach((c, idx) => {
+        const count = parseInt(String(c.studentCount), 10) || 0;
+        grandTotal += count;
+        const cat = (c.category || '').trim().toLowerCase();
+        if (cat === 'high') highTotal += count;
+        else if (cat === 'middle') middleTotal += count;
+        else if (cat === 'primary') primaryTotal += count;
+
+        const tea = teachers.find(tea => tea.id === c.inCharge);
+        const inCharge = tea ? (lang === 'ur' ? tea.nameUr : tea.nameEn) : '-';
+        const className = lang === 'ur' ? c.nameUr : c.nameEn;
+        const serial = c.serialNumber || idx + 1;
+
+        rows.push([serial, className, inCharge, c.roomNumber, count]);
+    });
+
+    rows.push([]);
+    rows.push([trLocal('high'), trLocal('middle'), trLocal('primary'), trLocal('grandTotal')]);
+    rows.push([highTotal, middleTotal, primaryTotal, grandTotal]);
+
+    downloadCsv(rows.map(toCsvRow).join('\n'), 'Basic_Information.csv');
+};
+
+export const generateByPeriodExcel = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, schoolConfig: SchoolConfig, classes: SchoolClass[], teachers: Teacher[]) => { 
+    const { en: enT, ur: urT } = translations; 
+    const activeDays = allDays.filter(day => schoolConfig.daysConfig?.[day]?.active ?? true); 
+    const sortedTeachers = [...teachers].sort((a, b) => (a.serialNumber ?? 9999) - (b.serialNumber ?? 9999)); 
+    const header = ['Day', 'Period', 'Free Teachers']; 
+    const rows: (string | number)[][] = [header]; 
+    activeDays.forEach(day => { 
+        const dayName = lang === 'ur' ? (urT as any)[day.toLowerCase()] : day; 
+        const count = schoolConfig.daysConfig?.[day as keyof TimetableGridData]?.periodCount ?? 8; 
+        for(let i=0; i<count; i++){ 
+            const busyIds = new Set<string>(); classes.forEach(c => c.timetable[day as keyof TimetableGridData]?.[i]?.forEach(p => busyIds.add(p.teacherId))); 
+            const freeText = sortedTeachers.filter(t => !busyIds.has(t.id)).map(tea => lang === 'ur' ? tea.nameUr : tea.nameEn).join(', '); 
+            rows.push([dayName, i + 1, freeText]); 
+        } 
+    }); 
+    downloadCsv(rows.map(toCsvRow).join('\n'), 'Free_Teachers_Report.csv'); 
+};
+
+export const generateWorkloadSummaryExcel = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, selectedTeachers: Teacher[], schoolConfig: SchoolConfig, classes: SchoolClass[], adjustments: Record<string, Adjustment[]>, leaveDetails: Record<string, Record<string, LeaveDetails>> = {}, startDate?: string, endDate?: string, mode: 'weekly' | 'range' = 'weekly') => { 
+    let header = ['Teacher']; 
+    if (mode === 'range' && startDate && endDate) {
+        header.push('Days in Range', 'Scheduled Periods', 'Missed/Left', 'Substitutions (+)', 'Net Load', 'Percentage (%)');
+    } else {
+        allDays.forEach(day => header.push(day.substring(0, 3))); 
+        header.push('Joint', 'Subs', 'Leave', 'Total', 'Percentage (%)');
+    }
+    const rows: (string | number)[][] = [header]; 
+    const data = selectedTeachers.map(teacher => {
+        if (mode === 'range' && startDate && endDate) {
+            return { teacher, stats: calculateRangeWorkload(teacher.id, startDate, endDate, classes, adjustments, leaveDetails, schoolConfig) };
+        }
+        return { teacher, stats: calculateWorkloadStats(teacher.id, classes, adjustments, leaveDetails, startDate, endDate, schoolConfig) };
+    });
+    
+    if (mode === 'range' && startDate && endDate) {
+        data.sort((a, b) => (b.stats.netLoad || 0) - (a.stats.netLoad || 0));
+    } else {
+        data.sort((a, b) => b.stats.totalWorkload - a.stats.totalWorkload);
+    }
+    
+    let weeklyPossible = 0;
+    allDays.forEach(day => {
+        const config = schoolConfig.daysConfig?.[day as keyof TimetableGridData];
+        if (config?.active) weeklyPossible += config.periodCount;
+    });
+
+    data.forEach(({ teacher, stats }) => { 
+        const name = lang === 'ur' ? teacher.nameUr : teacher.nameEn; 
+        if (mode === 'range' && startDate && endDate) {
+            const currentPossible = stats.possiblePeriodsInRange || 1;
+            const percentage = (((stats.netLoad || 0) / currentPossible) * 100).toFixed(1);
+            rows.push([name, stats.daysInRange || 0, stats.scheduledInRange || 0, stats.rangeLeaves || 0, stats.rangeSubs || 0, stats.netLoad || 0, percentage]);
+        } else {
+            const row: (string | number)[] = [name]; 
+            allDays.forEach(d => row.push(stats.dailyCounts[d.toLowerCase()])); 
+            
+            const currentPossible = weeklyPossible || 1;
+            const percentage = ((stats.totalWorkload / currentPossible) * 100).toFixed(1);
+
+            row.push(stats.jointPeriodsCount, stats.substitutionsTaken, -stats.leavesTaken, stats.totalWorkload, percentage); 
+            rows.push(row); 
+        }
+    }); 
+    downloadCsv(rows.map(toCsvRow).join('\n'), 'Workload_Summary.csv'); 
+};
+
+export const generateAdjustmentsExcel = (t: any, adjustments: Adjustment[], teachers: Teacher[], classes: SchoolClass[], subjects: Subject[], date: string) => { 
+    const header = ['Absent Teacher', 'Period', 'Class', 'Subject', 'Substitute Teacher', 'Conflict']; 
+    const rows: (string | number)[][] = [header]; 
+    adjustments.sort((a, b) => a.periodIndex - b.periodIndex).forEach(adj => { 
+        const orig = teachers.find(t => t.id === adj.originalTeacherId); 
+        const sub = teachers.find(t => t.id === adj.substituteTeacherId); 
+        const cls = classes.find(c => c.id === adj.classId); 
+        const sbj = subjects.find(s => s.id === adj.subjectId); 
+        const conflict = adj.conflictDetails ? `Busy in ${adj.conflictDetails.classNameEn}` : ''; 
+        rows.push([orig?.nameEn || '', adj.periodIndex + 1, cls?.nameEn || '', sbj?.nameEn || '', sub?.nameEn || '', conflict]); 
+    }); 
+    downloadCsv(rows.map(toCsvRow).join('\n'), `Adjustments_${date}.csv`); 
+};
+
+export const generateByPeriodHtml = (t: any, lang: DownloadLanguage, design: DownloadDesignConfig, schoolConfig: SchoolConfig, classes: SchoolClass[], teachers: Teacher[]): string => {
+    const urduStyle = `font-family: ${URDU_FONT_STACK} !important; direction: rtl; unicode-bidi: embed; line-height: 1.8; font-weight: normal;`;
+    const trLocal = (en: string, ur: string) => { const urSpan = `<span class="font-urdu" style="${urduStyle}">${ur}</span>`; if (lang === 'en') return en; if (lang === 'ur') return urSpan; return `${en} / ${urSpan}`; };
+    const activeDays = allDays.filter(day => schoolConfig.daysConfig?.[day]?.active ?? true);
+    const sortedTeachers = [...teachers].sort((a, b) => (a.serialNumber ?? 9999) - (b.serialNumber ?? 9999));
+    const headers = ['Pd.', ...activeDays.map(day => trLocal(day, translations['ur'][day.toLowerCase() as keyof typeof translations['ur']]))];
+    const maxPeriods = Math.max(...activeDays.map(day => schoolConfig.daysConfig?.[day]?.periodCount ?? 8));
+    let tableRows = '';
+    for(let i=0; i<maxPeriods; i++) {
+        tableRows += `<tr><td style="font-weight: bold; width: 35px; vertical-align: middle;">${i+1}</td>`;
+        activeDays.forEach(day => {
+            const count = schoolConfig.daysConfig?.[day as keyof TimetableGridData]?.periodCount ?? 8;
+            if (i >= count) tableRows += `<td style="background-color: ${design?.table?.headerBgColor || '#f3f4f6'}20;"></td>`;
+            else {
+                const busyIds = new Set<string>(); classes.forEach(c => c.timetable[day as keyof TimetableGridData]?.[i]?.forEach(p => busyIds.add(p.teacherId)));
+                const freeTeachers = sortedTeachers.filter(t => !busyIds.has(t.id));
+                const freeText = freeTeachers.map(tea => renderText(lang, tea.nameEn, tea.nameUr)).join(', ');
+                tableRows += `<td style="text-align: left;">${freeText}</td>`;
+            }
+        });
+        tableRows += `</tr>`;
+    }
+    const customStyles = `<style> table { width: 100%; border-collapse: collapse; table-layout: fixed; } th, td { border: 1px solid ${design?.table?.borderColor || '#000000'}; padding: ${design?.table?.cellPadding || 8}px; text-align: center; word-wrap: break-word; line-height: 1.1; } th { background-color: ${design?.table?.headerBgColor || '#f3f4f6'}; color: ${design?.table?.headerColor || '#000000'}; font-weight: bold; } tr:nth-child(even) { background-color: ${design?.table?.altRowColor || '#f9fafb'}; } </style>`;
+    const tableHtml = `${customStyles}<table><thead><tr>${headers.map((h, idx) => `<th ${idx === 0 ? 'style="width: 35px;"' : ''}>${h}</th>`).join('')}</tr></thead><tbody>${tableRows}</tbody></table>`;
+    return generateReportHTML(schoolConfig, design, trLocal('Available Teachers', 'دستیاب اساتذہ'), lang, tableHtml);
+};
+
+export const generateWorkloadSummaryHtml = (
+    t: any, 
+    lang: DownloadLanguage, 
+    design: DownloadDesignConfig, 
+    selectedTeachers: Teacher[], 
+    schoolConfig: SchoolConfig, 
+    classes: SchoolClass[], 
+    adjustments: Record<string, Adjustment[]>,
+    leaveDetails: Record<string, Record<string, LeaveDetails>> = {},
+    startDate?: string,
+    endDate?: string,
+    mode: 'weekly' | 'range' = 'weekly'
+): string | string[] => {
+    const urduStyle = `font-family: ${URDU_FONT_STACK} !important; direction: rtl; unicode-bidi: embed; line-height: 1.8; font-weight: normal;`;
+    const trLocal = (en: string, ur: string) => { const urSpan = `<span class="font-urdu" style="${urduStyle}">${ur}</span>`; if (lang === 'en') return en; if (lang === 'ur') return urSpan; return `${en} / ${urSpan}`; };
+    
+    const rowsPerPage = design.rowsPerPage || 50;
+    const rowsPerFirstPage = design.rowsPerFirstPage || rowsPerPage;
+    const totalItems = selectedTeachers.length;
+    let totalPagesCount = 1;
+    if (totalItems > rowsPerFirstPage) {
+        totalPagesCount = 1 + Math.ceil((totalItems - rowsPerFirstPage) / rowsPerPage);
+    }
+
+    let baseHeaders = [trLocal('Teacher', 'استاد')]; 
+    const formatDate = (dateStr: string | undefined) => { if (!dateStr) return ''; const date = new Date(dateStr); const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' }; if (lang === 'ur') return date.toLocaleDateString('ur-PK-u-nu-latn', options); return date.toLocaleDateString('en-GB', options); };
+    const formattedStartDate = formatDate(startDate); const formattedEndDate = formatDate(endDate);
+    
+    let statsData: { teacher: Teacher, stats: WorkloadStats }[] = [];
+    if (mode === 'range' && startDate && endDate) {
+        baseHeaders.push(trLocal('Days', 'ایام'), trLocal('Scheduled', 'شیڈول'), trLocal('Missed', 'رخصت'), trLocal('Sub (+)', 'متبادل'), trLocal('Net Total', 'کل'), '%');
+        statsData = selectedTeachers.map(teacher => ({ teacher, stats: calculateRangeWorkload(teacher.id, startDate, endDate, classes, adjustments, leaveDetails, schoolConfig) }));
+        statsData.sort((a, b) => (b.stats.netLoad || 0) - (a.stats.netLoad || 0));
+    } else {
+        allDays.forEach(day => baseHeaders.push(trLocal(day.substring(0, 3), translations['ur'][day.toLowerCase() as keyof typeof translations['ur']])));
+        baseHeaders.push(trLocal('Joint', 'مشترکہ'), trLocal('Subs', 'متبادل'), trLocal('Leave', 'رخصت'), trLocal('Total', 'کل'), '%');
+        statsData = selectedTeachers.map(teacher => ({ teacher, stats: calculateWorkloadStats(teacher.id, classes, adjustments, leaveDetails, startDate, endDate, schoolConfig) }));
+        statsData.sort((a, b) => b.stats.totalWorkload - a.stats.totalWorkload);
+    }
+
+    let weeklyPossible = 0;
+    allDays.forEach(day => {
+        const config = schoolConfig.daysConfig?.[day as keyof TimetableGridData];
+        if (config?.active) weeklyPossible += config.periodCount;
+    });
+
+    const pages: string[] = [];
+    let currentIdx = 0;
+    for (let i = 0; i < totalPagesCount; i++) {
+        const limit = i === 0 ? rowsPerFirstPage : rowsPerPage;
+        const pageData = statsData.slice(currentIdx, currentIdx + limit);
+        currentIdx += limit;
+
+        let tableRows = '';
+        pageData.forEach(({ teacher, stats }) => {
+            const name = renderText(lang, teacher.nameEn, teacher.nameUr);
+            let rowCells = '';
+            
+            const currentTotal = mode === 'range' ? (stats.netLoad || 0) : stats.totalWorkload;
+            const currentPossible = mode === 'range' ? (stats.possiblePeriodsInRange || 1) : weeklyPossible;
+            const percentage = ((currentTotal / (currentPossible || 1)) * 100).toFixed(1) + '%';
+
+            if (mode === 'range' && startDate && endDate) {
+                rowCells = `<td>${stats.daysInRange}</td><td>${stats.scheduledInRange}</td><td style="color: red;">-${stats.rangeLeaves}</td><td style="color: green;">+${stats.rangeSubs}</td><td style="font-weight: bold; background-color: #f3f4f6;">${stats.netLoad}</td><td style="font-weight: bold;">${percentage}</td>`;
+            } else {
+                rowCells = `${allDays.map(d => `<td>${stats.dailyCounts[d.toLowerCase()]}</td>`).join('')}<td>${stats.jointPeriodsCount}</td><td style="color: green;">+${stats.substitutionsTaken}</td><td style="color: red;">${stats.leavesTaken > 0 ? -stats.leavesTaken : 0}</td><td style="font-weight: bold; background-color: #f3f4f6;">${stats.totalWorkload}</td><td style="font-weight: bold;">${percentage}</td>`;
+            }
+            tableRows += `<tr><td style="text-align: left; font-weight: bold;">${name}</td>${rowCells}</tr>`;
+        });
+
+        const customStyles = `<style>table { width: 100%; border-collapse: collapse; font-size: ${design?.table?.fontSize || 14}px; } th, td { border: 1px solid ${design?.table?.borderColor || '#000000'}; padding: ${design?.table?.cellPadding || 8}px; text-align: center; line-height: 1.1; } th { background-color: ${design?.table?.headerBgColor || '#f3f4f6'}; color: ${design?.table?.headerColor || '#000000'}; font-weight: bold; } tr:nth-child(even) { background-color: ${design?.table?.altRowColor || '#f9fafb'}; }</style>`;
+        const tableHtml = `${customStyles}<table><thead><tr>${baseHeaders.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${tableRows}</tbody></table>`;
+        const titlePrefix = startDate && endDate ? (lang === 'ur' ? `${formattedStartDate} تا ${formattedEndDate}` : `${formattedStartDate} to ${formattedEndDate}`) : '';
+        const reportTitle = `${trLocal('Workload Summary', 'ورک لوڈ کا خلاصہ')} ${titlePrefix ? `(${titlePrefix})` : ''}`;
+        pages.push(generateReportHTML(schoolConfig, design, reportTitle, lang, tableHtml, '', i + 1, totalPagesCount));
+    }
+
+    return pages.length === 1 ? pages[0] : pages;
 };
 
 export const generateAttendanceReportHtml = (
@@ -1036,61 +1300,155 @@ export const generateAttendanceReportHtml = (
     teachers: Teacher[],
     schoolConfig: SchoolConfig,
     date: string,
-    adjustments: any,
-    leaveDetails: any,
-    attendance: Record<string, AttendanceData>
-): string => {
-    const title = lang === 'ur' ? translations.ur.attendanceReport : translations.en.attendanceReport;
-    const dateFormatted = new Date(date).toLocaleDateString(lang === 'ur' ? 'ur-PK' : 'en-GB');
+    adjustments: Record<string, Adjustment[]>,
+    leaveDetails: Record<string, Record<string, LeaveDetails>>,
+    attendance: Record<string, Record<string, AttendanceData>> = {}
+): string | string[] => {
+    const urduStyle = `font-family: ${URDU_FONT_STACK} !important; direction: rtl; unicode-bidi: embed; line-height: 1.8; font-weight: normal;`;
+    const trLocal = (en: string, ur: string) => { const urSpan = `<span class="font-urdu" style="${urduStyle}">${ur}</span>`; if (lang === 'en') return en; if (lang === 'ur') return urSpan; return `${en} / ${urSpan}`; };
     
-    let content = `<h3>Date: ${dateFormatted}</h3>`;
-    content += `<table><thead><tr><th>Class</th><th>Total</th><th>Present</th><th>Absent</th><th>Leave</th><th>Sick</th><th>Submitted By</th></tr></thead><tbody>`;
-    
-    let totalStudents = 0;
-    let totalPresent = 0;
-    let totalAbsent = 0;
+    const visibleClasses = classes.filter(c => c.id !== 'non-teaching-duties');
+    const rowsPerPage = design.rowsPerPage || 50;
+    const rowsPerFirstPage = design.rowsPerFirstPage || rowsPerPage;
+    const totalItems = visibleClasses.length;
+    let totalPagesCount = 1;
+    if (totalItems > rowsPerFirstPage) {
+        totalPagesCount = 1 + Math.ceil((totalItems - rowsPerFirstPage) / rowsPerPage);
+    }
 
-    classes.forEach(c => {
-        if (c.id === 'non-teaching-duties') return;
-        const record = attendance[c.id];
-        if (record) {
-            totalStudents += c.studentCount;
-            totalPresent += record.present;
-            totalAbsent += record.absent;
-            content += `<tr>
-                <td>${renderText(lang, c.nameEn, c.nameUr)}</td>
-                <td>${c.studentCount}</td>
-                <td>${record.present}</td>
-                <td>${record.absent}</td>
-                <td>${record.leave}</td>
-                <td>${record.sick}</td>
-                <td>${record.submittedBy || '-'}</td>
-            </tr>`;
-        } else {
-            content += `<tr>
-                <td>${renderText(lang, c.nameEn, c.nameUr)}</td>
-                <td>${c.studentCount}</td>
-                <td colspan="5" style="text-align:center; color: #999;">Not Submitted</td>
-            </tr>`;
+    const dateObj = new Date(date);
+    const headers = [
+        trLocal('Class', 'کلاس'),
+        trLocal('In Charge', 'انچارج'),
+        trLocal('Total', 'کل'),
+        trLocal('Absent', 'غیر حاضر'),
+        trLocal('Sick', 'بیمار'),
+        trLocal('Leave', 'رخصت'),
+        trLocal('Present', 'حاضر'),
+        '%',
+        trLocal('Signature', 'دستخط')
+    ];
+
+    const stats: Record<string, { total: number, absent: number, sick: number, leave: number, present: number }> = {
+        High: { total: 0, absent: 0, sick: 0, leave: 0, present: 0 },
+        Middle: { total: 0, absent: 0, sick: 0, leave: 0, present: 0 },
+        Primary: { total: 0, absent: 0, sick: 0, leave: 0, present: 0 },
+        GrandTotal: { total: 0, absent: 0, sick: 0, leave: 0, present: 0 }
+    };
+
+    const pages: string[] = [];
+    const dayAdjustments = adjustments[date] || [];
+    const dayLeaves = leaveDetails[date] || {};
+    const dayAttendance = attendance[date] || {};
+
+    let currentIdx = 0;
+    for (let i = 0; i < totalPagesCount; i++) {
+        const limit = i === 0 ? rowsPerFirstPage : rowsPerPage;
+        const pageClasses = visibleClasses.slice(currentIdx, currentIdx + limit);
+        currentIdx += limit;
+
+        let tableRows = '';
+        pageClasses.forEach(c => {
+            const inChargeId = c.inCharge;
+            const inCharge = teachers.find(tea => tea.id === inChargeId);
+            const leave = dayLeaves[inChargeId];
+            const isAbsent = leave?.leaveType === 'full' || (leave?.leaveType === 'half' && (leave.periods ? leave.periods.includes(1) : leave.startPeriod === 1));
+            
+            let activeInChargeName = '';
+            if (isAbsent) {
+                const adj = dayAdjustments.find(a => a.classId === c.id && a.periodIndex === 0);
+                if (adj) {
+                    const sub = teachers.find(tea => tea.id === adj.substituteTeacherId);
+                    if (sub) {
+                        const subTag = lang === 'ur' ? ' (متبادل)' : ' (Sub)';
+                        activeInChargeName = renderText(lang, sub.nameEn + subTag, sub.nameUr + subTag);
+                    }
+                } else {
+                    activeInChargeName = inCharge ? renderText(lang, inCharge.nameEn, inCharge.nameUr) : '-';
+                }
+            } else {
+                activeInChargeName = inCharge ? renderText(lang, inCharge.nameEn, inCharge.nameUr) : '-';
+            }
+
+            const data = dayAttendance[c.id];
+            const total = c.studentCount;
+            const abs = data?.absent || 0;
+            const sick = data?.sick || 0;
+            const leaveCount = data?.leave || 0;
+            const present = total - (abs + sick + leaveCount);
+            const percentage = total > 0 ? ((present / total) * 100).toFixed(1) + '%' : '0.0%';
+            const signature = data?.signature || '';
+
+            const cat = c.category || 'Primary';
+            if (stats[cat]) {
+                stats[cat].total += total;
+                stats[cat].absent += abs;
+                stats[cat].sick += sick;
+                stats[cat].leave += leaveCount;
+                stats[cat].present += present;
+            }
+            stats.GrandTotal.total += total;
+            stats.GrandTotal.absent += abs;
+            stats.GrandTotal.sick += sick;
+            stats.GrandTotal.leave += leaveCount;
+            stats.GrandTotal.present += present;
+
+            const sigHeight = Math.max(16, (design?.table?.fontSize || 14) * 1.5);
+
+            tableRows += `
+                <tr>
+                    <td style="text-align: left; font-weight: bold;">${renderText(lang, c.nameEn, c.nameUr)}</td>
+                    <td style="text-align: left; white-space: nowrap;">${activeInChargeName}</td>
+                    <td style="font-weight: bold;">${total}</td>
+                    <td style="color: #dc2626;">${abs}</td>
+                    <td style="color: #ea580c;">${sick}</td>
+                    <td style="color: #2563eb;">${leaveCount}</td>
+                    <td style="background-color: #f0fdf4; font-weight: bold; color: #166534;">${present}</td>
+                    <td style="font-weight: bold;">${percentage}</td>
+                    <td style="padding: 0 !important; vertical-align: middle !important;">
+                        <div style="height: ${sigHeight}px; width: 100%; display: flex; align-items: center; justify-content: center; position: relative; overflow: visible;">
+                            ${signature ? `<img src="${signature}" style="max-height: ${sigHeight + 10}px; position: absolute; top: -4px; filter: grayscale(1) contrast(200%);" />` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        const isLastPage = i === totalPagesCount - 1;
+        let summaryTable = '';
+        if (isLastPage) {
+            const summaryHeaders = [
+                trLocal('Category', 'زمرہ'),
+                trLocal('Total', 'کل'),
+                trLocal('Absent', 'غیر حاضر'),
+                trLocal('Sick', 'بیمار'),
+                trLocal('Leave', 'رخصت'),
+                trLocal('Present', 'حاضر'),
+                '%'
+            ];
+            
+            const cats = ['High', 'Middle', 'Primary'];
+            const summaryRows = cats.map(cat => {
+                const s = stats[cat];
+                if (!s) return '';
+                const p = s.total > 0 ? ((s.present / s.total) * 100).toFixed(1) + '%' : '0.0%';
+                return `<tr><td style="font-weight: bold;">${trLocal(cat, cat === 'High' ? 'ہائی' : (cat === 'Middle' ? 'مڈل' : 'پرائمری'))}</td><td>${s.total}</td><td>${s.absent}</td><td>${s.sick}</td><td>${s.leave}</td><td>${s.present}</td><td>${p}</td></tr>`;
+            }).join('');
+
+            const gt = stats.GrandTotal;
+            const gp = gt.total > 0 ? ((gt.present / gt.total) * 100).toFixed(1) + '%' : '0.0%';
+            const grandTotalRow = `<tr style="background-color: #e5e7eb; font-weight: 900;"><td>${trLocal('Total', 'کل')}</td><td>${gt.total}</td><td>${gt.absent}</td><td>${gt.sick}</td><td>${gt.leave}</td><td>${gt.present}</td><td>${gp}</td></tr>`;
+
+            summaryTable = `<div style="margin-top: 20px; break-inside: avoid;"><h3 style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">${trLocal('Summary', 'خلاصہ')}</h3><table style="width: 100%;"><thead><tr>${summaryHeaders.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${summaryRows}${grandTotalRow}</tbody></table></div>`;
         }
-    });
-    
-    content += `<tr style="font-weight:bold; background-color: #f3f4f6;">
-        <td>Total</td>
-        <td>${totalStudents}</td>
-        <td>${totalPresent}</td>
-        <td>${totalAbsent}</td>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
-    </tr>`;
-    
-    content += `</tbody></table>`;
-    
-    const percentage = totalStudents > 0 ? ((totalPresent / totalStudents) * 100).toFixed(1) : '0';
-    content += `<p><strong>Attendance Percentage:</strong> ${percentage}%</p>`;
 
-    return generateReportHTML(schoolConfig, design, title, lang, content);
+        const customStyles = `<style>table { width: 100%; border-collapse: collapse; font-size: ${design?.table?.fontSize || 14}px; } th, td { border: 1px solid ${design?.table?.borderColor || '#000000'}; padding: ${design?.table?.cellPadding || 8}px; text-align: center; line-height: 1.1; } th { background-color: ${design?.table?.headerBgColor || '#f3f4f6'}; color: ${design?.table?.headerColor || '#000000'}; font-weight: bold; } tr:nth-child(even) { background-color: ${design?.table?.altRowColor || '#f9fafb'}; }</style>`;
+        const tableHtml = `${customStyles}<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${tableRows}</tbody></table>${summaryTable}`;
+        const reportTitle = `${trLocal('Attendance Report', 'رپورٹ حاضری')} - ${dateObj.toLocaleDateString(lang === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+        pages.push(generateReportHTML(schoolConfig, design, reportTitle, lang, tableHtml, '', i + 1, totalPagesCount));
+    }
+
+    return pages.length === 1 ? pages[0] : pages;
 };
 
 export const generateAttendanceReportExcel = (
@@ -1099,35 +1457,70 @@ export const generateAttendanceReportExcel = (
     classes: SchoolClass[],
     teachers: Teacher[],
     date: string,
-    adjustments: any,
-    leaveDetails: any,
-    attendance: Record<string, AttendanceData>
+    adjustments: Record<string, Adjustment[]>,
+    leaveDetails: Record<string, Record<string, LeaveDetails>>,
+    attendance: Record<string, Record<string, AttendanceData>> = {}
 ) => {
-    const csv = ['Date,Class,Total Students,Present,Absent,Leave,Sick,Submitted By'];
+    const { en: enT, ur: urT } = translations;
+    // Updated tr definition to be consistent (1 argument key)
+    const trLocal = (key: string) => lang === 'ur' ? (urT as any)[key] : (enT as any)[key];
     
-    classes.forEach(c => {
-        if (c.id === 'non-teaching-duties') return;
-        const record = attendance[c.id];
-        if (record) {
-            csv.push(toCsvRow([
-                date,
-                lang === 'ur' ? c.nameUr : c.nameEn,
-                c.studentCount,
-                record.present,
-                record.absent,
-                record.leave,
-                record.sick,
-                record.submittedBy || ''
-            ]));
+    const visibleClasses = classes.filter(c => c.id !== 'non-teaching-duties');
+    const header = [trLocal('class'), trLocal('classInCharge'), trLocal('totalStudents'), trLocal('absent'), trLocal('sick'), trLocal('leave'), trLocal('present'), '%'];
+    const rows: (string | number)[][] = [header];
+
+    const dayAdjustments = adjustments[date] || [];
+    const dayLeaves = leaveDetails[date] || {};
+    const dayAttendance = attendance[date] || {};
+
+    const stats: Record<string, { total: number, absent: number, sick: number, leave: number, present: number }> = {
+        GrandTotal: { total: 0, absent: 0, sick: 0, leave: 0, present: 0 }
+    };
+
+    visibleClasses.forEach(c => {
+        const inChargeId = c.inCharge;
+        const inCharge = teachers.find(tea => tea.id === inChargeId);
+        const leave = dayLeaves[inChargeId];
+        const isAbsent = leave?.leaveType === 'full' || (leave?.leaveType === 'half' && (leave.periods ? leave.periods.includes(1) : leave.startPeriod === 1));
+        
+        let activeInChargeName = '';
+        if (isAbsent) {
+            const adj = dayAdjustments.find(a => a.classId === c.id && a.periodIndex === 0);
+            if (adj) {
+                const sub = teachers.find(tea => tea.id === adj.substituteTeacherId);
+                if (sub) {
+                    const subTag = lang === 'ur' ? ' (متبادل)' : ' (Sub)';
+                    activeInChargeName = lang === 'ur' ? sub.nameUr + subTag : sub.nameEn + subTag;
+                }
+            } else {
+                activeInChargeName = inCharge ? (lang === 'ur' ? inCharge.nameUr : inCharge.nameEn) : '-';
+            }
         } else {
-            csv.push(toCsvRow([
-                date,
-                lang === 'ur' ? c.nameUr : c.nameEn,
-                c.studentCount,
-                '', '', '', '', 'Not Submitted'
-            ]));
+            activeInChargeName = inCharge ? (lang === 'ur' ? inCharge.nameUr : inCharge.nameEn) : '-';
         }
+
+        const data = dayAttendance[c.id];
+        const total = c.studentCount;
+        const abs = data?.absent || 0;
+        const sick = data?.sick || 0;
+        const leaveCount = data?.leave || 0;
+        const present = total - (abs + sick + leaveCount);
+        const percentage = total > 0 ? ((present / total) * 100).toFixed(1) + '%' : '0.0%';
+
+        stats.GrandTotal.total += total;
+        stats.GrandTotal.absent += abs;
+        stats.GrandTotal.sick += sick;
+        stats.GrandTotal.leave += leaveCount;
+        stats.GrandTotal.present += present;
+
+        rows.push([lang === 'ur' ? c.nameUr : c.nameEn, activeInChargeName, total, abs, sick, leaveCount, present, percentage]);
     });
+
+    const gt = stats.GrandTotal;
+    const gp = gt.total > 0 ? ((gt.present / gt.total) * 100).toFixed(1) + '%' : '0.0%';
     
-    downloadCsv(csv.join('\n'), `Attendance_Report_${date}.csv`);
+    rows.push([]);
+    rows.push([trLocal('grandTotal'), '', gt.total, gt.absent, gt.sick, gt.leave, gt.present, gp]);
+
+    downloadCsv(rows.map(toCsvRow).join('\n'), `Attendance_Report_${date}.csv`);
 };

@@ -782,7 +782,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     const dataStr = JSON.stringify(exportData, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     const dateRangeStr = exportStartDate === exportEndDate ? exportStartDate : `${exportStartDate}_to_${exportEndDate}`;
     link.download = `mr_timetable_data_${dateRangeStr}.json`;
@@ -798,23 +798,24 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const json = e.target?.result;
-        if (typeof json !== 'string') return;
-        const imported: any = JSON.parse(json);
+        const json = reader.result;
+        // Fix: Ensure json is a string before parsing
+        if (typeof json !== 'string') {
+             throw new Error("Invalid file content");
+        }
+        const imported: any[] = JSON.parse(json);
         if (!Array.isArray(imported)) throw new Error("Invalid format");
-        
-        const importedArray = imported as any[];
 
         onUpdateSession((session) => {
             const newAdjustments = { ...session.adjustments };
             const newLeaveDetails = { ...session.leaveDetails };
 
-            const isNewFormat = importedArray.length > 0 && (importedArray[0].adjustments !== undefined || importedArray[0].leaveDetails !== undefined);
+            const isNewFormat = imported.length > 0 && (imported[0].adjustments !== undefined || imported[0].leaveDetails !== undefined);
 
             if (isNewFormat) {
-                importedArray.forEach((dayData: any) => {
+                imported.forEach(dayData => {
                     const { date, adjustments: dayAdjs, leaveDetails: dayLeaves } = dayData;
-                    if (typeof date === 'string') {
+                    if (date) {
                         if (Array.isArray(dayAdjs)) {
                             newAdjustments[date] = dayAdjs.map((adj: any) => ({
                                 ...adj,
@@ -828,12 +829,12 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                 });
                 alert("Data imported successfully (Leaves & Adjustments).");
             } else {
-                const isMultiDate = importedArray.some((item: any) => item.date);
+                const isMultiDate = imported.some(item => item.date);
 
                 if (isMultiDate) {
-                    const grouped: Record<string, Adjustment[]> = importedArray.reduce((acc: Record<string, Adjustment[]>, item: any) => {
+                    const grouped: Record<string, Adjustment[]> = imported.reduce((acc: Record<string, Adjustment[]>, item: any) => {
                         const date = item.date;
-                        if (typeof date === 'string') {
+                        if (date) {
                             if (!acc[date]) acc[date] = [];
                             const { date: _, ...adj } = item;
                             acc[date].push({ ...adj, id: generateUniqueId() });
@@ -846,19 +847,19 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                         const importedTeacherIds = [...new Set(adjs.map(adj => adj.originalTeacherId))];
                         if (importedTeacherIds.length > 0) {
                             const dayLeaves = newLeaveDetails[date] || {};
-                            importedTeacherIds.forEach((id: string) => {
+                            importedTeacherIds.forEach((id: any) => {
                                 if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
                             });
                             newLeaveDetails[date] = dayLeaves;
                         }
                     });
                 } else {
-                    const transformed = importedArray.map((adj: any) => ({ ...adj, id: generateUniqueId(), day: dayOfWeek as keyof TimetableGridData }));
+                    const transformed = imported.map(adj => ({ ...adj, id: generateUniqueId(), day: dayOfWeek as keyof TimetableGridData }));
                     newAdjustments[selectedDate] = transformed;
-                    const importedTeacherIds = [...new Set(transformed.map((adj: any) => adj.originalTeacherId))].filter((id): id is string => typeof id === 'string');
+                    const importedTeacherIds = [...new Set(transformed.map((adj: any) => adj.originalTeacherId))];
                     if (importedTeacherIds.length > 0) {
                         const dayLeaves = newLeaveDetails[selectedDate] || {};
-                        importedTeacherIds.forEach((id: string) => {
+                        importedTeacherIds.forEach((id: any) => {
                             if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
                         });
                         newLeaveDetails[selectedDate] = dayLeaves;
@@ -917,8 +918,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     const dateStr = date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 
     let message: string;
-    const conflictDetails = adjustment.conflictDetails;
-    if (conflictDetails) {
+    if (adjustment.conflictDetails) {
         message = msgT.substituteNotificationMessageDoubleBook
             .replace('{teacherName}', respectfulName)
             .replace('{date}', dateStr)
@@ -928,7 +928,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             .replace('{subjectName}', messageLanguage === 'ur' ? subject.nameUr : subject.nameEn)
             .replace('{roomNumber}', schoolClass.roomNumber || '-')
             .replace('{originalTeacherName}', messageLanguage === 'ur' ? originalTeacher.nameUr : originalTeacher.nameEn)
-            .replace('{conflictClassName}', messageLanguage === 'ur' ? conflictDetails.classNameUr : conflictDetails.classNameEn);
+            .replace('{conflictClassName}', messageLanguage === 'ur' ? adjustment.conflictDetails.classNameUr : adjustment.conflictDetails.classNameEn);
     } else {
         message = msgT.notificationTemplateDefault
             .replace('{teacherName}', respectfulName)
@@ -1001,7 +1001,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             t, langForImage, design, dailyAdjustments, teachers, classes, subjects, schoolConfig, selectedDate, absentTeacherIds, signature
           );
 
-          const lastPageHtml = Array.isArray(pagesHtml) ? pagesHtml[pagesHtml.length - 1] : pagesHtml;
+          const lastPageHtml = pagesHtml[pagesHtml.length - 1];
 
           const tempContainer = document.createElement('div');
           const isPortrait = design.page.orientation === 'portrait';
@@ -1040,19 +1040,14 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           if (blob) {
               const file = new File([blob], `Signed_Adjustments_${selectedDate}.png`, { type: 'image/png' });
               
-              // Attempt Share
+              // Attempt Share - FIX: Casting navigator for missing definitions
               if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
                   try {
                       await (navigator as any).share({ files: [file], title: `Signed Adjustments - ${selectedDate}` });
                   } catch (error: any) {
                       // Silently handle cancellation
                       if (error?.name !== 'AbortError') {
-                          console.warn("Share failed, falling back to download", error);
-                          // Fallback to download manually if share fails but not aborted
-                          const link = document.createElement('a');
-                          link.href = canvas.toDataURL('image/png');
-                          link.download = `Signed_Adjustments_${selectedDate}.png`;
-                          link.click();
+                          throw error;
                       }
                   }
               } else {
@@ -1065,8 +1060,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           }
       } catch (err: any) {
           console.error("Image generation failed", err);
-          const msg = err instanceof Error ? err.message : String(err);
-          alert(`Failed to generate and share image. Please try again. (${msg})`);
+          alert("Failed to generate and share image. Please try again.");
       } finally {
           setIsGeneratingImage(false);
       }

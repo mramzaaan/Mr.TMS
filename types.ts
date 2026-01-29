@@ -251,7 +251,6 @@ export interface DownloadDesignConfig {
         triangleCorner?: TriangleCorner;
         outlineWidth?: number;
         mergeIdenticalPeriods?: boolean;
-        badgeTarget?: 'subject' | 'teacher' | 'class';
     };
     footer: {
         show: boolean;

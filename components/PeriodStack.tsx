@@ -217,7 +217,7 @@ const PeriodStack: React.FC<PeriodStackProps> = ({ periods, onDragStart, onDragE
             {displayContext === 'class' ? (
                 <>
                     {/* Class Name (Context): Larger, Top-Left */}
-                    <p className="font-black text-sm truncate pt-1 text-left leading-tight">{contextNameJsx}</p>
+                    <p className="font-black text-xs truncate pt-1 text-left leading-tight">{contextNameJsx}</p>
                     {/* Subject Name: Smaller, Bottom-Right */}
                     <p className="text-[10px] font-medium truncate opacity-90 text-right leading-tight">{subjectNameJsx}</p>
                 </>

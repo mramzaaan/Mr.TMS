@@ -103,7 +103,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       } else if (triangleCorner === 'bottom-right') {
           triangleStyles = `bottom: 0; right: 0; border-width: 0 0 ${triangleSize}px ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
       } else { // bottom-left default
-          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent transparent currentColor;`;
+          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
       }
       
       let cardStyleCss = '';
@@ -360,6 +360,14 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
                       const colorKey = `${p.classId}-${p.subjectId}`;
                       const colorName = subjectColorMap.get(colorKey) || 'subject-default';
                       const triangleHtml = (cardStyle === 'triangle' || cardStyle === 'full') ? `<div class="card-triangle"></div>` : '';
+                      
+                      let subjectBadgeStyle = '';
+                      let teacherBadgeStyle = '';
+                      if (cardStyle === 'badge') {
+                          const badgeCss = `background-color: var(--${colorName}-text); color: #fff !important; padding: 1px 6px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
+                          if (badgeTarget === 'teacher') teacherBadgeStyle = badgeCss;
+                          else subjectBadgeStyle = badgeCss; // Default to subject
+                      }
                       
                       return `
                           <div class="period-card-img ${colorName}">
