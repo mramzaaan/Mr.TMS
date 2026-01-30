@@ -1,12 +1,13 @@
 
+// ... keep imports ...
 import React, { useState, useMemo } from 'react';
-import type { SchoolClass, Teacher, TimetableGridData, Subject, SchoolConfig, CardStyle, TriangleCorner, Period } from '../types';
+import type { SchoolClass, Teacher, Subject, SchoolConfig, CardStyle } from '../types';
 import { allDays } from '../types';
 
-// Declaring html2canvas
 declare const html2canvas: any;
 
 interface ClassCommunicationModalProps {
+// ... keep interface ...
   t: any;
   isOpen: boolean;
   onClose: () => void;
@@ -15,7 +16,7 @@ interface ClassCommunicationModalProps {
   subjects: Subject[];
   teachers: Teacher[];
   schoolConfig: SchoolConfig;
-  subjectColorMap: Map<string, string>; // Maps teacherId -> colorName
+  subjectColorMap: Map<string, string>;
 }
 
 const subjectColorNames = [
@@ -50,6 +51,20 @@ const TEXT_HEX_MAP: Record<string, string> = {
     'subject-orange': '#9a3412', 'subject-lime': '#4d7c0f', 'subject-cyan': '#0e7490', 'subject-emerald': '#065f46',
     'subject-fuchsia': '#86198f', 'subject-rose': '#9f1239', 'subject-amber': '#92400e', 'subject-blue': '#1e40af',
     'subject-default': '#374151'
+};
+
+const abbreviateName = (name: string | undefined) => {
+    if (!name) return '';
+    const cleanName = name.replace(/[()]/g, '').trim();
+    if (cleanName.length <= 15) return cleanName;
+    
+    // Initials for multi-word names
+    const parts = cleanName.split(/[\s-]+/);
+    if (parts.length > 1) {
+        return parts.map(p => p[0].toUpperCase()).join('');
+    }
+    // Truncate single long words
+    return cleanName.substring(0, 6) + '.';
 };
 
 export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = ({
@@ -89,43 +104,42 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
       const outlineWidth = schoolConfig.downloadDesigns.class.table.outlineWidth || 2;
       const badgeTarget = schoolConfig.downloadDesigns.class.table.badgeTarget || 'subject';
       
-      // Fixed 1:1 Ratio
-      const size = 1000;
+      const size = 1200;
       const width = size;
       const height = size;
 
       let triangleStyles = '';
-      const triangleSize = 15; 
+      const triangleSize = 20; 
       if (triangleCorner === 'top-left') {
-          triangleStyles = `top: 0; left: 0; border-top: ${triangleSize}px solid currentColor; border-right: ${triangleSize}px solid transparent;`;
+          triangleStyles = `top: 0; left: 0; border-width: ${triangleSize}px ${triangleSize}px 0 0; border-color: currentColor transparent transparent transparent;`;
       } else if (triangleCorner === 'top-right') {
-          triangleStyles = `top: 0; right: 0; border-top: ${triangleSize}px solid currentColor; border-left: ${triangleSize}px solid transparent;`;
+          triangleStyles = `top: 0; right: 0; border-width: 0 ${triangleSize}px ${triangleSize}px 0; border-color: transparent currentColor transparent transparent;`;
       } else if (triangleCorner === 'bottom-right') {
-          triangleStyles = `bottom: 0; right: 0; border-bottom: ${triangleSize}px solid currentColor; border-left: ${triangleSize}px solid transparent;`;
-      } else { // bottom-left default
-          triangleStyles = `bottom: 0; left: 0; border-bottom: ${triangleSize}px solid currentColor; border-right: ${triangleSize}px solid transparent;`;
+          triangleStyles = `bottom: 0; right: 0; border-width: 0 0 ${triangleSize}px ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
+      } else { 
+          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent transparent currentColor;`;
       }
 
       let cardStyleCss = '';
       if (cardStyle === 'full') {
-          cardStyleCss = 'box-shadow: 0 1px 1px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05);';
+          cardStyleCss = '';
       } else if (cardStyle === 'outline') {
-          cardStyleCss = `background-color: #ffffff !important; border: ${outlineWidth}px solid inherit !important; box-shadow: none !important; color: inherit !important;`;
+          cardStyleCss = `background-color: #ffffff !important; border: ${outlineWidth}px solid inherit !important; color: inherit !important; margin: 1px;`;
       } else if (cardStyle === 'text' || cardStyle === 'triangle') {
-          cardStyleCss = 'background-color: #ffffff !important; border: 1px solid transparent !important; box-shadow: none !important; color: inherit !important;';
+          cardStyleCss = 'background-color: #ffffff !important; border: 1px solid transparent !important; color: inherit !important;';
       } else if (cardStyle === 'glass') {
-          cardStyleCss = 'background: rgba(255, 255, 255, 0.5) !important; backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.3) !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;';
+          cardStyleCss = 'background: rgba(255, 255, 255, 0.5) !important; backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.3) !important; margin: 1px;';
       } else if (cardStyle === 'gradient') {
-          cardStyleCss = 'background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.1) 100%) !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important; border: none !important;';
+          cardStyleCss = 'background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.1) 100%) !important;';
       } else if (cardStyle === 'minimal-left') {
-          cardStyleCss = 'background-color: #f8fafc !important; border-left: 4px solid currentColor !important; border-top: none !important; border-right: none !important; border-bottom: none !important; box-shadow: none !important; border-radius: 2px !important;';
+          cardStyleCss = 'background-color: #f8fafc !important; border-left: 5px solid currentColor !important; border-top: none !important; border-right: none !important; border-bottom: none !important; border-radius: 2px !important;';
       } else if (cardStyle === 'badge') {
           cardStyleCss = 'background-color: transparent !important; border: none !important; box-shadow: none !important;';
       }
 
       const styles = `
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
           * { 
             box-sizing: border-box !important; 
             -webkit-text-size-adjust: none !important; 
@@ -137,22 +151,20 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             padding: 30px;
             width: ${width}px;
             height: ${height}px;
-            color: #1f2937;
+            color: #000000;
             box-sizing: border-box;
-            border: 1px solid #e5e7eb;
-            border-radius: 20px;
+            border: 2px solid #000000;
             display: flex;
             flex-direction: column;
             overflow: hidden;
             position: relative;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
           }
           
           .timetable-image-container::before {
             content: '';
             position: absolute;
             top: -10%;
-            right: -10%;
+            left: -10%;
             width: 45%;
             height: 45%;
             background: radial-gradient(circle, ${themeColors.accent}15 0%, transparent 70%);
@@ -163,7 +175,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             content: '';
             position: absolute;
             bottom: -5%;
-            left: -5%;
+            right: -5%;
             width: 35%;
             height: 35%;
             background: radial-gradient(circle, ${themeColors.accent}10 0%, transparent 70%);
@@ -174,95 +186,89 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
           .font-urdu { font-family: 'Noto Nastaliq Urdu', serif !important; }
           
           .img-header {
-            position: relative;
-            z-index: 10;
-            margin-bottom: 20px;
+            flex-shrink: 0;
+            margin-bottom: 15px;
+            border-bottom: 3px solid #000000;
+            padding-bottom: 10px;
           }
 
           .img-school-name { 
             font-family: 'Anton', sans-serif !important;
-            font-size: 44px; 
+            font-size: 48px; 
             color: ${themeColors.accent}; 
             text-align: center;
-            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
             line-height: 1;
-            padding-bottom: 4px;
+            margin-bottom: 5px;
           }
           
           .header-info-row {
             display: flex;
-            flex-direction: row;
             justify-content: space-between;
-            align-items: center;
-            padding: 0 20px 10px 20px;
-            border-bottom: 2px solid ${themeColors.accent}30;
-          }
-          
-          .info-class-name { 
-            font-size: 40px; 
-            font-weight: 900; 
-            color: #111827; 
-            text-transform: uppercase; 
-            line-height: 1;
-            text-align: center;
-            white-space: nowrap;
-            flex: 1;
+            align-items: flex-end;
             padding: 0 10px;
           }
           
+          .info-class-name { 
+            font-size: 42px; 
+            font-weight: 900; 
+            color: #000000; 
+            text-transform: uppercase; 
+            line-height: 1;
+          }
+          
           .info-stats-side { 
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 700;
-            color: #64748b;
+            color: #000000;
             text-transform: uppercase;
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 6px;
           }
 
-          .compact-val { color: #1e293b; font-weight: 900; font-size: 18px; }
-          
+          .img-table-wrapper {
+            flex-grow: 1;
+            width: 100%;
+            border: 2px solid #000000;
+            display: flex;
+            flex-direction: column;
+          }
+
           .img-table { 
             width: 100%; 
+            height: 100%;
             border-collapse: collapse; 
             table-layout: fixed; 
-            flex-grow: 1; 
-            position: relative;
-            z-index: 10;
           }
           
           .img-table th { 
-            background-color: transparent;
-            color: ${themeColors.accent}; 
+            background-color: ${themeColors.accent}20;
+            color: #000000; 
             font-weight: 900; 
             text-transform: uppercase;
-            padding: 10px 4px;
-            font-size: 26px; /* Increased */
+            font-size: 24px;
             line-height: 1;
-            letter-spacing: 0.025em;
-            border: 1px solid #e2e8f0; /* Thin line */
+            border: 1px solid #000000; 
+            padding: 5px;
+            height: 50px;
           }
-          .img-table th:first-child { width: 50px; background: transparent; }
+          .img-table th:first-child { width: 50px; background: #ffffff; }
           
           .period-label { 
-            background-color: transparent !important; 
-            color: #94a3b8; 
+            background-color: #f8fafc; 
+            color: #000000; 
             font-weight: 900; 
-            font-size: 28px;
+            font-size: 32px;
             text-align: center;
-            line-height: 1;
-            border: 1px solid #e2e8f0; /* Thin line */
+            border: 1px solid #000000; 
           }
           
           .slot-cell { 
-            height: auto; 
-            padding: 4px; 
+            padding: 0; 
+            margin: 0;
             background-color: transparent; 
-            border: 1px solid #e2e8f0; /* Thin line */
+            border: 1px solid #000000; 
             vertical-align: top;
+            height: 1px;
           }
           
           .card-wrapper {
@@ -271,42 +277,61 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             width: 100%;
             height: 100%;
             justify-content: flex-start;
-            gap: 0px; /* Reduced gap for closer packing */
           }
 
           .period-card-img { 
             flex: 1;
-            border-radius: 4px; 
-            line-height: 1; 
-            box-sizing: border-box;
+            width: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Adjusted for corner placement */
+            justify-content: center;
             align-items: stretch;
-            text-align: left;
+            text-align: center;
             overflow: hidden;
             ${cardStyleCss}
             position: relative;
-            height: 100%;
-            min-height: 45px; /* Significantly reduced to allow packing */
-            padding: 3px 5px;
+            padding: 6px;
+            border-bottom: 1px solid #000000;
           }
-          .period-card-img p { margin: 0; padding: 0 1px; width: 100%; z-index: 10; position: relative; color: inherit !important; line-height: 1.1; }
+          .period-card-img:last-child { border-bottom: none; }
+
+          .period-content-spread {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 100%;
+            height: 100%;
+          }
+
+          /* Match Teacher Modal Styles */
           .period-subject { 
             font-weight: 900; 
-            font-size: 20px; /* Slightly reduced to fit better if packed */
-            text-transform: uppercase; 
-            text-align: left; /* Upper Left */
-            margin-bottom: 0 !important; 
+            font-size: 40px; /* Large Top Left */
+            text-transform: none; 
+            line-height: 1;
+            text-align: left; 
+            margin: 0;
+            color: inherit;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            padding-left: 2px;
           }
           .period-teacher { 
             font-weight: 700; 
             opacity: 0.9; 
-            font-size: 13px; 
+            font-size: 22px; /* Smaller Bottom Right */
+            line-height: 1.1;
             white-space: nowrap; 
             overflow: hidden; 
             text-overflow: ellipsis; 
-            text-align: right; /* Lower Right */
+            text-align: right; 
+            align-self: flex-end;
+            margin-top: auto;
+            color: inherit;
+            width: 100%;
+            padding-right: 2px;
           }
 
           .card-triangle {
@@ -321,7 +346,6 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
           ${allColorClasses.map(name => `
               .${name} { 
                   ${cardStyle === 'full' ? `background-color: ${COLOR_HEX_MAP[name]}; color: ${TEXT_HEX_MAP[name]};` : `background-color: #ffffff; color: ${TEXT_HEX_MAP[name]};`}
-                  border-color: ${TEXT_HEX_MAP[name]} !important; 
               }
               .${name} .period-subject, .${name} .period-teacher { color: ${TEXT_HEX_MAP[name]} !important; }
               .${name} .card-triangle { 
@@ -329,28 +353,23 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                   opacity: ${cardStyle === 'full' ? 0.3 : 1.0};
               }
               ${cardStyle === 'badge' ? `
-                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 1px 6px; border-radius: 8px; display: inline-block;` : ''} }
-                  .${name} .period-teacher { ${badgeTarget === 'teacher' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 1px 6px; border-radius: 8px; display: inline-block;` : ''} }
+                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
+                  .${name} .period-teacher { ${badgeTarget === 'teacher' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
               ` : ''}
           `).join('\n')}
 
           .footer-watermark {
              display: flex;
              justify-content: space-between;
-             align-items: flex-end;
-             margin-top: 15px; 
-             padding: 0 15px;
-             font-size: 11px; 
-             color: #94a3b8; 
-             font-weight: 800; 
-             letter-spacing: 1px;
-             line-height: 1.2;
+             align-items: center;
+             margin-top: 10px; 
+             font-size: 12px; 
+             color: #000000; 
+             font-weight: 700; 
              text-transform: uppercase;
-             position: relative;
-             z-index: 10;
+             border-top: 1px solid #000000;
+             padding-top: 5px;
           }
-          .footer-branding { color: ${themeColors.accent}; font-weight: 900; margin-bottom: 2px; }
-          .footer-timestamp { font-size: 8.5px; opacity: 0.7; font-weight: 700; letter-spacing: 0.5px; }
         </style>
       `;
       
@@ -375,16 +394,25 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                       let subjectBadgeStyle = '';
                       let teacherBadgeStyle = '';
                       if (cardStyle === 'badge') {
-                          const badgeCss = `background-color: var(--${colorName}-text); color: #fff !important; padding: 1px 6px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
-                          if (badgeTarget === 'teacher') teacherBadgeStyle = badgeCss;
-                          else subjectBadgeStyle = badgeCss; // default subject
+                          // Badge style matches image: Full width colored bar at bottom, white text
+                          const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 4px 8px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0;`;
+                          
+                          if (badgeTarget === 'teacher') {
+                             teacherBadgeStyle = badgeCss;
+                             // Class (Teacher in this context) becomes badge
+                          } else {
+                             subjectBadgeStyle = badgeCss;
+                             // Subject becomes badge
+                          }
                       }
                       
                       return `
                           <div class="period-card-img ${colorName}">
                               ${triangleHtml}
-                              <p class="period-subject" style="${subjectBadgeStyle}">${sub?.nameEn || ''}</p>
-                              <p class="period-teacher" style="${teacherBadgeStyle}">${tea?.nameEn || ''}</p>
+                              <div class="period-content-spread">
+                                  <p class="period-subject" style="${subjectBadgeStyle}">${sub?.nameEn || ''}</p>
+                                  <p class="period-teacher" style="${teacherBadgeStyle}">${abbreviateName(tea?.nameEn)}</p>
+                              </div>
                           </div>
                       `;
                   }).join('');
@@ -400,24 +428,37 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
       for (let r = 0; r < maxPeriods; r++) {
           let rowHtml = `<td class="period-label">${r + 1}</td>`;
           for (let c = 0; c < activeDays.length; c++) {
-              if (visited[r][c]) continue;
-              
-              const current = grid[r][c];
               const dayName = activeDays[c];
               const dayLimit = schoolConfig.daysConfig?.[dayName]?.periodCount ?? 8;
+              
+              if (visited[r][c]) continue;
+
+              if (r === dayLimit && maxPeriods > dayLimit) {
+                 const span = maxPeriods - dayLimit;
+                 for (let k = 0; k < span; k++) {
+                     if (r + k < maxPeriods) visited[r + k][c] = true;
+                 }
+                 const logoHtml = schoolConfig.schoolLogoBase64 
+                    ? `<div class="logo-overlay"><img src="${schoolConfig.schoolLogoBase64}" /></div>` 
+                    : '';
+                 rowHtml += `<td class="slot-cell" rowspan="${span}" style="background-color: #ffffff;">${logoHtml}</td>`;
+                 continue;
+              }
 
               if (r >= dayLimit) {
                   rowHtml += '<td class="slot-cell" style="background: #f8fafc;"></td>';
                   visited[r][c] = true;
                   continue;
               }
+              
+              const current = grid[r][c];
 
               if (!current) {
                   rowHtml += '<td class="slot-cell"></td>';
                   visited[r][c] = true;
                   continue;
               }
-
+              
               let rowspan = 1;
               let colspan = 1;
 
@@ -428,7 +469,6 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                       colspan++;
                   }
                   
-                  // Merge vertical
                   let canExtendVertical = true;
                   while (r + rowspan < maxPeriods && canExtendVertical) {
                       for (let j = 0; j < colspan; j++) {
@@ -451,7 +491,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
 
               rowHtml += `<td class="slot-cell" ${rowspan > 1 ? `rowspan="${rowspan}"` : ''} ${colspan > 1 ? `colspan="${colspan}"` : ''}>${current.html}</td>`;
           }
-          tableRows += `<tr>${rowHtml}</tr>`;
+          tableRows += `<tr style="height: ${100/maxPeriods}%;">${rowHtml}</tr>`;
       }
 
       const currentTimestamp = new Date().toLocaleString('en-GB', { 
@@ -478,28 +518,28 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                 </div>
             </div>
           </div>
-          <table class="img-table">
-            <thead>
-              <tr>
-                <th style="width: 50px"></th>
-                ${activeDays.map(day => `<th>${t[day.toLowerCase()].substring(0,3)}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-          </table>
+          <div class="img-table-wrapper">
+            <table class="img-table">
+                <thead>
+                <tr>
+                    <th style="width: 50px"></th>
+                    ${activeDays.map(day => `<th>${t[day.toLowerCase()].substring(0,3)}</th>`).join('')}
+                </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+          </div>
           <div class="footer-watermark">
-            <span>OFFICIAL CLASS SCHEDULE</span>
-            <div style="text-align: right;">
-                <div class="footer-branding">Generated by Mr. 🇵🇰</div>
-                <div class="footer-timestamp">${currentTimestamp}</div>
-            </div>
+            <span>OFFICIAL SCHEDULE</span>
+            <span style="font-weight: 900; color: ${themeColors.accent}; font-size: 14px;">Generated by Mr. 🇵🇰</span>
+            <span>${currentTimestamp}</span>
           </div>
         </div>
       `;
   };
 
   const generateAndGetBlob = async (): Promise<Blob | null> => {
-    const size = 1000;
+    const size = 1200;
     const width = size;
     const height = size;
 
@@ -523,8 +563,8 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
 
         const targetElement = tempContainer.children[0] as HTMLElement;
         const canvas = await html2canvas(targetElement, { 
-            scale: 3, // Increased quality
-            useCORS: true,
+            scale: 2, 
+            useCORS: true, 
             backgroundColor: '#ffffff',
             logging: false,
             width: width,
@@ -540,7 +580,6 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             }
         });
         
-        // Use PNG for clipboard compatibility
         return await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
     } catch (error) {
         console.error("Canvas generation failed", error);
@@ -563,13 +602,11 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
 
     const file = new File([blob], `timetable_${selectedClass.nameEn.replace(/\s/g, '_')}.png`, { type: 'image/png' });
 
-    // Try Share API (Mobile)
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
             await navigator.share({
                 files: [file],
                 title: 'Timetable',
-                text: `Timetable for ${selectedClass.nameEn}`
             });
             setIsGenerating(false);
             return;
@@ -578,7 +615,6 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
         }
     }
 
-    // Fallback: Download
     const dataUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = dataUrl;
@@ -601,38 +637,28 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
     const blob = await generateAndGetBlob();
 
     if (blob) {
-        // Try Copy to Clipboard
-        let copied = false;
         try {
             if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
                  await navigator.clipboard.write([new ClipboardItem({[blob.type]: blob})]);
-                 copied = true;
+            } else {
+                 const dataUrl = URL.createObjectURL(blob);
+                 const link = document.createElement('a');
+                 link.href = dataUrl;
+                 link.download = `timetable_${selectedClass.nameEn.replace(/\s/g, '_')}.png`;
+                 document.body.appendChild(link);
+                 link.click();
+                 document.body.removeChild(link);
+                 URL.revokeObjectURL(dataUrl);
+                 alert("Could not copy to clipboard. Image downloaded. Please attach manually in WhatsApp.");
             }
         } catch (clipboardError) {
             console.warn("Clipboard write failed", clipboardError);
         }
 
-        if (!copied) {
-             // Fallback: Download image so user can manually attach
-             const dataUrl = URL.createObjectURL(blob);
-             const link = document.createElement('a');
-             link.href = dataUrl;
-             link.download = `timetable_${selectedClass.nameEn.replace(/\s/g, '_')}.png`;
-             document.body.appendChild(link);
-             link.click();
-             document.body.removeChild(link);
-             URL.revokeObjectURL(dataUrl);
-             alert("Could not copy to clipboard. Image downloaded. Please attach manually in WhatsApp.");
-        } else {
-             // alert("Image copied! Paste in WhatsApp.");
-        }
-
-        // Open WhatsApp
         let phoneNumber = inChargeTeacher.contactNumber.replace(/\D/g, '');
         if (phoneNumber.startsWith('0')) phoneNumber = '92' + phoneNumber.substring(1);
         const url = `https://wa.me/${phoneNumber}`;
         
-        // Slight delay to allow UI to update if needed
         setTimeout(() => {
              window.open(url, '_blank');
         }, 500);

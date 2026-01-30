@@ -233,6 +233,108 @@ interface SubstitutionGroup {
 
 const LEAVE_REASONS = ['Illness', 'Urgent Work', 'On Duty', 'Rest', 'Other'];
 
+// Custom Substitute Picker Component
+interface SubstitutePickerProps {
+    teachersWithStatus: TeacherWithStatus[];
+    selectedId: string;
+    onChange: (id: string) => void;
+    language: Language;
+    weeklyStats: Record<string, number[]>; // teacherId -> [MonCount, TueCount, ...]
+}
+
+const SubstitutePicker: React.FC<SubstitutePickerProps> = ({ teachersWithStatus, selectedId, onChange, language, weeklyStats }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const selectedTeacher = teachersWithStatus.find(t => t.teacher.id === selectedId);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const days = ['M', 'T', 'W', 'T', 'F', 'S'];
+
+    return (
+        <div className="relative w-full" ref={dropdownRef}>
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full text-left bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-lg px-3 py-2 text-sm font-bold text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:outline-none flex justify-between items-center"
+            >
+                <span className="truncate">
+                    {selectedTeacher 
+                        ? (language === 'ur' ? selectedTeacher.teacher.nameUr : selectedTeacher.teacher.nameEn)
+                        : "Select Substitute..."}
+                </span>
+                <ChevronDown />
+            </button>
+
+            {isOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-xl max-h-80 overflow-y-auto custom-scrollbar animate-scale-in">
+                    {teachersWithStatus.map(({ teacher, status }) => {
+                        const name = language === 'ur' ? teacher.nameUr : teacher.nameEn;
+                        const stats = weeklyStats[teacher.id] || [0,0,0,0,0,0];
+                        
+                        let nameColor = "text-blue-600 dark:text-blue-400"; // Default Available (Blue)
+                        let bgColor = "";
+                        let statusText = "";
+                        
+                        if (status.type === 'IN_CHARGE') {
+                            nameColor = "text-green-600 dark:text-green-400";
+                            bgColor = "bg-green-50 dark:bg-green-900/10";
+                            statusText = "In Charge";
+                        } else if (status.type === 'TEACHES_CLASS') {
+                            nameColor = "text-yellow-600 dark:text-yellow-400";
+                            bgColor = "bg-yellow-50 dark:bg-yellow-900/10";
+                            statusText = "Teaches Class";
+                        } else if (status.type === 'UNAVAILABLE') {
+                            nameColor = "text-red-600 dark:text-red-400";
+                            bgColor = "bg-red-50 dark:bg-red-900/10";
+                            if (status.reason === 'DOUBLE_BOOK') {
+                                const conflictName = language === 'ur' ? status.conflictClass.classNameUr : status.conflictClass.classNameEn;
+                                statusText = `Busy in ${conflictName}`;
+                            } else {
+                                statusText = "Substitution";
+                            }
+                        }
+
+                        return (
+                            <div 
+                                key={teacher.id} 
+                                onClick={() => { onChange(teacher.id); setIsOpen(false); }}
+                                className={`p-2 border-b border-[var(--border-secondary)] last:border-0 hover:bg-[var(--bg-tertiary)] cursor-pointer transition-colors ${bgColor}`}
+                            >
+                                <div className="flex justify-between items-start mb-1">
+                                    <div className="flex flex-col">
+                                        <span className={`font-bold text-sm ${nameColor}`}>{name}</span>
+                                        {statusText && <span className={`text-[10px] font-bold ${nameColor}`}>{statusText}</span>}
+                                    </div>
+                                </div>
+                                
+                                {/* Weekly Stats Grid */}
+                                <div className="flex gap-1 mt-1 justify-end">
+                                    {days.map((day, idx) => (
+                                        <div key={idx} className="flex flex-col items-center w-5">
+                                            <span className="text-[8px] text-[var(--text-secondary)] font-bold">{day}</span>
+                                            <span className={`text-[9px] font-mono font-bold ${stats[idx] > 0 ? 'text-[var(--accent-primary)]' : 'text-[var(--text-placeholder)]'}`}>
+                                                {stats[idx]}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> = ({ t, language, classes, subjects, teachers, adjustments, leaveDetails, onSetAdjustments, onSetLeaveDetails, onUpdateSession, schoolConfig, onUpdateSchoolConfig, selection, onSelectionChange, openConfirmation, hasActiveSession }) => {
   if (!hasActiveSession) {
     return <NoSessionPlaceholder t={t} />;
@@ -553,6 +655,42 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     });
   }, [dayOfWeek, dailyAdjustments, absentTeacherIds, teachers, classes, teacherBookingsMap, absentClassIds, absenteeDetails]);
 
+  // Compute Weekly Stats for Dropdown (Last 7 Days Logic)
+  const weeklyStats = useMemo(() => {
+    if (!selectedDate) return {};
+    const d = new Date(selectedDate);
+    const dayOfWeekIndex = d.getDay(); // 0-6 (Sun-Sat)
+    
+    // Calculate start of the week (Monday)
+    const diffToMon = dayOfWeekIndex === 0 ? -6 : 1 - dayOfWeekIndex;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMon);
+    
+    const weekDays: string[] = [];
+    for(let i=0; i<6; i++) {
+        const temp = new Date(monday);
+        temp.setDate(monday.getDate() + i);
+        weekDays.push(temp.toISOString().split('T')[0]);
+    }
+
+    const stats: Record<string, number[]> = {};
+    
+    teachers.forEach(t => {
+        stats[t.id] = [0,0,0,0,0,0]; // Mon-Sat
+    });
+
+    weekDays.forEach((dateStr, idx) => {
+        const adjs = adjustments[dateStr] || [];
+        adjs.forEach(adj => {
+             if (stats[adj.substituteTeacherId]) {
+                 stats[adj.substituteTeacherId][idx]++;
+             }
+        });
+    });
+    
+    return stats;
+  }, [selectedDate, adjustments, teachers]);
+
   const handleSubstituteChange = (group: SubstitutionGroup, substituteTeacherId: string) => {
     if (!dayOfWeek) return;
 
@@ -795,17 +933,9 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
+    file.text().then((result) => {
       try {
-        const result = reader.result;
-        // Fix: Ensure result is a string before parsing
-        if (typeof result !== 'string') {
-             throw new Error("Invalid file content");
-        }
-        // Fix: Explicitly cast result to string to satisfy TypeScript
-        const imported: any[] = JSON.parse(result as string);
-        if (!Array.isArray(imported)) throw new Error("Invalid format");
+        const imported: any[] = JSON.parse(result);
 
         onUpdateSession((session) => {
             const newAdjustments = { ...session.adjustments };
@@ -834,7 +964,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
 
                 if (isMultiDate) {
                     const grouped: Record<string, Adjustment[]> = imported.reduce((acc: Record<string, Adjustment[]>, item: any) => {
-                        const date = String(item.date); // Fix: Ensure date is string
+                        const date = String(item.date);
                         if (item.date) {
                             if (!acc[date]) acc[date] = [];
                             const { date: _, ...adj } = item;
@@ -848,7 +978,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                         const importedTeacherIds = [...new Set(adjs.map(adj => adj.originalTeacherId))];
                         if (importedTeacherIds.length > 0) {
                             const dayLeaves = newLeaveDetails[date] || {};
-                            importedTeacherIds.forEach((id: string) => { // Fix: explicit string
+                            importedTeacherIds.forEach((id: string) => {
                                 if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
                             });
                             newLeaveDetails[date] = dayLeaves;
@@ -857,10 +987,10 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                 } else {
                     const transformed = imported.map(adj => ({ ...adj, id: generateUniqueId(), day: dayOfWeek as keyof TimetableGridData }));
                     newAdjustments[selectedDate] = transformed;
-                    const importedTeacherIds = [...new Set(transformed.map((adj: any) => String(adj.originalTeacherId)))]; // Fix: explicit string mapping
+                    const importedTeacherIds = [...new Set(transformed.map((adj: any) => String(adj.originalTeacherId)))];
                     if (importedTeacherIds.length > 0) {
                         const dayLeaves = newLeaveDetails[selectedDate] || {};
-                        importedTeacherIds.forEach((id: string) => { // Fix: explicit string
+                        importedTeacherIds.forEach((id: string) => {
                             if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
                         });
                         newLeaveDetails[selectedDate] = dayLeaves;
@@ -881,8 +1011,11 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           console.error(error);
           alert(error instanceof Error ? error.message : "Failed to import."); 
       }
-    };
-    reader.readAsText(file);
+    }).catch((err: any) => {
+        console.error("File read error:", err);
+        alert("Failed to read file.");
+    });
+    
     event.target.value = '';
   };
 
@@ -1424,28 +1557,14 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
 
                                                 <div className="bg-[var(--bg-tertiary)] p-3 rounded-2xl border border-[var(--border-secondary)] mb-4">
                                                     <div className="text-[9px] font-black text-[var(--text-placeholder)] uppercase mb-2">Original: {absentTeacher.nameEn.split(' ')[0]}</div>
-                                                    <select 
-                                                        value={currentSubstituteId} 
-                                                        onChange={(e) => handleSubstituteChange(group, e.target.value)} 
-                                                        className="w-full bg-transparent text-sm font-bold text-[var(--text-primary)] outline-none cursor-pointer"
-                                                    >
-                                                        <option value="">Select Substitute...</option>
-                                                        {availableTeachersList.map(({ teacher, status }) => {
-                                                            let label = language === 'ur' ? teacher.nameUr : teacher.nameEn;
-                                                            let statusText = '';
-                                                            if (status.type === 'IN_CHARGE') statusText = ` (${t.statusInCharge})`;
-                                                            else if (status.type === 'TEACHES_CLASS') statusText = ` (${t.statusTeachesClass})`;
-                                                            else if (status.type === 'AVAILABLE') statusText = ' (Free - Class Absent)';
-                                                            else if (status.type === 'UNAVAILABLE') {
-                                                                if (status.reason === 'SUBSTITUTION') statusText = ` (${t.substitution})`;
-                                                                else if (status.reason === 'DOUBLE_BOOK') {
-                                                                    const conflictName = language === 'ur' ? status.conflictClass.classNameUr : status.conflictClass.classNameEn;
-                                                                    statusText = ` (Busy in ${conflictName})`;
-                                                                }
-                                                            }
-                                                            return <option key={teacher.id} value={teacher.id} className={status.type === 'UNAVAILABLE' ? 'text-red-500' : ''}>{label}{statusText}</option>;
-                                                        })}
-                                                    </select>
+                                                    
+                                                    <SubstitutePicker 
+                                                        teachersWithStatus={availableTeachersList}
+                                                        selectedId={currentSubstituteId}
+                                                        onChange={(id) => handleSubstituteChange(group, id)}
+                                                        language={language}
+                                                        weeklyStats={weeklyStats}
+                                                    />
                                                 </div>
 
                                                 {assignedAdj?.conflictDetails && (
