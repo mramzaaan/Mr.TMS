@@ -16,7 +16,9 @@ import {
   generateAdjustmentsReportHtml,
   generateAdjustmentsExcel,
   generateAttendanceReportHtml,
-  generateAttendanceReportExcel
+  generateAttendanceReportExcel,
+  generateClassTimetableHtml,
+  generateTeacherTimetableHtml
 } from './reportUtils';
 
 interface SelectionModalProps {
@@ -76,7 +78,7 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
         </div>
         <div className="flex justify-end gap-4 pt-6 border-t border-[var(--border-primary)] mt-6">
           <button onClick={onCancel} className="px-5 py-2 text-sm font-semibold text-[var(--text-secondary)] bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--accent-secondary-hover)] transition-colors">{t.cancel}</button>
-          <button onClick={onConfirm} disabled={selectedIds.length === 0} className="px-5 py-2 text-sm font-semibold text white bg-[var(--accent-primary)] rounded-lg hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 transition-colors shadow-sm">{confirmLabel}</button>
+          <button onClick={onConfirm} disabled={selectedIds.length === 0} className="px-5 py-2 text-sm font-semibold text-white bg-[var(--accent-primary)] rounded-lg hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 transition-colors shadow-sm">{confirmLabel}</button>
         </div>
       </div>
     </div>
@@ -118,6 +120,36 @@ const CsvIcon = ({ className = "h-12 w-12" }) => <svg xmlns="http://www.w3.org/2
 const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 const SchoolIcon = ({ className = "h-12 w-12" }) => <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>;
 
+const DocumentCard: React.FC<{
+    title: string;
+    subtitle: string;
+    icon: React.ReactNode;
+    colorClass: string;
+    onClick: () => void;
+}> = ({ title, subtitle, icon, colorClass, onClick }) => (
+    <button 
+        onClick={onClick}
+        className="flex items-center p-6 bg-[var(--bg-primary)] rounded-2xl shadow-sm border border-[var(--border-secondary)] hover:shadow-lg transition-all group text-left w-full hover:-translate-y-1 relative overflow-hidden"
+    >
+        <div className={`w-16 h-16 rounded-2xl ${colorClass} text-white flex items-center justify-center mr-6 shadow-md group-hover:scale-110 transition-transform relative z-10`}>
+            {/* Clone icon to enforce size */}
+            {React.isValidElement(icon) 
+                ? React.cloneElement(icon as React.ReactElement, { className: "h-8 w-8" }) 
+                : icon
+            }
+        </div>
+        <div className="flex-1 min-w-0 relative z-10">
+            <h4 className="text-lg font-black text-[var(--text-primary)] uppercase tracking-tight leading-tight">{title}</h4>
+            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-70 mt-1">{subtitle}</p>
+        </div>
+        <div className="text-[var(--text-placeholder)] opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0 absolute right-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+        </div>
+    </button>
+);
+
 const FeatureCard: React.FC<{
     label: string;
     description: string;
@@ -155,6 +187,7 @@ const FeatureCard: React.FC<{
     </button>
 );
 
+// ... (DigitalClock and other components remain the same) ...
 interface CurrentEvent {
     name: string;
     startTime: Date;
@@ -172,6 +205,7 @@ interface SchoolDayStatus {
 }
 
 const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, t: any }> = ({ language, schoolConfig, t }) => {
+    // ... (Clock logic remains same)
     const [time, setTime] = useState(new Date());
     const [status, setStatus] = useState<SchoolDayStatus>({ state: 'closed', currentEvent: null, nextEvent: null, schoolStartTime: null, schoolEndTime: null });
 
@@ -394,12 +428,16 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' | null }>({ message: '', type: null });
   const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
+  
+  // Preview States
   const [isBasicInfoPreviewOpen, setIsBasicInfoPreviewOpen] = useState(false);
   const [isSchoolTimingsPreviewOpen, setIsSchoolTimingsPreviewOpen] = useState(false);
   const [isWorkloadPreviewOpen, setIsWorkloadPreviewOpen] = useState(false);
   const [isByPeriodPreviewOpen, setIsByPeriodPreviewOpen] = useState(false);
   const [isAlternativePreviewOpen, setIsAlternativePreviewOpen] = useState(false); 
   const [isAttendanceReportPreviewOpen, setIsAttendanceReportPreviewOpen] = useState(false);
+  
+  // Selection States
   const [isTeacherSelectionForWorkloadOpen, setIsTeacherSelectionForWorkloadOpen] = useState(false);
   const [selectedTeacherIdsForWorkload, setSelectedTeacherIdsForWorkload] = useState<string[]>([]);
   const [workloadReportMode, setWorkloadReportMode] = useState<'weekly' | 'range'>('weekly');
@@ -408,13 +446,26 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
   const [selectedWeekDate, setSelectedWeekDate] = useState(new Date().toISOString().split('T')[0]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
+  // New Selection States for Timetables
+  const [isClassSelectionForPrintOpen, setIsClassSelectionForPrintOpen] = useState(false);
+  const [selectedClassIdsForPrint, setSelectedClassIdsForPrint] = useState<string[]>([]);
+  const [isClassTimetablePreviewOpen, setIsClassTimetablePreviewOpen] = useState(false);
+
+  const [isTeacherSelectionForPrintOpen, setIsTeacherSelectionForPrintOpen] = useState(false);
+  const [selectedTeacherIdsForPrint, setSelectedTeacherIdsForPrint] = useState<string[]>([]);
+  const [isTeacherTimetablePreviewOpen, setIsTeacherTimetablePreviewOpen] = useState(false);
+
   const touchStartRef = useRef<number | null>(null);
 
   const featuresSectionRef = useRef<HTMLDivElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const currentTimetableSession = timetableSessions.find(s => s.id === currentTimetableSessionId);
   const teachers = currentTimetableSession?.teachers || [];
+  const classes = currentTimetableSession?.classes || [];
+  const visibleClasses = useMemo(() => classes.filter(c => c.id !== 'non-teaching-duties'), [classes]);
+
   const teacherItems = useMemo(() => teachers.map(t => ({ id: t.id, label: <span>{t.nameEn} / <span className="font-urdu">{t.nameUr}</span></span> })), [teachers]);
+  const classItems = useMemo(() => visibleClasses.map(c => ({ id: c.id, label: <span>{c.nameEn} / <span className="font-urdu">{c.nameUr}</span></span> })), [visibleClasses]);
 
   useEffect(() => {
       if (workloadReportMode === 'weekly') {
@@ -451,184 +502,95 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
   };
   const handleWorkloadConfirm = () => { setIsTeacherSelectionForWorkloadOpen(false); setIsWorkloadPreviewOpen(true); };
 
+  const handleClassTimetableClick = () => {
+    setSelectedClassIdsForPrint(visibleClasses.map(c => c.id));
+    setIsClassSelectionForPrintOpen(true);
+  };
+  const handleClassPrintConfirm = () => {
+    setIsClassSelectionForPrintOpen(false);
+    setIsClassTimetablePreviewOpen(true);
+  };
+
+  const handleTeacherTimetableClick = () => {
+    setSelectedTeacherIdsForPrint(teachers.map(t => t.id));
+    setIsTeacherSelectionForPrintOpen(true);
+  };
+  const handleTeacherPrintConfirm = () => {
+    setIsTeacherSelectionForPrintOpen(false);
+    setIsTeacherTimetablePreviewOpen(true);
+  };
+
   const navigationModules = [
-      { id: 'dataEntry', label: t.dataEntry, description: 'Classes & Staff', icon: DataEntryIcon, color: 'bg-gradient-to-br from-emerald-500 to-teal-700', action: () => setCurrentPage('dataEntry') },
-      { id: 'classTimetable', label: t.classTimetable, description: 'Class Schedules', icon: ClassTimetableIcon, color: 'bg-gradient-to-br from-blue-500 to-indigo-700', action: () => setCurrentPage('classTimetable') },
-      { id: 'teacherTimetable', label: t.teacherTimetable, description: 'Teacher Schedules', icon: TeacherTimetableIcon, color: 'bg-gradient-to-br from-violet-500 to-purple-800', action: () => setCurrentPage('teacherTimetable') },
-      { id: 'adjustments', label: t.adjustments, description: 'Substitutions', icon: AdjustmentsIcon, color: 'bg-gradient-to-br from-orange-500 to-red-600', action: () => setCurrentPage('alternativeTimetable') },
-      { id: 'attendance', label: t.attendance, description: 'Daily Presence', icon: AttendanceIcon, color: 'bg-gradient-to-br from-indigo-500 to-blue-800', action: () => setCurrentPage('attendance') },
-      { id: 'csv', label: t.manageDataCsv, description: 'Import/Export', icon: CsvIcon, color: 'bg-gradient-to-br from-blue-600 to-cyan-800', action: () => setIsCsvModalOpen(true) },
-      { id: 'reports', label: t.printAndReports, description: 'Reports', icon: DesignIcon, color: 'bg-gradient-to-br from-teal-500 to-emerald-800', action: () => setIsReportsModalOpen(true) },
-      { id: 'settings', label: t.settings, description: 'System Config', icon: SettingsIcon, color: 'bg-gradient-to-br from-slate-500 to-gray-800', action: () => setCurrentPage('settings') },
+      { id: 'reports', label: t.printAndReports, description: 'Reports', icon: DesignIcon, color: 'bg-gradient-to-br from-teal-500 to-emerald-800', dotColor: 'bg-teal-500', action: () => setIsReportsModalOpen(true) },
+      { id: 'adjustments', label: t.adjustments, description: 'Substitutions', icon: AdjustmentsIcon, color: 'bg-gradient-to-br from-orange-500 to-red-600', dotColor: 'bg-orange-500', action: () => setCurrentPage('alternativeTimetable') },
+      { id: 'dataEntry', label: t.dataEntry, description: 'Classes & Staff', icon: DataEntryIcon, color: 'bg-gradient-to-br from-emerald-500 to-teal-700', dotColor: 'bg-emerald-500', action: () => setCurrentPage('dataEntry') },
+      { id: 'classTimetable', label: t.classTimetable, description: 'Class Schedules', icon: ClassTimetableIcon, color: 'bg-gradient-to-br from-blue-500 to-indigo-700', dotColor: 'bg-blue-500', action: () => setCurrentPage('classTimetable') },
+      { id: 'teacherTimetable', label: t.teacherTimetable, description: 'Teacher Schedules', icon: TeacherTimetableIcon, color: 'bg-gradient-to-br from-violet-500 to-purple-800', dotColor: 'bg-violet-500', action: () => setCurrentPage('teacherTimetable') },
+      { id: 'attendance', label: t.attendance, description: 'Daily Presence', icon: AttendanceIcon, color: 'bg-gradient-to-br from-indigo-500 to-blue-800', dotColor: 'bg-indigo-500', action: () => setCurrentPage('attendance') },
+      { id: 'csv', label: t.manageDataCsv, description: 'Import/Export', icon: CsvIcon, color: 'bg-gradient-to-br from-blue-600 to-cyan-800', dotColor: 'bg-blue-600', action: () => setIsCsvModalOpen(true) },
+      { id: 'settings', label: t.settings, description: 'System Config', icon: SettingsIcon, color: 'bg-gradient-to-br from-slate-500 to-gray-800', dotColor: 'bg-slate-500', action: () => setCurrentPage('settings') },
   ];
 
-  const getStackStyle = (index: number, activeIndex: number): React.CSSProperties => {
-    const diff = index - activeIndex;
-    
-    // Hidden to the left
-    if (diff < 0) {
-        return {
-            transform: 'translateX(-150%) scale(0.7) rotate(-10deg)',
-            opacity: 0,
-            zIndex: 0,
-            pointerEvents: 'none'
-        };
-    }
-    
-    // The active front card
-    if (diff === 0) {
-        return {
-            transform: 'translateX(0) scale(1) translateY(0)',
-            opacity: 1,
-            zIndex: 100,
-        };
-    }
-    
-    // Visible stack behind
-    if (diff > 0 && diff <= 3) {
-        return {
-            transform: `translateX(${diff * 20}px) translateY(${diff * -12}px) scale(${1 - diff * 0.08})`,
-            opacity: 1 - diff * 0.25,
-            zIndex: 100 - diff,
-            filter: `blur(${diff * 0.5}px)`
-        };
-    }
-    
-    // Hidden to the right/back
-    return {
-        transform: 'translateX(60px) translateY(-36px) scale(0.7)',
-        opacity: 0,
-        zIndex: 0,
-        pointerEvents: 'none'
-    };
+  const getStackStyle = (index: number, activeIndex: number, total: number): React.CSSProperties => {
+    // ... (Stack style logic)
+    const dist = (index - activeIndex + total) % total;
+    if (dist === 0) return { transform: 'translateX(0) translateY(0) scale(1)', opacity: 1, zIndex: 50, pointerEvents: 'auto' };
+    if (dist === total - 1) return { transform: 'translateX(-120%) translateY(10px) rotate(-15deg) scale(0.8)', opacity: 0, zIndex: 40, pointerEvents: 'none' };
+    if (dist > 0 && dist <= 3) return { transform: `translateX(${dist * 20}px) translateY(${-dist * 10}px) scale(${1 - dist * 0.05})`, opacity: 1 - dist * 0.2, zIndex: 50 - dist, filter: `blur(${dist * 2}px)`, pointerEvents: 'none' };
+    return { transform: 'translateX(60px) translateY(-30px) scale(0.8)', opacity: 0, zIndex: 0, pointerEvents: 'none' };
   };
 
-  const nextCard = () => {
-    setCurrentCardIndex(prev => (prev + 1) % navigationModules.length);
-  };
-
-  const prevCard = () => {
-    setCurrentCardIndex(prev => (prev - 1 + navigationModules.length) % navigationModules.length);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartRef.current = e.targetTouches[0].clientX;
-  };
-
+  const nextCard = () => setCurrentCardIndex(prev => (prev + 1) % navigationModules.length);
+  const prevCard = () => setCurrentCardIndex(prev => (prev - 1 + navigationModules.length) % navigationModules.length);
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartRef.current = e.targetTouches[0].clientX; };
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartRef.current === null) return;
     const touchEnd = e.changedTouches[0].clientX;
     const diff = touchStartRef.current - touchEnd;
-    const threshold = 50; // pixels to trigger swipe
-
-    if (diff > threshold) {
-        // Swiped Left -> Next Card
-        nextCard();
-    } else if (diff < -threshold) {
-        // Swiped Right -> Previous Card
-        prevCard();
-    }
+    if (diff > 50) nextCard(); else if (diff < -50) prevCard();
     touchStartRef.current = null;
   };
-
-  const scrollToFeatures = () => {
-    featuresSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  const scrollToFeatures = () => featuresSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   return (
     <>
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .deck-container {
-            perspective: 1000px;
-        }
-        @keyframes float-light {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(10px, -20px) scale(1.1); }
-        }
-        @keyframes rotating-glow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .vibrant-reflection {
-          position: absolute;
-          width: 200%;
-          height: 200%;
-          top: -50%;
-          left: -50%;
-          background: conic-gradient(from 0deg at 50% 50%, transparent, rgba(99, 102, 241, 0.1), transparent, rgba(34, 211, 238, 0.1), transparent);
-          animation: spin 10s linear infinite;
-          mix-blend-mode: overlay;
-          pointer-events: none;
-        }
-        .crystal-reflection {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(105deg, 
-            transparent 20%, 
-            rgba(255, 255, 255, 0.2) 25%, 
-            rgba(255, 255, 255, 0.4) 30%, 
-            transparent 35%, 
-            transparent 50%, 
-            rgba(255, 255, 255, 0.1) 55%, 
-            transparent 60%
-          );
-          background-size: 200% 100%;
-          animation: shimmer 4s infinite linear;
-          pointer-events: none;
-          z-index: 1;
-        }
+        .deck-container { perspective: 1000px; }
+        @keyframes float-light { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(10px, -20px) scale(1.1); } }
+        @keyframes rotating-glow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .crystal-reflection { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.2) 25%, rgba(255, 255, 255, 0.4) 30%, transparent 35%, transparent 50%, rgba(255, 255, 255, 0.1) 55%, transparent 60%); background-size: 200% 100%; animation: shimmer 4s infinite linear; pointer-events: none; z-index: 1; }
       `}</style>
 
       <TimetableSessionModal t={t} isOpen={isSessionModalOpen} onClose={() => setIsSessionModalOpen(false)} session={editingSession} onCreate={onCreateTimetableSession} onUpdate={onUpdateTimetableSession} setFeedback={setFeedback} />
       
-      <CsvManagementModal
-        t={t}
-        isOpen={isCsvModalOpen}
-        onClose={() => setIsCsvModalOpen(false)}
-        currentTimetableSession={currentTimetableSession || null}
-        onUpdateTimetableSession={onUpdateCurrentSession}
-      />
+      <CsvManagementModal t={t} isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} currentTimetableSession={currentTimetableSession || null} onUpdateTimetableSession={onUpdateCurrentSession} />
 
       {isReportsModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={() => setIsReportsModalOpen(false)}>
             <div className="bg-[var(--bg-secondary)] rounded-3xl shadow-2xl max-w-4xl w-full p-6 sm:p-8 animate-scale-in" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-8 px-2">
-                    <h3 className="text-3xl font-black text-[var(--text-primary)] flex items-center gap-4 uppercase tracking-tighter"><DesignIcon className="h-10 w-10" />{t.printAndReports}</h3>
-                    <button onClick={() => setIsReportsModalOpen(false)} className="p-3 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] rounded-full transition-colors"><CloseIcon /></button>
+                <div className="flex justify-between items-center mb-8 px-2 border-b border-[var(--border-primary)] pb-4">
+                    <h3 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tighter">DOCUMENTS</h3>
+                    <button onClick={() => setIsReportsModalOpen(false)} className="p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] rounded-full transition-colors"><CloseIcon /></button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                    <button onClick={() => setIsBasicInfoPreviewOpen(true)} className="flex flex-col p-6 bg-[var(--bg-tertiary)] rounded-3xl border border-[var(--border-secondary)] hover:border-[var(--accent-primary)] hover:shadow-xl transition-all group text-left">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-500 text-white flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg></div>
-                        <h4 className="text-xl font-black text-[var(--text-primary)] mb-1 uppercase tracking-tight">{t.basicInformation}</h4>
-                        <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-60">Stats & Rooms</p>
-                    </button>
-                    <button onClick={() => setIsByPeriodPreviewOpen(true)} className="flex flex-col p-6 bg-[var(--bg-tertiary)] rounded-3xl border border-[var(--border-secondary)] hover:border-[var(--accent-primary)] hover:shadow-xl transition-all group text-left">
-                        <div className="w-12 h-12 rounded-2xl bg-cyan-50 text-white flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-                        <h4 className="text-xl font-black text-[var(--text-primary)] mb-1 uppercase tracking-tight">{t.byPeriod}</h4>
-                        <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-60">Available Matrix</p>
-                    </button>
-                    <button onClick={() => setIsSchoolTimingsPreviewOpen(true)} className="flex flex-col p-6 bg-[var(--bg-tertiary)] rounded-3xl border border-[var(--border-secondary)] hover:border-[var(--accent-primary)] hover:shadow-xl transition-all group text-left">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-                        <h4 className="text-xl font-black text-[var(--text-primary)] mb-1 uppercase tracking-tight">{t.schoolTimings}</h4>
-                        <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-60">Bell Schedule</p>
-                    </button>
-                    <button onClick={workloadReportClick} className="flex flex-col p-6 bg-[var(--bg-tertiary)] rounded-3xl border border-[var(--border-secondary)] hover:border-[var(--accent-primary)] hover:shadow-xl transition-all group text-left">
-                        <div className="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg></div>
-                        <h4 className="text-xl font-black text-[var(--text-primary)] mb-1 uppercase tracking-tight">{t.workloadSummaryReport}</h4>
-                        <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-60">Effort Analytics</p>
-                    </button>
-                    <button onClick={() => setIsAlternativePreviewOpen(true)} className="flex flex-col p-6 bg-[var(--bg-tertiary)] rounded-3xl border border-[var(--border-secondary)] hover:border-[var(--accent-primary)] hover:shadow-xl transition-all group text-left">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg></div>
-                        <h4 className="text-xl font-black text-[var(--text-primary)] mb-1 uppercase tracking-tight">{t.alternative}</h4>
-                        <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-60">Substitution Registers</p>
-                    </button>
-                    <button onClick={() => setIsAttendanceReportPreviewOpen(true)} className="flex flex-col p-6 bg-[var(--bg-tertiary)] rounded-3xl border border-[var(--border-secondary)] hover:border-[var(--accent-primary)] hover:shadow-xl transition-all group text-left">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform"><AttendanceIcon className="h-6 w-6" /></div>
-                        <h4 className="text-xl font-black text-[var(--text-primary)] mb-1 uppercase tracking-tight">{t.attendanceReport}</h4>
-                        <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-60">Enrollment Data</p>
-                    </button>
+                    
+                    <DocumentCard title={t.basicInformation} subtitle="STATS & ROOMS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} colorClass="bg-blue-500" onClick={() => setIsBasicInfoPreviewOpen(true)} />
+                    
+                    <DocumentCard title={t.byPeriod} subtitle="AVAILABLE MATRIX" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorClass="bg-cyan-500" onClick={() => setIsByPeriodPreviewOpen(true)} />
+                    
+                    <DocumentCard title={t.schoolTimings} subtitle="BELL SCHEDULE" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorClass="bg-amber-500" onClick={() => setIsSchoolTimingsPreviewOpen(true)} />
+                    
+                    <DocumentCard title={t.workloadSummaryReport} subtitle="EFFORT ANALYTICS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} colorClass="bg-rose-500" onClick={workloadReportClick} />
+                    
+                    <DocumentCard title={t.classTimetable} subtitle="CLASS SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} colorClass="bg-violet-500" onClick={handleClassTimetableClick} />
+
+                    <DocumentCard title={t.teacherTimetable} subtitle="TEACHER SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>} colorClass="bg-emerald-500" onClick={handleTeacherTimetableClick} />
+
+                    <DocumentCard title={t.alternative} subtitle="SUBSTITUTION REGISTERS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>} colorClass="bg-indigo-500" onClick={() => setIsAlternativePreviewOpen(true)} />
+                    
+                    <DocumentCard title={t.attendanceReport} subtitle="ENROLLMENT DATA" icon={<AttendanceIcon className="h-6 w-6" />} colorClass="bg-teal-500" onClick={() => setIsAttendanceReportPreviewOpen(true)} />
                 </div>
             </div>
         </div>
@@ -656,18 +618,27 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                     )}
                 </div>
             </SelectionModal>
+            
+            <SelectionModal isOpen={isClassSelectionForPrintOpen} title={t.selectClassesToDownload} items={classItems} selectedIds={selectedClassIdsForPrint} onSelect={(id, checked) => setSelectedClassIdsForPrint(prev => checked ? [...prev, id] : prev.filter(cid => cid !== id))} onSelectAll={(checked) => setSelectedClassIdsForPrint(checked ? visibleClasses.map(c => c.id) : [])} onConfirm={handleClassPrintConfirm} onCancel={() => setIsClassSelectionForPrintOpen(false)} confirmLabel={t.printViewAction} t={t} />
+            <SelectionModal isOpen={isTeacherSelectionForPrintOpen} title={t.selectTeachersToDownload} items={teacherItems} selectedIds={selectedTeacherIdsForPrint} onSelect={(id, checked) => setSelectedTeacherIdsForPrint(prev => checked ? [...prev, id] : prev.filter(tid => tid !== id))} onSelectAll={(checked) => setSelectedTeacherIdsForPrint(checked ? teachers.map(t => t.id) : [])} onConfirm={handleTeacherPrintConfirm} onCancel={() => setIsTeacherSelectionForPrintOpen(false)} confirmLabel={t.printViewAction} t={t} />
+
             <PrintPreview t={t} isOpen={isBasicInfoPreviewOpen} onClose={() => setIsBasicInfoPreviewOpen(false)} title={t.basicInformation} fileNameBase="Basic_Information" generateHtml={(lang, options) => generateBasicInformationHtml(t, lang, options, currentTimetableSession.classes, teachers, schoolConfig)} onGenerateExcel={(lang, options) => generateBasicInformationExcel(t, lang, options, currentTimetableSession.classes, teachers)} designConfig={schoolConfig.downloadDesigns.basicInfo} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, basicInfo: newDesign }})} />
             <PrintPreview t={t} isOpen={isSchoolTimingsPreviewOpen} onClose={() => setIsSchoolTimingsPreviewOpen(false)} title={t.schoolTimings} fileNameBase="School_Timings" generateHtml={(lang, options) => generateSchoolTimingsHtml(t, lang, options, schoolConfig)} designConfig={schoolConfig.downloadDesigns.schoolTimings} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, schoolTimings: newDesign }})} />
             <PrintPreview t={t} isOpen={isByPeriodPreviewOpen} onClose={() => setIsByPeriodPreviewOpen(false)} title={t.byPeriod} fileNameBase="Available_Teachers" generateHtml={(lang, options) => generateByPeriodHtml(t, lang, options, schoolConfig, currentTimetableSession.classes, teachers)} onGenerateExcel={(lang, options) => generateByPeriodExcel(t, lang, options, schoolConfig, currentTimetableSession.classes, teachers)} designConfig={schoolConfig.downloadDesigns.alternative} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, alternative: newDesign }})} />
             <PrintPreview t={t} isOpen={isWorkloadPreviewOpen} onClose={() => setIsWorkloadPreviewOpen(false)} title={t.workloadSummaryReport} fileNameBase="Teacher_Workload_Summary" generateHtml={(lang, options) => { const selectedTeachers = teachers.filter(t => selectedTeacherIdsForWorkload.includes(t.id)); return generateWorkloadSummaryHtml(t, lang, options, selectedTeachers, schoolConfig, currentTimetableSession.classes, currentTimetableSession.adjustments, currentTimetableSession.leaveDetails, workloadStartDate, workloadEndDate, workloadReportMode); }} onGenerateExcel={(lang, options) => { const selectedTeachers = teachers.filter(t => selectedTeacherIdsForWorkload.includes(t.id)); generateWorkloadSummaryExcel(t, lang, options, selectedTeachers, schoolConfig, currentTimetableSession.classes, currentTimetableSession.adjustments, currentTimetableSession.leaveDetails, workloadStartDate, workloadEndDate, workloadReportMode) }} designConfig={schoolConfig.downloadDesigns.workload} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, workload: newDesign }})} />
             <PrintPreview t={t} isOpen={isAlternativePreviewOpen} onClose={() => setIsAlternativePreviewOpen(false)} title={t.dailyAdjustments} fileNameBase={`Adjustments_${new Date().toISOString().split('T')[0]}`} generateHtml={(lang, design) => { const today = new Date().toISOString().split('T')[0]; const todayAdjustments = currentTimetableSession.adjustments[today] || []; const todayLeaves = currentTimetableSession.leaveDetails?.[today] || {}; const absentTeacherIds = Object.keys(todayLeaves).filter(key => !key.startsWith('CLASS_')); return generateAdjustmentsReportHtml(t, lang, design, todayAdjustments, teachers, currentTimetableSession.classes, currentTimetableSession.subjects, schoolConfig, today, Array.from(new Set([...absentTeacherIds, ...todayAdjustments.map(adj => adj.originalTeacherId)]))); }} onGenerateExcel={(lang) => { const today = new Date().toISOString().split('T')[0]; const todayAdjustments = currentTimetableSession.adjustments[today] || []; generateAdjustmentsExcel(t, todayAdjustments, teachers, currentTimetableSession.classes, currentTimetableSession.subjects, today); }} designConfig={schoolConfig.downloadDesigns.adjustments} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, adjustments: newDesign }})} />
             <PrintPreview t={t} isOpen={isAttendanceReportPreviewOpen} onClose={() => setIsAttendanceReportPreviewOpen(false)} title={t.attendanceReport} fileNameBase={`Attendance_Report_${selectedWeekDate}`} generateHtml={(lang, design) => generateAttendanceReportHtml(t, lang, design, currentTimetableSession.classes, teachers, schoolConfig, selectedWeekDate, currentTimetableSession.adjustments, currentTimetableSession.leaveDetails || {}, currentTimetableSession.attendance || {})} onGenerateExcel={(lang) => generateAttendanceReportExcel(t, lang, currentTimetableSession.classes, teachers, selectedWeekDate, currentTimetableSession.adjustments, currentTimetableSession.leaveDetails || {}, currentTimetableSession.attendance || {})} designConfig={schoolConfig.downloadDesigns.attendance} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, attendance: newDesign }})} />
+            
+            <PrintPreview t={t} isOpen={isClassTimetablePreviewOpen} onClose={() => setIsClassTimetablePreviewOpen(false)} title={t.classTimetable} fileNameBase="Class_Timetables" generateHtml={(lang, options) => { const selectedClasses = visibleClasses.filter(c => selectedClassIdsForPrint.includes(c.id)); return (selectedClasses.map(c => generateClassTimetableHtml(c, lang, options, teachers, currentTimetableSession.subjects, schoolConfig)) as any).flat(); }} designConfig={schoolConfig.downloadDesigns.class} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, class: newDesign }})} />
+            <PrintPreview t={t} isOpen={isTeacherTimetablePreviewOpen} onClose={() => setIsTeacherTimetablePreviewOpen(false)} title={t.teacherTimetable} fileNameBase="Teacher_Timetables" generateHtml={(lang, options) => { const selectedTeachers = teachers.filter(t => selectedTeacherIdsForPrint.includes(t.id)); return (selectedTeachers.map(t => generateTeacherTimetableHtml(t, lang, options, classes, currentTimetableSession.subjects, schoolConfig, currentTimetableSession.adjustments, teachers)) as any).flat(); }} designConfig={schoolConfig.downloadDesigns.teacher} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, teacher: newDesign }})} />
         </>
       )}
       
+      {/* ... (Session management modals remain unchanged) ... */}
       {isSelectSessionModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity" onClick={() => setIsSelectSessionModalOpen(false)}>
             <div className="bg-[var(--bg-secondary)] rounded-3xl shadow-2xl max-w-2xl w-full mx-4 transform transition-all flex flex-col max-h-[90vh] border border-[var(--border-primary)]" onClick={e => e.stopPropagation()}>
+                {/* ... (Session modal content unchanged) ... */}
                 <div className="p-8 border-b border-[var(--border-primary)]">
                     <div className="flex flex-wrap justify-between items-center gap-6">
                         <div>
@@ -724,6 +695,7 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
       )}
 
       <div className="min-h-screen flex flex-col overflow-x-hidden">
+        {/* ... (Header and DigitalClock logic unchanged) ... */}
         <header className="fixed top-0 left-0 right-0 z-40 bg-transparent border-none shadow-none transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-50"></div>
           <div className="container mx-auto px-4 py-3 flex justify-between items-center relative z-10">
@@ -749,24 +721,18 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
             <div className="w-full animate-scale-in max-w-7xl relative flex flex-col items-center">
                 <DigitalClock language={language} schoolConfig={schoolConfig} t={t} />
                 
+                {/* ... (Active Session Card logic unchanged) ... */}
                 {currentTimetableSession ? (
                     <div className="mb-12 relative group max-w-3xl mx-auto w-full px-4">
                         <div 
                           onClick={() => setIsSelectSessionModalOpen(true)}
                           className="relative cursor-pointer group/card rounded-[2.5rem] p-4 sm:p-6 shadow-[0_30px_60px_-10px_rgba(0,0,0,0.3),inset_0_-5px_20px_rgba(0,0,0,0.05)] border-2 border-white/60 bg-white/20 dark:bg-white/5 backdrop-blur-[40px] overflow-hidden transform transition-all duration-700 hover:scale-[1.02] active:scale-[0.98] text-center"
                         >
-                            {/* Crystal Reflection Layer */}
                             <div className="crystal-reflection"></div>
-                            
-                            {/* Vibrant Reflective Layers - Themed with Accent */}
                             <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
                                 <div className="absolute top-[-20%] left-[-10%] w-[120%] h-[140%] bg-gradient-to-br from-white/30 via-transparent to-transparent rotate-12 mix-blend-overlay"></div>
                                 <div className="absolute bottom-[-30%] right-[-10%] w-[100%] h-[100%] bg-gradient-to-tl from-[var(--accent-primary)]/10 via-transparent to-transparent mix-blend-screen animate-pulse"></div>
                                 <div className="absolute top-[10%] right-[5%] w-60 h-60 bg-[var(--accent-primary)]/15 rounded-full blur-[80px] animate-float-light"></div>
-                                
-                                {/* Removed the vertical white line (shimmer element) previously here */}
-                                
-                                {/* Deep Depth Inner Shadow */}
                                 <div className="absolute inset-0 shadow-[inset_0_10px_30px_rgba(0,0,0,0.02),inset_0_-10px_30px_rgba(255,255,255,0.2)] dark:shadow-[inset_0_10px_30px_rgba(255,255,255,0.02),inset_0_-10px_30px_rgba(0,0,0,0.2)]"></div>
                             </div>
 
@@ -774,11 +740,9 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                                 <div className="inline-flex px-3 py-0.5 rounded-full bg-white/40 dark:bg-black/20 border border-white/60 text-[7px] sm:text-[9px] font-black uppercase tracking-[0.4em] text-[var(--accent-primary)] animate-pulse">
                                     {t.selectActiveTimetable}
                                 </div>
-                                
                                 <h2 className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tighter leading-tight drop-shadow-[0_2px_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-hover/card:scale-105 transition-transform duration-500">
                                   {currentTimetableSession.name}
                                 </h2>
-                                
                                 <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 text-[9px] sm:text-base font-black text-gray-700 dark:text-gray-200 uppercase tracking-[0.15em]">
                                     <div className="px-3 py-1.5 rounded-xl bg-white/40 dark:bg-black/20 border border-white/60 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-white/60 dark:hover:bg-black/40">
                                       {new Date(currentTimetableSession.startDate).toLocaleDateString(language === 'ur' ? 'ur-PK' : 'en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -791,8 +755,6 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Tactile High-Gloss Edge Glow */}
                             <div className="absolute inset-0 rounded-[2.5rem] shadow-[inset_0_1px_2px_rgba(255,255,255,0.7),inset_0_-1px_2px_rgba(0,0,0,0.15)] pointer-events-none border border-white/40"></div>
                         </div>
                     </div>
@@ -805,7 +767,6 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                             <button onClick={() => setIsSelectSessionModalOpen(true)} className="w-full max-w-xs px-10 py-4.5 text-[10px] font-black uppercase tracking-[0.3em] bg-indigo-600 text-white rounded-2xl shadow-2xl hover:bg-indigo-700 transition-all hover:-translate-y-1 active:scale-[0.98] border border-indigo-400/30">
                                 {t.selectTimetable}
                             </button>
-                            {/* Plus Icon below the Select Timetable button */}
                             <button 
                                 onClick={() => setIsSelectSessionModalOpen(true)}
                                 className="mt-8 w-16 h-16 bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/30 dark:to-indigo-800/20 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-110 active:scale-95 duration-500"
@@ -824,7 +785,6 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                 >
-                    {/* The Deck Stack Container */}
                     <div className="relative w-full max-w-[200px] sm:max-w-[240px] h-[300px] sm:h-[350px] mb-12 flex items-center justify-center deck-container">
                         {navigationModules.map((module, idx) => (
                             <FeatureCard 
@@ -835,19 +795,18 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                                 onClick={currentCardIndex === idx ? module.action : () => setCurrentCardIndex(idx)}
                                 colorGradient={module.color}
                                 isActive={currentCardIndex === idx}
-                                style={getStackStyle(idx, currentCardIndex)}
+                                style={getStackStyle(idx, currentCardIndex, navigationModules.length)}
                             />
                         ))}
                     </div>
                     
-                    {/* Deck Indicators (No buttons, only dots) */}
                     <div className="flex items-center gap-6 mb-8">
                         <div className="flex items-center gap-3">
-                            {navigationModules.map((_, i) => (
+                            {navigationModules.map((module, i) => (
                                 <button 
                                     key={i} 
                                     aria-label={`Go to module ${i + 1}`}
-                                    className={`h-2 transition-all duration-500 rounded-full shadow-lg border ${currentCardIndex === i ? 'w-10 bg-indigo-600 border-white scale-110' : 'w-2 bg-gray-400/30 border-transparent hover:bg-indigo-400/50'}`}
+                                    className={`h-2 transition-all duration-500 rounded-full shadow-sm border ${currentCardIndex === i ? `w-10 ${module.dotColor} border-white scale-110 opacity-100` : `w-2 ${module.dotColor} border-transparent opacity-20 hover:opacity-50`}`}
                                     onClick={() => setCurrentCardIndex(i)}
                                 ></button>
                             ))}

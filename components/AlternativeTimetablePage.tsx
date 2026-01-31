@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { Language, SchoolClass, Subject, Teacher, TimetableGridData, Adjustment, SchoolConfig, Period, LeaveDetails, DownloadDesignConfig, TimetableSession } from '../types';
 import PrintPreview from './PrintPreview';
@@ -933,7 +934,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     const file = event.target.files?.[0];
     if (!file) return;
 
-    file.text().then((result) => {
+    file.text().then((result: string) => {
       try {
         const imported: any[] = JSON.parse(result);
 
@@ -1009,7 +1010,8 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
         setIsImportExportOpen(false); 
       } catch (error: any) { 
           console.error(error);
-          alert(error instanceof Error ? error.message : "Failed to import."); 
+          const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : "Failed to import.");
+          alert(String(errorMessage)); 
       }
     }).catch((err: any) => {
         console.error("File read error:", err);
@@ -1033,7 +1035,149 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
         );
     };
 
-  const handleWhatsAppNotify = (adjustment: Adjustment) => {
+  const formatTime = (time24: string | undefined) => {
+    if (!time24) return '';
+    const [h, m] = time24.split(':').map(Number);
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m.toString().padStart(2, '0')} ${suffix}`;
+  };
+
+  const getPeriodStartTime = (periodIndex: number) => {
+      const d = new Date(selectedDate);
+      const isFriday = d.getDay() === 5;
+      const timings = schoolConfig.periodTimings?.[isFriday ? 'friday' : 'default'] || [];
+      return timings[periodIndex]?.start || '';
+  };
+
+  const generateSubstitutionSlip = async (
+    adjustment: Adjustment, 
+    substitute: Teacher, 
+    originalTeacher: Teacher, 
+    schoolClass: SchoolClass, 
+    subject: Subject,
+    timeStr: string,
+    conflictClassName?: string
+  ): Promise<Blob | null> => {
+      const dateObj = new Date(selectedDate);
+      const dateStr = dateObj.toLocaleDateString(messageLanguage === 'ur' ? 'ur-PK' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      const schoolName = messageLanguage === 'ur' ? schoolConfig.schoolNameUr : schoolConfig.schoolNameEn;
+
+      const origName = messageLanguage === 'ur' ? originalTeacher.nameUr : originalTeacher.nameEn;
+      const className = messageLanguage === 'ur' ? schoolClass.nameUr : schoolClass.nameEn;
+      const subjName = messageLanguage === 'ur' ? subject.nameUr : subject.nameEn;
+      const roomNum = schoolClass.roomNumber || '-';
+      const respectfulName = getRespectfulName(substitute, messageLanguage);
+      const greeting = messageLanguage === 'ur' ? 'السلام علیکم' : 'Assalamu Alaikum';
+
+      const conflictHtml = conflictClassName 
+        ? `<div style="margin-top: 25px; background: #fee2e2; border-left: 6px solid #ef4444; padding: 20px; border-radius: 8px;">
+              <div style="color: #b91c1c; font-weight: bold; font-size: 20px; text-transform: uppercase;">⚠ Conflict Warning</div>
+              <div style="color: #7f1d1d; font-size: 16px; margin-top: 8px;">You have a regular class with <strong>${conflictClassName}</strong>. Please manage accordingly.</div>
+           </div>`
+        : '';
+
+      const isUrdu = messageLanguage === 'ur';
+      const dir = isUrdu ? 'rtl' : 'ltr';
+      const fontFamily = isUrdu ? "'Noto Nastaliq Urdu', serif" : "'Roboto', sans-serif";
+
+      const htmlContent = `
+        <div style="width: 1200px; background: white; font-family: ${fontFamily}; border-radius: 0; overflow: hidden; direction: ${dir}; border: 4px solid #4f46e5;">
+          <!-- Top Accent -->
+          <div style="height: 24px; background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);"></div>
+          
+          <div style="padding: 60px; text-align: center;">
+             <div style="font-size: 40px; color: #4b5563; font-weight: 600; margin-bottom: 12px;">${greeting}</div>
+             <div style="font-size: 64px; color: #111827; font-weight: 800; line-height: 1.2; margin-bottom: 8px;">${respectfulName}</div>
+             <div style="font-size: 24px; color: #6b7280; font-weight: 500;">${schoolName}</div>
+          </div>
+          
+          <div style="padding: 0 60px 60px 60px;">
+             <div style="background: #f3f4f6; padding: 40px; border: 2px solid #d1d5db;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px dashed #d1d5db; padding-bottom: 30px; margin-bottom: 30px;">
+                    <div>
+                        <div style="font-size: 20px; color: #6b7280; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${isUrdu ? 'تاریخ' : 'DATE'}</div>
+                        <div style="font-size: 32px; color: #1f2937; font-weight: 700;">${dateStr}</div>
+                    </div>
+                    <div style="text-align: ${isUrdu ? 'left' : 'right'};">
+                        <div style="font-size: 20px; color: #6b7280; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${isUrdu ? 'وقت' : 'TIME'}</div>
+                         <div style="font-size: 32px; color: #1f2937; font-weight: 700;">${timeStr}</div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <!-- Period Box -->
+                    <div style="background: white; border: 2px solid #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                        <span style="font-size: 20px; color: #6b7280; font-weight: 800; letter-spacing: 2px;">PERIOD</span>
+                        <span style="font-size: 60px; font-weight: 900; color: #4f46e5; line-height: 1;">${adjustment.periodIndex + 1}</span>
+                    </div>
+
+                    <!-- Room Box -->
+                    <div style="background: white; border: 2px solid #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                        <span style="font-size: 20px; color: #6b7280; font-weight: 800; letter-spacing: 2px;">ROOM</span>
+                        <span style="font-size: 60px; font-weight: 900; color: #ea580c; line-height: 1;">${roomNum}</span>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; display: grid; grid-template-columns: 1fr; gap: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 30px; border: 2px solid #e5e7eb;">
+                        <div>
+                            <div style="font-size: 18px; color: #6b7280; font-weight: bold; text-transform: uppercase;">${isUrdu ? 'کلاس' : 'CLASS'}</div>
+                            <div style="font-size: 36px; font-weight: 900; color: #111827;">${className}</div>
+                        </div>
+                        <div style="text-align: ${isUrdu ? 'left' : 'right'};">
+                             <div style="font-size: 18px; color: #6b7280; font-weight: bold; text-transform: uppercase;">${isUrdu ? 'مضمون' : 'SUBJECT'}</div>
+                            <div style="font-size: 36px; font-weight: 900; color: #4f46e5;">${subjName}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; text-align: center;">
+                    <div style="font-size: 18px; color: #9ca3af; font-weight: bold; text-transform: uppercase; margin-bottom: 8px;">${isUrdu ? 'اصل استاد' : 'ON BEHALF OF'}</div>
+                    <div style="font-size: 28px; font-weight: 700; color: #4b5563;">${origName}</div>
+                </div>
+             </div>
+
+             ${conflictHtml}
+          </div>
+          
+          <div style="background: #111827; color: white; padding: 20px; text-align: center; font-size: 18px; font-weight: 600; letter-spacing: 2px;">
+              MR. TMS GENERATED SLIP
+          </div>
+        </div>
+      `;
+
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '0';
+      tempDiv.innerHTML = htmlContent;
+      document.body.appendChild(tempDiv);
+      
+      // Inject Google Font for Urdu if needed
+      if (isUrdu) {
+        const style = document.createElement('style');
+        style.innerHTML = `@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');`;
+        tempDiv.appendChild(style);
+        await document.fonts.ready;
+      }
+
+      try {
+          const canvas = await html2canvas(tempDiv, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff' // Force white background
+          });
+          document.body.removeChild(tempDiv);
+          return await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+      } catch (e) {
+          console.error("Slip generation failed", e);
+          if (document.body.contains(tempDiv)) document.body.removeChild(tempDiv);
+          return null;
+      }
+  };
+
+  const handleWhatsAppNotify = async (adjustment: Adjustment) => {
     const substitute = teachers.find(t => t.id === adjustment.substituteTeacherId);
     const originalTeacher = teachers.find(t => t.id === adjustment.originalTeacherId);
     const schoolClass = classes.find(c => c.id === adjustment.classId);
@@ -1044,6 +1188,8 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
         return;
     }
     
+    setIsGeneratingImage(true);
+
     const date = new Date(selectedDate);
     const locale = messageLanguage === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB';
     const dayOfWeekStr = date.toLocaleDateString(locale, { weekday: 'long' });
@@ -1051,6 +1197,65 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     const msgT = translations[messageLanguage];
     const dateStr = date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 
+    const startTime = getPeriodStartTime(adjustment.periodIndex);
+    const timeStr = formatTime(startTime);
+
+    // 1. Generate & Copy Image
+    try {
+        const conflictClassName = adjustment.conflictDetails 
+            ? (messageLanguage === 'ur' ? adjustment.conflictDetails.classNameUr : adjustment.conflictDetails.classNameEn)
+            : undefined;
+
+        const blob = await generateSubstitutionSlip(
+            adjustment, substitute, originalTeacher, schoolClass, subject, timeStr, conflictClassName
+        );
+
+        if (blob) {
+            try {
+                // Focus window first
+                window.focus();
+                const item = new ClipboardItem({ [blob.type]: blob });
+                await navigator.clipboard.write([item]);
+                
+                // Success Toast
+                const toast = document.createElement('div');
+                toast.textContent = "Slip Image Copied! Paste in WhatsApp.";
+                toast.style.cssText = "position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 10px 20px; border-radius: 50px; z-index: 9999; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); pointer-events: none; transition: opacity 0.5s ease-in-out;";
+                document.body.appendChild(toast);
+                setTimeout(() => { 
+                    toast.style.opacity = '0';
+                    setTimeout(() => document.body.removeChild(toast), 500); 
+                }, 3000);
+
+            } catch (clipboardError) {
+                console.warn("Clipboard write failed, falling back to download.", clipboardError);
+                
+                // Fallback: Download Image
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Substitution_${substitute.nameEn.replace(/\s+/g, '_')}_${dateStr}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Info Toast
+                const toast = document.createElement('div');
+                toast.textContent = "Image Downloaded (Clipboard blocked). Attach manually.";
+                toast.style.cssText = "position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #eab308; color: white; padding: 10px 20px; border-radius: 50px; z-index: 9999; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); pointer-events: none; transition: opacity 0.5s ease-in-out;";
+                document.body.appendChild(toast);
+                setTimeout(() => { 
+                    toast.style.opacity = '0';
+                    setTimeout(() => document.body.removeChild(toast), 500); 
+                }, 4000);
+            }
+        }
+    } catch (e) {
+        console.error("Failed to generate image", e);
+    }
+
+    // 2. Prepare Text Message
     let message: string;
     if (adjustment.conflictDetails) {
         message = msgT.substituteNotificationMessageDoubleBook
@@ -1058,6 +1263,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             .replace('{date}', dateStr)
             .replace('{dayOfWeek}', dayOfWeekStr)
             .replace('{period}', String(adjustment.periodIndex + 1))
+            .replace('{time}', timeStr)
             .replace('{className}', messageLanguage === 'ur' ? schoolClass.nameUr : schoolClass.nameEn)
             .replace('{subjectName}', messageLanguage === 'ur' ? subject.nameUr : subject.nameEn)
             .replace('{roomNumber}', schoolClass.roomNumber || '-')
@@ -1069,6 +1275,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             .replace('{date}', dateStr)
             .replace('{dayOfWeek}', dayOfWeekStr)
             .replace('{period}', String(adjustment.periodIndex + 1))
+            .replace('{time}', timeStr)
             .replace('{className}', messageLanguage === 'ur' ? schoolClass.nameUr : schoolClass.nameEn)
             .replace('{subjectName}', messageLanguage === 'ur' ? subject.nameUr : subject.nameEn)
             .replace('{roomNumber}', schoolClass.roomNumber || '-')
@@ -1078,8 +1285,14 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     let phoneNumber = substitute.contactNumber.replace(/\D/g, '');
     if (phoneNumber.startsWith('0')) phoneNumber = '92' + phoneNumber.substring(1);
     
+    // 3. Open WhatsApp
     const url = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    
+    // Slight delay to allow UI to update
+    setTimeout(() => {
+        window.open(url, '_blank');
+        setIsGeneratingImage(false);
+    }, 800);
   };
 
   const handleCopyAll = () => {
@@ -1109,7 +1322,11 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
              const subjectName = messageLanguage === 'ur' ? subject?.nameUr : subject?.nameEn;
              const originalTeacherName = messageLanguage === 'ur' ? originalTeacher?.nameUr : originalTeacher?.nameEn;
              const roomNum = schoolClass?.roomNumber || '-';
-             fullMessage += `   🕒 *P${adj.periodIndex + 1}* | 🏫 ${className} | 📖 ${subjectName} | 📍 Rm: ${roomNum}\n      ↳ 🔄 ${msgT.substitution}: ${originalTeacherName}\n`;
+             
+             const startTime = getPeriodStartTime(adj.periodIndex);
+             const timeStr = formatTime(startTime);
+
+             fullMessage += `   🕒 *P${adj.periodIndex + 1}${timeStr ? ` (${timeStr})` : ''}* | 🏫 ${className} | 📖 ${subjectName} | 📍 Rm: ${roomNum}\n      ↳ 🔄 ${msgT.substitution}: ${originalTeacherName}\n`;
              if(adj.conflictDetails) {
                 const conflictClass = messageLanguage === 'ur' ? adj.conflictDetails.classNameUr : adj.conflictDetails.classNameEn;
                 fullMessage += `      ⚠️ *${msgT.doubleBook} Warning:* ${conflictClass}\n`;
