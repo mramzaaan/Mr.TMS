@@ -19,6 +19,7 @@ interface TeacherCommunicationModalProps {
   subjectColorMap: Map<string, string>;
 }
 
+// ... keep const arrays ...
 const subjectColorNames = [
   'subject-cyan', 'subject-fuchsia', 'subject-yellow', 'subject-sky',
   'subject-pink', 'subject-lime', 'subject-red', 'subject-green',
@@ -670,8 +671,13 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             });
             setIsGenerating(false);
             return;
-        } catch (error) {
-            console.log("Share cancelled or failed, falling back to download.");
+        } catch (error: any) {
+            if (error.name === 'AbortError') {
+                console.log("Share cancelled.");
+                setIsGenerating(false);
+                return;
+            }
+            console.log("Share failed, falling back to download.");
         }
     }
 

@@ -117,7 +117,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
       } else if (triangleCorner === 'bottom-right') {
           triangleStyles = `bottom: 0; right: 0; border-width: 0 0 ${triangleSize}px ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
       } else { 
-          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent transparent currentColor;`;
+          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
       }
 
       let cardStyleCss = '';
@@ -614,7 +614,12 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             });
             setIsGenerating(false);
             return;
-        } catch (error) {
+        } catch (error: any) {
+            if (error.name === 'AbortError') {
+                console.log("Share cancelled.");
+                setIsGenerating(false);
+                return;
+            }
             console.log("Share cancelled or failed, falling back to download.");
         }
     }

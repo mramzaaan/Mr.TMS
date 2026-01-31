@@ -161,7 +161,11 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
       }
 
       const htmlContent = `
-        <div style="width: 1200px; background: white; font-family: ${fontFamily}; border-radius: 0; overflow: hidden; direction: ${dir}; border: 4px solid #4f46e5;">
+        <div class="slip-container" style="width: 1200px; background: white; font-family: ${fontFamily}; border-radius: 0; overflow: hidden; direction: ${dir}; border: 4px solid #4f46e5;">
+          <style>
+             @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=block');
+             * { text-rendering: geometricPrecision; -webkit-font-smoothing: antialiased; }
+          </style>
           <div style="height: 24px; background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);"></div>
           
           <div style="padding: 60px; text-align: center;">
@@ -227,16 +231,11 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
       tempDiv.innerHTML = htmlContent;
       document.body.appendChild(tempDiv);
       
-      // Inject Google Font for Urdu if needed
-      if (isUrdu) {
-        const style = document.createElement('style');
-        style.innerHTML = `@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=block');`;
-        tempDiv.appendChild(style);
-        await document.fonts.ready;
-      }
-
       try {
-          const canvas = await html2canvas(tempDiv, {
+          await document.fonts.ready;
+          await new Promise(r => setTimeout(r, 800));
+
+          const canvas = await html2canvas(tempDiv.querySelector('.slip-container'), {
               scale: 2,
               useCORS: true,
               backgroundColor: '#ffffff'
@@ -246,13 +245,27 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           
           if (blob) {
               const file = new File([blob], `slip_${subTeacher?.nameEn}_${dateStr}.png`, { type: 'image/png' });
+              
               if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                  await navigator.share({ files: [file], title: 'Substitution Slip' });
+                  try {
+                      await navigator.share({ files: [file], title: 'Substitution Slip' });
+                  } catch (err: any) {
+                      if (err.name !== 'AbortError') {
+                           // Fallback if share failed but wasn't cancelled
+                           const link = document.createElement('a');
+                           link.href = URL.createObjectURL(blob);
+                           link.download = `slip_${subTeacher?.nameEn}_${dateStr}.png`;
+                           link.click();
+                           URL.revokeObjectURL(link.href);
+                      }
+                      // If cancelled (AbortError), do nothing.
+                  }
               } else {
                   const link = document.createElement('a');
                   link.href = URL.createObjectURL(blob);
                   link.download = `slip_${subTeacher?.nameEn}_${dateStr}.png`;
                   link.click();
+                  URL.revokeObjectURL(link.href);
               }
           }
       } catch (e) {
