@@ -139,14 +139,12 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
 
       const styles = `
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=block');
+          @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
           * { 
             box-sizing: border-box !important; 
             -webkit-text-size-adjust: none !important; 
             text-size-adjust: none !important; 
             font-family: 'Inter', sans-serif !important; 
-            text-rendering: geometricPrecision !important;
-            font-variant-ligatures: none !important;
           }
           .timetable-image-container {
             background: #ffffff;

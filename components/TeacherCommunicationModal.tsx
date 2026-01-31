@@ -128,7 +128,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       } else if (triangleCorner === 'bottom-right') {
           triangleStyles = `bottom: 0; right: 0; border-width: 0 0 ${triangleSize}px ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
       } else { // bottom-left default
-          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent transparent currentColor;`;
+          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
       }
       
       let cardStyleCss = '';
