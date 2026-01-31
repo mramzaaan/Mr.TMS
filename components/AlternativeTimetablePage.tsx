@@ -1,12 +1,196 @@
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import type { Language, SchoolClass, Subject, Teacher, Adjustment, TimetableGridData, SchoolConfig, LeaveDetails, TimetableSession, DownloadDesignConfig, Period } from '../types';
-import { generateUniqueId, allDays } from '../types';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import type { Language, SchoolClass, Subject, Teacher, TimetableGridData, Adjustment, SchoolConfig, Period, LeaveDetails, DownloadDesignConfig, TimetableSession } from '../types';
 import PrintPreview from './PrintPreview';
-import { generateAdjustmentsReportHtml, generateAdjustmentsExcel } from './reportUtils';
+import { translations } from '../i18n';
+import { generateAdjustmentsExcel, generateAdjustmentsReportHtml } from './reportUtils';
+import { generateUniqueId, allDays } from '../types';
 import NoSessionPlaceholder from './NoSessionPlaceholder';
 
+// Declaring html2canvas for image generation
 declare const html2canvas: any;
+
+// Icons
+const ImportExportIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+  </svg>
+);
+const ImportIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m-4-4v12" /></svg>;
+const ChevronDown = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>;
+const DoubleBookedWarningIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline-block" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1-1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+    </svg>
+);
+const WhatsAppIcon: React.FC = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.905 6.03l-.419 1.533 1.519-.4zM15.53 17.53c-.07-.121-.267-.202-.56-.347-.297-.146-1.758-.868-2.031-.967-.272-.099-.47-.146-.669.146-.199.293-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.15-1.255-.463-2.39-1.475-1.134-1.012-1.31-1.36-1.899-2.258-.151-.231-.04-.355.043-.463.083-.107.185-.293.28-.439.095-.146.12-.245.18-.41.06-.164.03-.311-.015-.438-.046-.127-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.177-.008-.375-.01-1.04-.01h-.11c-.307.003-1.348-.043-1.348 1.438 0 1.482.791 2.906 1.439 3.82.648.913 2.51 3.96 6.12 5.368 3.61 1.408 3.61 1.054 4.258 1.034.648-.02 1.758-.715 2.006-1.413.248-.698.248-1.289.173-1.413z" />
+    </svg>
+);
+const PlusIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+    </svg>
+);
+const EditIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+    </svg>
+);
+const TrashIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+);
+const ShareIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+    </svg>
+);
+
+const SignatureModal: React.FC<{
+    t: any;
+    isOpen: boolean;
+    onClose: () => void;
+    onFinalSave: (signature: string) => Promise<void>; 
+}> = ({ t, isOpen, onClose, onFinalSave }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && canvasRef.current) {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+            }
+        }
+    }, [isOpen]);
+
+    const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        if (isSubmitting) return;
+        setIsDrawing(true);
+        draw(e);
+    };
+
+    const stopDrawing = () => {
+        setIsDrawing(false);
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx?.beginPath();
+        }
+    };
+
+    const draw = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDrawing || !canvasRef.current) return;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const rect = canvas.getBoundingClientRect();
+        let clientX, clientY;
+
+        if ('touches' in e) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        const x = (clientX - rect.left) * (canvas.width / rect.width);
+        const y = (clientY - rect.top) * (canvas.height / rect.height);
+
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    };
+
+    const handleClear = () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext('2d');
+        if (canvas && ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    };
+
+    const handleSave = async () => {
+        const canvas = canvasRef.current;
+        if (canvas && !isSubmitting) {
+            setIsSubmitting(true);
+            try {
+                await onFinalSave(canvas.toDataURL());
+                onClose();
+            } catch (err: any) {
+                console.error("Submission failed", err);
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/70 z-[120] flex items-center justify-center p-4 backdrop-blur-md">
+            <div className="bg-[var(--bg-secondary)] rounded-3xl shadow-2xl p-6 sm:p-10 w-full max-w-4xl animate-scale-in border border-[var(--border-primary)]" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-8">
+                    <div>
+                        <h3 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tight">{t.signNow.toUpperCase()}</h3>
+                        <p className="text-sm text-[var(--text-secondary)] mt-1 font-medium">Headmaster/Principal's signature for the substitution sheet.</p>
+                    </div>
+                    <button onClick={onClose} disabled={isSubmitting} className="p-3 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] rounded-full transition-colors disabled:opacity-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                
+                <div className="border-4 border-dashed border-gray-200 rounded-3xl bg-white overflow-hidden touch-none shadow-inner mb-8">
+                    <canvas 
+                        ref={canvasRef}
+                        width={1200}
+                        height={600}
+                        onMouseDown={startDrawing}
+                        onMouseMove={draw}
+                        onMouseUp={stopDrawing}
+                        onMouseOut={stopDrawing}
+                        onTouchStart={startDrawing}
+                        onTouchMove={draw}
+                        onTouchEnd={stopDrawing}
+                        className={`w-full h-auto bg-white block ${isSubmitting ? 'cursor-not-allowed' : 'cursor-crosshair'}`}
+                    />
+                </div>
+                
+                <div className="flex flex-col gap-4">
+                    <button 
+                        onClick={handleSave}
+                        disabled={isSubmitting}
+                        className="w-full h-16 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:shadow-indigo-500/40 transition-all transform hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-4 text-lg disabled:opacity-70 disabled:transform-none"
+                    >
+                        {isSubmitting ? (
+                            <div className="flex items-center gap-3">
+                                <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <span>Generating Sheet...</span>
+                            </div>
+                        ) : (
+                            <span>SIGN & SHARE IMAGE</span>
+                        )}
+                    </button>
+                    {!isSubmitting && (
+                        <button onClick={handleClear} className="text-sm font-bold uppercase tracking-widest text-red-600 hover:text-red-700 transition-colors">
+                            {t.clearSignature}
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 interface AlternativeTimetablePageProps {
   t: any;
@@ -15,157 +199,891 @@ interface AlternativeTimetablePageProps {
   subjects: Subject[];
   teachers: Teacher[];
   adjustments: Record<string, Adjustment[]>;
-  leaveDetails?: Record<string, Record<string, LeaveDetails>>;
-  onSetAdjustments: (date: string, adjustments: Adjustment[]) => void;
-  onSetLeaveDetails: (date: string, leaveDetails: Record<string, LeaveDetails>) => void;
+  leaveDetails: Record<string, Record<string, LeaveDetails>> | undefined;
+  onSetAdjustments: (date: string, adjustmentsForDate: Adjustment[]) => void;
+  onSetLeaveDetails: (date: string, details: Record<string, LeaveDetails>) => void;
   onUpdateSession: (updater: (session: TimetableSession) => TimetableSession) => void;
   schoolConfig: SchoolConfig;
   onUpdateSchoolConfig: (newConfig: Partial<SchoolConfig>) => void;
-  selection: { date: string; teacherIds: string[] };
-  onSelectionChange: React.Dispatch<React.SetStateAction<{ date: string; teacherIds: string[] }>>;
+  selection: { date: string; teacherIds: string[]; };
+  onSelectionChange: React.Dispatch<React.SetStateAction<{ date: string; teacherIds: string[]; }>>;
   openConfirmation: (title: string, message: React.ReactNode, onConfirm: () => void) => void;
   hasActiveSession: boolean;
 }
 
-// Icons
-const CalendarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
-const PrintIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg>;
-const ShareIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>;
-const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
+type SubstituteStatus =
+  | { type: 'IN_CHARGE' }
+  | { type: 'TEACHES_CLASS' }
+  | { type: 'AVAILABLE' }
+  | { type: 'UNAVAILABLE'; reason: 'SUBSTITUTION' }
+  | { type: 'UNAVAILABLE'; reason: 'DOUBLE_BOOK'; conflictClass: { classNameEn: string, classNameUr: string } };
 
-export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> = ({
-  t, language, classes, subjects, teachers, adjustments, leaveDetails,
-  onSetAdjustments, onSetLeaveDetails, onUpdateSession,
-  schoolConfig, onUpdateSchoolConfig, selection, onSelectionChange,
-  openConfirmation, hasActiveSession
-}) => {
-  const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
-  const [isGeneratingSlip, setIsGeneratingSlip] = useState(false);
+type TeacherWithStatus = {
+  teacher: Teacher;
+  status: SubstituteStatus;
+};
 
+interface SubstitutionGroup {
+    absentTeacher: Teacher;
+    period: Period; 
+    periodIndex: number;
+    combinedClassIds: string[];
+    combinedClassNames: { en: string; ur: string };
+    subjectInfo: { en: string; ur: string };
+}
+
+const LEAVE_REASONS = ['Illness', 'Urgent Work', 'On Duty', 'Rest', 'Other'];
+
+// Custom Substitute Picker Component
+interface SubstitutePickerProps {
+    teachersWithStatus: TeacherWithStatus[];
+    selectedId: string;
+    onChange: (id: string) => void;
+    language: Language;
+    weeklyStats: Record<string, number[]>; // teacherId -> [MonCount, TueCount, ...]
+}
+
+const SubstitutePicker: React.FC<SubstitutePickerProps> = ({ teachersWithStatus, selectedId, onChange, language, weeklyStats }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const selectedTeacher = teachersWithStatus.find(t => t.teacher.id === selectedId);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const days = ['M', 'T', 'W', 'T', 'F', 'S'];
+
+    return (
+        <div className="relative w-full" ref={dropdownRef}>
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full text-left bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-lg px-3 py-2 text-sm font-bold text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:outline-none flex justify-between items-center"
+            >
+                <span className="truncate">
+                    {selectedTeacher 
+                        ? (language === 'ur' ? selectedTeacher.teacher.nameUr : selectedTeacher.teacher.nameEn)
+                        : "Select Substitute..."}
+                </span>
+                <ChevronDown />
+            </button>
+
+            {isOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-xl max-h-80 overflow-y-auto custom-scrollbar animate-scale-in">
+                    {teachersWithStatus.map(({ teacher, status }) => {
+                        const name = language === 'ur' ? teacher.nameUr : teacher.nameEn;
+                        const stats = weeklyStats[teacher.id] || [0,0,0,0,0,0];
+                        
+                        let nameColor = "text-blue-600 dark:text-blue-400"; // Default Available (Blue)
+                        let bgColor = "";
+                        let statusText = "";
+                        
+                        if (status.type === 'IN_CHARGE') {
+                            nameColor = "text-green-600 dark:text-green-400";
+                            bgColor = "bg-green-50 dark:bg-green-900/10";
+                            statusText = "In Charge";
+                        } else if (status.type === 'TEACHES_CLASS') {
+                            nameColor = "text-yellow-600 dark:text-yellow-400";
+                            bgColor = "bg-yellow-50 dark:bg-yellow-900/10";
+                            statusText = "Teaches Class";
+                        } else if (status.type === 'UNAVAILABLE') {
+                            nameColor = "text-red-600 dark:text-red-400";
+                            bgColor = "bg-red-50 dark:bg-red-900/10";
+                            if (status.reason === 'DOUBLE_BOOK') {
+                                const conflictName = language === 'ur' ? status.conflictClass.classNameUr : status.conflictClass.classNameEn;
+                                statusText = `Busy in ${conflictName}`;
+                            } else {
+                                statusText = "Substitution";
+                            }
+                        }
+
+                        return (
+                            <div 
+                                key={teacher.id} 
+                                onClick={() => { onChange(teacher.id); setIsOpen(false); }}
+                                className={`p-2 border-b border-[var(--border-secondary)] last:border-0 hover:bg-[var(--bg-tertiary)] cursor-pointer transition-colors ${bgColor}`}
+                            >
+                                <div className="flex justify-between items-start mb-1">
+                                    <div className="flex flex-col">
+                                        <span className={`font-bold text-sm ${nameColor}`}>{name}</span>
+                                        {statusText && <span className={`text-[10px] font-bold ${nameColor}`}>{statusText}</span>}
+                                    </div>
+                                </div>
+                                
+                                {/* Weekly Stats Grid */}
+                                <div className="flex gap-1 mt-1 justify-end">
+                                    {days.map((day, idx) => (
+                                        <div key={idx} className="flex flex-col items-center w-5">
+                                            <span className="text-[8px] text-[var(--text-secondary)] font-bold">{day}</span>
+                                            <span className={`text-[9px] font-mono font-bold ${stats[idx] > 0 ? 'text-[var(--accent-primary)]' : 'text-[var(--text-placeholder)]'}`}>
+                                                {stats[idx]}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+
+export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> = ({ t, language, classes, subjects, teachers, adjustments, leaveDetails, onSetAdjustments, onSetLeaveDetails, onUpdateSession, schoolConfig, onUpdateSchoolConfig, selection, onSelectionChange, openConfirmation, hasActiveSession }) => {
   if (!hasActiveSession) {
     return <NoSessionPlaceholder t={t} />;
   }
 
-  const selectedDate = selection.date;
-  const currentDateAdjustments = adjustments[selectedDate] || [];
-  const currentLeaveDetails: Record<string, LeaveDetails> = leaveDetails?.[selectedDate] || {};
+  const { date: selectedDate, teacherIds: absentTeacherIds } = selection;
+  
+  const [dailyAdjustments, setDailyAdjustments] = useState<Adjustment[]>([]);
+  const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
+  const [isSignModalOpen, setIsSignModalOpen] = useState(false);
+  const [absenteeDetails, setAbsenteeDetails] = useState<Record<string, LeaveDetails>>({});
+  const [expandedTeacherIds, setExpandedTeacherIds] = useState<Set<string>>(new Set());
+  const [messageLanguage, setMessageLanguage] = useState<Language>(language);
+  const [isLeaveDetailsExpanded, setIsLeaveDetailsExpanded] = useState(false);
+  const [isImportExportOpen, setIsImportExportOpen] = useState(false);
+  
+  const [absentClassIds, setAbsentClassIds] = useState<string[]>([]);
+  
+  const [exportStartDate, setExportStartDate] = useState(selectedDate);
+  const [exportEndDate, setExportEndDate] = useState(selectedDate);
+  
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onSelectionChange(prev => ({ ...prev, date: e.target.value }));
-  };
+  // Modal State
+  const [modalState, setModalState] = useState<{
+      isOpen: boolean;
+      mode: 'teacher' | 'class';
+      data: {
+          id: string; // teacherId or classId
+          isMultiDay: boolean;
+          startDate: string;
+          endDate: string;
+          reason: string;
+          customReason: string;
+          leaveType: 'full' | 'half';
+          startPeriod: number;
+          periods: number[];
+      }
+  }>({
+      isOpen: false,
+      mode: 'teacher',
+      data: {
+          id: '',
+          isMultiDay: false,
+          startDate: selectedDate,
+          endDate: selectedDate,
+          reason: 'Illness',
+          customReason: '',
+          leaveType: 'full',
+          startPeriod: 1,
+          periods: []
+      }
+  });
 
-  const handleLeaveToggle = (teacherId: string, type: 'full' | 'half' | null) => {
-    const newLeaveDetails = { ...currentLeaveDetails };
-    
-    if (type === null) {
-        delete newLeaveDetails[teacherId];
-        // Also remove any adjustments where this teacher is the ORIGINAL teacher
-        const newAdjustments = currentDateAdjustments.filter(adj => adj.originalTeacherId !== teacherId);
-        onSetAdjustments(selectedDate, newAdjustments);
-    } else {
-        newLeaveDetails[teacherId] = {
-            leaveType: type,
-            startPeriod: type === 'half' ? 5 : 1, // Default half day starts at period 5
-            periods: type === 'half' ? [] : undefined,
-            reason: 'Leave'
-        };
-    }
-    onSetLeaveDetails(selectedDate, newLeaveDetails);
-  };
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastSyncedDate = useRef<string | null>(null);
 
-  const handleSubstitutionChange = (adjustmentId: string | null, periodIndex: number, classId: string, subjectId: string, originalTeacherId: string, substituteTeacherId: string) => {
-      let newAdjustments = [...currentDateAdjustments];
+  const activeDays = useMemo(() => allDays.filter(day => schoolConfig.daysConfig?.[day]?.active ?? true), [schoolConfig.daysConfig]);
+  const maxPeriods = useMemo(() => {
+      const counts = activeDays.map(day => schoolConfig.daysConfig?.[day]?.periodCount ?? 8);
+      return counts.length > 0 ? Math.max(...counts) : 8;
+  }, [activeDays, schoolConfig.daysConfig]);
+
+  // Calculate periods for the specific selected day for the dropdown
+  const periodsForDropdown = useMemo(() => {
+      if (modalState.data.isMultiDay) return maxPeriods;
+      if (!modalState.data.startDate) return maxPeriods;
       
-      if (substituteTeacherId === '') {
-          // Remove adjustment
-          if (adjustmentId) {
-              newAdjustments = newAdjustments.filter(a => a.id !== adjustmentId);
+      const date = new Date(modalState.data.startDate);
+      const dayIndex = date.getUTCDay();
+      const dayMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayName = dayMap[dayIndex];
+      
+      if (allDays.includes(dayName as any)) {
+          const config = schoolConfig.daysConfig?.[dayName as keyof TimetableGridData];
+          return config ? config.periodCount : 8;
+      }
+      return 0; 
+  }, [modalState.data.isMultiDay, modalState.data.startDate, maxPeriods, schoolConfig.daysConfig]);
+
+  const toggleTeacherCollapse = (teacherId: string) => {
+    setExpandedTeacherIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(teacherId)) {
+        newSet.delete(teacherId);
+      } else {
+        newSet.add(teacherId);
+      }
+      return newSet;
+    });
+  };
+  
+  const getTeacherName = (t: Teacher) => language === 'ur' ? <span className="font-urdu">{t.nameUr}</span> : t.nameEn;
+  const getClassName = (c: SchoolClass) => language === 'ur' ? <span className="font-urdu">{c.nameUr}</span> : c.nameEn;
+  
+  const getRespectfulName = (teacher: Teacher, lang: Language) => {
+    if (lang === 'ur') {
+        if (teacher.gender === 'Male') return `محترم ${teacher.nameUr} صاحب`;
+        if (teacher.gender === 'Female') return `محترمہ ${teacher.nameUr} صاحبہ`;
+        return teacher.nameUr;
+    }
+    const prefix = teacher.gender === 'Male' ? 'Mr.' : (teacher.gender === 'Female' ? 'Ms.' : '');
+    return `${prefix} ${teacher.nameEn}`.trim();
+  };
+  
+  const dayOfWeek = useMemo(() => {
+    if (!selectedDate) return null;
+    const date = new Date(selectedDate);
+    const dayIndex = date.getUTCDay(); 
+    return dayIndex > 0 && dayIndex <= 6 ? allDays[dayIndex - 1] : null;
+  }, [selectedDate]);
+
+  useEffect(() => {
+    const savedAdjustments = adjustments[selectedDate] || [];
+    setDailyAdjustments(savedAdjustments);
+    
+    const savedLeaveDetails: Record<string, LeaveDetails> = leaveDetails?.[selectedDate] || {};
+    
+    const _absentClassIds: string[] = [];
+    const _absentTeacherIds: string[] = [];
+    const _details: Record<string, LeaveDetails> = {};
+
+    Object.entries(savedLeaveDetails).forEach(([key, detail]) => {
+        if (key.startsWith('CLASS_')) {
+            const classId = key.replace('CLASS_', '');
+            if (classes.some(c => c.id === classId)) {
+                _absentClassIds.push(classId);
+                _details[key] = detail;
+            }
+        } else {
+            const teach = teachers.find(t => t.id === key);
+            if (teach) {
+                _absentTeacherIds.push(key);
+                _details[key] = detail;
+            }
+        }
+    });
+
+    savedAdjustments.forEach(adj => {
+        if (!_absentTeacherIds.includes(adj.originalTeacherId)) {
+            const teach = teachers.find(t => t.id === adj.originalTeacherId);
+            if (teach) {
+                _absentTeacherIds.push(adj.originalTeacherId);
+                _details[adj.originalTeacherId] = { leaveType: 'full', startPeriod: 1 };
+            }
+        }
+    });
+
+    const currentSelectedIds = selection.teacherIds;
+    const newSelectedIds = _absentTeacherIds;
+    const areSetsEqual = (a: string[], b: string[]) => a.length === b.length && new Set(a).size === new Set(b).size && a.every(x => b.includes(x));
+
+    if (!areSetsEqual(currentSelectedIds, newSelectedIds)) {
+         onSelectionChange(prev => ({ 
+            ...prev, 
+            teacherIds: newSelectedIds
+        }));
+    }
+    
+    setAbsentClassIds(_absentClassIds);
+    setAbsenteeDetails(_details);
+    
+    if (selectedDate !== lastSyncedDate.current) {
+        setExpandedTeacherIds(new Set()); 
+        lastSyncedDate.current = selectedDate;
+    }
+  }, [selectedDate, adjustments, leaveDetails, classes, teachers, selection.teacherIds, onSelectionChange]);
+
+  useEffect(() => {
+        setExportStartDate(selectedDate);
+        setExportEndDate(selectedDate);
+        setModalState(prev => ({ 
+            ...prev, 
+            data: { ...prev.data, startDate: selectedDate, endDate: selectedDate } 
+        }));
+  }, [selectedDate]);
+
+  const absentTeachers = useMemo(() => {
+    return teachers.filter(teacher => absentTeacherIds.includes(teacher.id));
+  }, [teachers, absentTeacherIds]);
+
+  const substitutionGroups = useMemo((): SubstitutionGroup[] => {
+    if (!dayOfWeek) return [];
+    
+    const dayConfig = schoolConfig.daysConfig?.[dayOfWeek];
+    const maxPeriodsForDay = dayConfig ? dayConfig.periodCount : 8;
+    if (dayConfig && !dayConfig.active) return []; 
+
+    const groups: SubstitutionGroup[] = [];
+    
+    absentTeachers.forEach(absentTeacher => {
+        const details = absenteeDetails[absentTeacher.id];
+
+        for (let periodIndex = 0; periodIndex < maxPeriodsForDay; periodIndex++) {
+            let isOnLeave = false;
+            if (!details || details.leaveType === 'full') {
+                isOnLeave = true;
+            } else if (details.leaveType === 'half') {
+                if (details.periods && details.periods.length > 0) {
+                    isOnLeave = details.periods.includes(periodIndex + 1);
+                } else {
+                    isOnLeave = (periodIndex + 1) >= details.startPeriod;
+                }
+            }
+
+            if (!isOnLeave) continue;
+
+            const periodsToCover = classes.map(c => 
+                (c.timetable[dayOfWeek]?.[periodIndex] || [])
+                    .filter(p => p.teacherId === absentTeacher.id)
+            ).flat();
+
+            if (periodsToCover.length > 0) {
+                const processedJointPeriods = new Set<string>();
+                periodsToCover.forEach(firstPeriod => {
+                    const jointPeriodId = firstPeriod.jointPeriodId;
+                    if(jointPeriodId && processedJointPeriods.has(jointPeriodId)) return;
+
+                    const classIds = jointPeriodId 
+                        ? classes.filter(c => c.timetable[dayOfWeek]?.[periodIndex]?.some(p => p.jointPeriodId === jointPeriodId)).map(c => c.id)
+                        : [firstPeriod.classId];
+
+                    const classNames = classIds.map(id => {
+                        const c = classes.find(cls => cls.id === id);
+                        return { en: c?.nameEn || '', ur: c?.nameUr || ''};
+                    }).reduce((acc, curr) => ({ en: acc.en ? `${acc.en}, ${curr.en}` : curr.en, ur: acc.ur ? `${acc.ur}، ${curr.ur}`: curr.ur}), {en: '', ur: ''});
+
+                    const subject = subjects.find(s => s.id === firstPeriod.subjectId);
+
+                    groups.push({
+                        absentTeacher: absentTeacher,
+                        period: firstPeriod,
+                        periodIndex: periodIndex,
+                        combinedClassIds: classIds,
+                        combinedClassNames: classNames,
+                        subjectInfo: { en: subject?.nameEn || '', ur: subject?.nameUr || '' },
+                    });
+                    if(jointPeriodId) processedJointPeriods.add(jointPeriodId);
+                });
+            }
+        }
+    });
+    return groups.sort((a,b) => a.absentTeacher.id.localeCompare(b.absentTeacher.id) || a.periodIndex - b.periodIndex);
+  }, [dayOfWeek, absentTeachers, classes, subjects, absenteeDetails, schoolConfig.daysConfig]);
+
+  const teacherBookingsMap = useMemo(() => {
+    const bookings = new Map<string, { classNameEn: string, classNameUr: string, classId: string }>();
+    allDays.forEach(day => {
+        for (let periodIndex = 0; periodIndex < 8; periodIndex++) {
+            classes.forEach(c => {
+                c.timetable[day]?.[periodIndex]?.forEach(p => {
+                    const key = `${day}-${periodIndex}-${p.teacherId}`;
+                    if (!bookings.has(key)) {
+                        bookings.set(key, { classNameEn: c.nameEn, classNameUr: c.nameUr, classId: c.id });
+                    }
+                });
+            });
+        }
+    });
+    return bookings;
+  }, [classes]);
+
+  const findAvailableTeachers = useCallback((periodIndex: number, period: Period): TeacherWithStatus[] => {
+    if (!dayOfWeek) return [];
+    
+    const busyThroughSubstitution = new Set(dailyAdjustments.filter(adj => adj.periodIndex === periodIndex).map(adj => adj.substituteTeacherId));
+    
+    const allTeachersWithStatus = teachers
+        .filter(t => !absentTeacherIds.includes(t.id))
+        .map(teacher => {
+            let status: SubstituteStatus;
+
+            if (busyThroughSubstitution.has(teacher.id)) {
+                status = { type: 'UNAVAILABLE', reason: 'SUBSTITUTION' };
+            } else {
+                const bookingKey = `${dayOfWeek}-${periodIndex}-${teacher.id}`;
+                const booking = teacherBookingsMap.get(bookingKey);
+                
+                if (booking) {
+                    const classLeaveKey = `CLASS_${booking.classId}`;
+                    const classLeave = absenteeDetails[classLeaveKey];
+                    let isClassAbsent = false;
+
+                    if (absentClassIds.includes(booking.classId)) {
+                        if (!classLeave || classLeave.leaveType === 'full') {
+                            isClassAbsent = true;
+                        } else if (classLeave.leaveType === 'half') {
+                            if (classLeave.periods && classLeave.periods.length > 0) {
+                                isClassAbsent = classLeave.periods.includes(periodIndex + 1);
+                            } else if (periodIndex >= (classLeave.startPeriod - 1)) {
+                                isClassAbsent = true;
+                            }
+                        }
+                    }
+
+                    if (isClassAbsent) {
+                        status = { type: 'AVAILABLE' };
+                    } else {
+                        status = { type: 'UNAVAILABLE', reason: 'DOUBLE_BOOK', conflictClass: { classNameEn: booking.classNameEn, classNameUr: booking.classNameUr } };
+                    }
+                } else {
+                    const targetClass = classes.find(c => c.id === period.classId);
+                    if (targetClass?.inCharge === teacher.id) {
+                        status = { type: 'IN_CHARGE' };
+                    } else if (targetClass?.subjects.some(s => s.teacherId === teacher.id)) {
+                        status = { type: 'TEACHES_CLASS' };
+                    } else {
+                        status = { type: 'AVAILABLE' };
+                    }
+                }
+            }
+            return { teacher, status };
+        });
+
+    return allTeachersWithStatus.sort((a, b) => {
+        const order: Record<SubstituteStatus['type'], number> = { 'IN_CHARGE': 1, 'TEACHES_CLASS': 2, 'AVAILABLE': 3, 'UNAVAILABLE': 4 };
+        return order[a.status.type] - order[b.status.type];
+    });
+  }, [dayOfWeek, dailyAdjustments, absentTeacherIds, teachers, classes, teacherBookingsMap, absentClassIds, absenteeDetails]);
+
+  // Compute Weekly Stats for Dropdown (Last 7 Days Logic)
+  const weeklyStats = useMemo(() => {
+    if (!selectedDate) return {};
+    const d = new Date(selectedDate);
+    const dayOfWeekIndex = d.getDay(); // 0-6 (Sun-Sat)
+    
+    // Calculate start of the week (Monday)
+    const diffToMon = dayOfWeekIndex === 0 ? -6 : 1 - dayOfWeekIndex;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMon);
+    
+    const weekDays: string[] = [];
+    for(let i=0; i<6; i++) {
+        const temp = new Date(monday);
+        temp.setDate(monday.getDate() + i);
+        weekDays.push(temp.toISOString().split('T')[0]);
+    }
+
+    const stats: Record<string, number[]> = {};
+    
+    teachers.forEach(t => {
+        stats[t.id] = [0,0,0,0,0,0]; // Mon-Sat
+    });
+
+    weekDays.forEach((dateStr, idx) => {
+        const adjs = adjustments[dateStr] || [];
+        adjs.forEach(adj => {
+             if (stats[adj.substituteTeacherId]) {
+                 stats[adj.substituteTeacherId][idx]++;
+             }
+        });
+    });
+    
+    return stats;
+  }, [selectedDate, adjustments, teachers]);
+
+  const handleSubstituteChange = (group: SubstitutionGroup, substituteTeacherId: string) => {
+    if (!dayOfWeek) return;
+
+    const availableTeachersList = findAvailableTeachers(group.periodIndex, group.period);
+    const selectedTeacherInfo = availableTeachersList.find(t => t.teacher.id === substituteTeacherId);
+
+    let conflictDetails: Adjustment['conflictDetails'];
+    if (substituteTeacherId && selectedTeacherInfo?.status.type === 'UNAVAILABLE' && selectedTeacherInfo.status.reason === 'DOUBLE_BOOK') {
+        conflictDetails = selectedTeacherInfo.status.conflictClass;
+    }
+
+    const { absentTeacher, periodIndex, combinedClassIds } = group;
+    let newAdjustments = dailyAdjustments.filter(adj => 
+        !(adj.periodIndex === periodIndex && adj.originalTeacherId === absentTeacher.id)
+    );
+    if (substituteTeacherId) {
+        combinedClassIds.forEach(classId => {
+            const periodInClass = classes.find(c => c.id === classId)?.timetable[dayOfWeek]?.[periodIndex].find(p => p.teacherId === absentTeacher.id || (p.jointPeriodId && group.period.jointPeriodId === p.jointPeriodId));
+            if (periodInClass) {
+                newAdjustments.push({
+                    id: `${selectedDate}-${dayOfWeek}-${periodIndex}-${classId}-${absentTeacher.id}`,
+                    classId,
+                    subjectId: periodInClass.subjectId,
+                    originalTeacherId: absentTeacher.id,
+                    substituteTeacherId: substituteTeacherId,
+                    day: dayOfWeek,
+                    periodIndex,
+                    conflictDetails: conflictDetails
+                });
+            }
+        });
+    }
+    setDailyAdjustments(newAdjustments);
+    onSetAdjustments(selectedDate, newAdjustments);
+  };
+  
+  const handleSaveAdjustments = () => {
+    onSetAdjustments(selectedDate, dailyAdjustments);
+    alert(`${t.saveAdjustments}`);
+  };
+  
+  const openModal = (mode: 'teacher' | 'class' = 'teacher', id: string = '') => {
+      let existingDetails = null;
+      if (id) {
+          const key = mode === 'class' ? `CLASS_${id}` : id;
+          existingDetails = absenteeDetails[key];
+      }
+
+      let reason = existingDetails?.reason || (mode === 'class' ? 'On Leave' : 'Illness');
+      let customReason = '';
+      if (reason && !LEAVE_REASONS.includes(reason) && reason !== 'Other') {
+          customReason = reason;
+          reason = 'Other';
+      }
+
+      setModalState({
+          isOpen: true,
+          mode,
+          data: {
+              id: id,
+              isMultiDay: !!(existingDetails?.startDate && existingDetails?.endDate && existingDetails.startDate !== existingDetails.endDate),
+              startDate: existingDetails?.startDate || selectedDate,
+              endDate: existingDetails?.endDate || selectedDate,
+              reason: reason,
+              customReason: customReason,
+              leaveType: existingDetails?.leaveType || 'full',
+              startPeriod: existingDetails?.startPeriod || 1,
+              periods: existingDetails?.periods || []
+          }
+      });
+  };
+
+  const handleSaveModal = () => {
+      const { id, isMultiDay, startDate, endDate, reason, customReason, leaveType, startPeriod, periods } = modalState.data;
+      const { mode } = modalState;
+      
+      if (!id) {
+          alert(`Please select a ${mode}.`);
+          return;
+      }
+
+      const finalReason = reason === 'Other' ? customReason : reason;
+      const datesToProcess = [];
+
+      if (isMultiDay) {
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          if (start > end) {
+              alert('Start date must be before end date.');
+              return;
+          }
+          const curr = new Date(start);
+          curr.setHours(12, 0, 0, 0);
+          const last = new Date(end);
+          last.setHours(12, 0, 0, 0);
+
+          while (curr <= last) {
+              datesToProcess.push(curr.toISOString().split('T')[0]);
+              curr.setDate(curr.getDate() + 1);
           }
       } else {
-          // Add or Update
-          const newAdj: Adjustment = {
-              id: adjustmentId || generateUniqueId(),
-              classId,
-              subjectId,
-              originalTeacherId,
-              substituteTeacherId,
-              day: new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' }) as keyof TimetableGridData,
-              periodIndex
-          };
+          datesToProcess.push(startDate);
+      }
 
-          // Check conflict
-          const dayName = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' }) as keyof TimetableGridData;
-          let conflictDetails = undefined;
-          
-          // Check if substitute is teaching another class at this time
-          const substituteClass = classes.find(c => 
-              c.timetable[dayName]?.[periodIndex]?.some(p => p.teacherId === substituteTeacherId)
-          );
+      onUpdateSession(session => {
+          const newLeaveDetails = { ...session.leaveDetails };
+          const key = mode === 'class' ? `CLASS_${id}` : id;
 
-          if (substituteClass) {
-              conflictDetails = {
-                  classNameEn: substituteClass.nameEn,
-                  classNameUr: substituteClass.nameUr
+          datesToProcess.forEach(date => {
+              const currentDayDetails = newLeaveDetails[date] || {};
+              newLeaveDetails[date] = {
+                  ...currentDayDetails,
+                  [key]: {
+                      leaveType,
+                      startPeriod: leaveType === 'full' ? 1 : (periods.length > 0 ? Math.min(...periods) : startPeriod),
+                      periods: leaveType === 'half' ? periods : undefined,
+                      reason: finalReason,
+                      startDate: isMultiDay ? startDate : undefined,
+                      endDate: isMultiDay ? endDate : undefined
+                  }
               };
-              newAdj.conflictDetails = conflictDetails;
-          }
+          });
+          return { ...session, leaveDetails: newLeaveDetails };
+      });
 
-          if (adjustmentId) {
-              newAdjustments = newAdjustments.map(a => a.id === adjustmentId ? newAdj : a);
+      if (datesToProcess.includes(selectedDate)) {
+          const key = mode === 'class' ? `CLASS_${id}` : id;
+          const newDetails = { ...absenteeDetails };
+          newDetails[key] = {
+              leaveType,
+              startPeriod: leaveType === 'full' ? 1 : (periods.length > 0 ? Math.min(...periods) : startPeriod),
+              periods: leaveType === 'half' ? periods : undefined,
+              reason: finalReason,
+              startDate: isMultiDay ? startDate : undefined,
+              endDate: isMultiDay ? endDate : undefined
+          };
+          setAbsenteeDetails(newDetails);
+          
+          if (mode === 'teacher') {
+              if (!absentTeacherIds.includes(id)) {
+                  onSelectionChange(prev => ({ ...prev, teacherIds: [...prev.teacherIds, id] }));
+              }
           } else {
-              newAdjustments.push(newAdj);
+              if (!absentClassIds.includes(id)) {
+                  setAbsentClassIds(prev => [...prev, id]);
+              }
           }
       }
-      onSetAdjustments(selectedDate, newAdjustments);
+
+      setModalState(prev => ({ ...prev, isOpen: false }));
   };
 
-  const generateSlip = async (adjustment: Adjustment) => {
-      setIsGeneratingSlip(true);
-      const dayName = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' }) as keyof TimetableGridData;
+  const handleDeleteItem = (id: string, type: 'teacher' | 'class') => {
+      const item = type === 'teacher' ? teachers.find(t => t.id === id) : classes.find(c => c.id === id);
+      const name = item ? (language === 'ur' ? (item as any).nameUr : (item as any).nameEn) : '';
       
-      // Data preparation
-      const subTeacher = teachers.find(t => t.id === adjustment.substituteTeacherId);
-      const origTeacher = teachers.find(t => t.id === adjustment.originalTeacherId);
-      const schoolClass = classes.find(c => c.id === adjustment.classId);
-      const subject = subjects.find(s => s.id === adjustment.subjectId);
-      
-      // Time calc
-      const timings = schoolConfig.periodTimings?.[dayName === 'Friday' ? 'friday' : 'default'] || [];
-      const periodTime = timings[adjustment.periodIndex];
-      const timeStr = periodTime ? `${periodTime.start} - ${periodTime.end}` : 'N/A';
+      openConfirmation(
+          t.delete,
+          <span>{t.areYouSure} <strong>{name}</strong>?</span>,
+          () => {
+              const key = type === 'class' ? `CLASS_${id}` : id;
+              
+              onUpdateSession(session => {
+                  const updatedLeaveDetails = { ...(session.leaveDetails || {}) };
+                  const currentDayLeaves = { ...(updatedLeaveDetails[selectedDate] || {}) };
+                  delete currentDayLeaves[key];
+                  updatedLeaveDetails[selectedDate] = currentDayLeaves;
 
-      // Props for HTML generation
-      const messageLanguage = language;
+                  const updatedAdjustments = { ...session.adjustments };
+                  if (type === 'teacher') {
+                      const dayAdjustments = (updatedAdjustments[selectedDate] || []).filter(adj => adj.originalTeacherId !== id);
+                      updatedAdjustments[selectedDate] = dayAdjustments;
+                  }
+
+                  return {
+                      ...session,
+                      leaveDetails: updatedLeaveDetails,
+                      adjustments: updatedAdjustments
+                  };
+              });
+
+              if (type === 'teacher') {
+                  onSelectionChange(prev => ({ ...prev, teacherIds: prev.teacherIds.filter(tid => tid !== id) }));
+              } else {
+                  setAbsentClassIds(prev => prev.filter(cid => cid !== id));
+              }
+          }
+      );
+  };
+
+  const handleExport = () => {
+    const dates = [];
+    const current = new Date(exportStartDate);
+    const end = new Date(exportEndDate);
+    
+    if (current > end) {
+        alert("Start date cannot be after end date.");
+        return;
+    }
+
+    while (current <= end) {
+        dates.push(current.toISOString().split('T')[0]);
+        current.setDate(current.getDate() + 1);
+    }
+
+    const exportData: any[] = [];
+    
+    dates.forEach(date => {
+        const dayAdjustments = adjustments[date] || [];
+        const dayLeaveDetails = leaveDetails?.[date] || {};
+        
+        if (dayAdjustments.length > 0 || Object.keys(dayLeaveDetails).length > 0) {
+            exportData.push({
+                date: date,
+                adjustments: dayAdjustments,
+                leaveDetails: dayLeaveDetails
+            });
+        }
+    });
+    
+    if (exportData.length === 0) {
+      alert("No data (adjustments or leaves) found for the selected date range.");
+      return;
+    }
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const dateRangeStr = exportStartDate === exportEndDate ? exportStartDate : `${exportStartDate}_to_${exportEndDate}`;
+    link.download = `mr_timetable_data_${dateRangeStr}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportJson = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    file.text().then((result: string) => {
+      try {
+        const imported: any[] = JSON.parse(result);
+
+        onUpdateSession((session) => {
+            const newAdjustments = { ...session.adjustments };
+            const newLeaveDetails: Record<string, Record<string, LeaveDetails>> = { ...(session.leaveDetails || {}) };
+
+            const isNewFormat = imported.length > 0 && (imported[0].adjustments !== undefined || imported[0].leaveDetails !== undefined);
+
+            if (isNewFormat) {
+                imported.forEach(dayData => {
+                    const { date, adjustments: dayAdjs, leaveDetails: dayLeaves } = dayData;
+                    if (date) {
+                        if (Array.isArray(dayAdjs)) {
+                            newAdjustments[date] = dayAdjs.map((adj: any) => ({
+                                ...adj,
+                                id: generateUniqueId() 
+                            }));
+                        } 
+                        if (dayLeaves && typeof dayLeaves === 'object') {
+                            newLeaveDetails[date] = dayLeaves;
+                        } 
+                    }
+                });
+                alert("Data imported successfully (Leaves & Adjustments).");
+            } else {
+                const isMultiDate = imported.some(item => item.date);
+
+                if (isMultiDate) {
+                    const grouped: Record<string, Adjustment[]> = imported.reduce((acc: Record<string, Adjustment[]>, item: any) => {
+                        const date = String(item.date);
+                        if (item.date) {
+                            if (!acc[date]) acc[date] = [];
+                            const { date: _, ...adj } = item;
+                            acc[date].push({ ...adj, id: generateUniqueId() });
+                        }
+                        return acc;
+                    }, {});
+
+                    Object.entries(grouped).forEach(([date, adjs]) => {
+                        newAdjustments[date] = adjs;
+                        const importedTeacherIds = [...new Set(adjs.map(adj => adj.originalTeacherId))];
+                        if (importedTeacherIds.length > 0) {
+                            const dayLeaves = newLeaveDetails[date] || {};
+                            importedTeacherIds.forEach((id: string) => {
+                                if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
+                            });
+                            newLeaveDetails[date] = dayLeaves;
+                        }
+                    });
+                } else {
+                    const transformed = imported.map(adj => ({ ...adj, id: generateUniqueId(), day: dayOfWeek as keyof TimetableGridData }));
+                    newAdjustments[selectedDate] = transformed;
+                    const importedTeacherIds = [...new Set(transformed.map((adj: any) => String(adj.originalTeacherId)))];
+                    if (importedTeacherIds.length > 0) {
+                        const dayLeaves = newLeaveDetails[selectedDate] || {};
+                        importedTeacherIds.forEach((id: string) => {
+                            if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
+                        });
+                        newLeaveDetails[selectedDate] = dayLeaves;
+                    }
+                }
+                alert("Legacy adjustments imported.");
+            }
+
+            return { 
+                ...session, 
+                adjustments: newAdjustments, 
+                leaveDetails: newLeaveDetails 
+            };
+        });
+
+        setIsImportExportOpen(false); 
+      } catch (error: any) { 
+          console.error(error);
+          const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : "Failed to import.");
+          alert(String(errorMessage)); 
+      }
+    }).catch((err: any) => {
+        console.error("File read error:", err);
+        alert("Failed to read file.");
+    });
+    
+    event.target.value = '';
+  };
+
+    const handleCancelAlternativeTimetable = () => {
+        openConfirmation(
+            t.cancelAlternativeTimetable,
+            t.cancelAlternativeTimetableConfirm,
+            () => {
+                onSetAdjustments(selectedDate, []);
+                onSetLeaveDetails(selectedDate, {});
+                onSelectionChange(prev => ({ ...prev, teacherIds: [] }));
+                setAbsentClassIds([]);
+                setAbsenteeDetails({});
+            }
+        );
+    };
+
+  const formatTime = (time24: string | undefined) => {
+    if (!time24) return '';
+    const [h, m] = time24.split(':').map(Number);
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m.toString().padStart(2, '0')} ${suffix}`;
+  };
+
+  const getPeriodStartTime = (periodIndex: number) => {
+      const d = new Date(selectedDate);
+      const isFriday = d.getDay() === 5;
+      const timings = schoolConfig.periodTimings?.[isFriday ? 'friday' : 'default'] || [];
+      return timings[periodIndex]?.start || '';
+  };
+
+  const generateSubstitutionSlip = async (
+    adjustment: Adjustment, 
+    substitute: Teacher, 
+    originalTeacher: Teacher, 
+    schoolClass: SchoolClass, 
+    subject: Subject,
+    timeStr: string,
+    conflictClassName?: string
+  ): Promise<Blob | null> => {
+      const dateObj = new Date(selectedDate);
+      const dateStr = dateObj.toLocaleDateString(messageLanguage === 'ur' ? 'ur-PK' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      const schoolName = messageLanguage === 'ur' ? schoolConfig.schoolNameUr : schoolConfig.schoolNameEn;
+
+      const origName = messageLanguage === 'ur' ? originalTeacher.nameUr : originalTeacher.nameEn;
+      const className = messageLanguage === 'ur' ? schoolClass.nameUr : schoolClass.nameEn;
+      const subjName = messageLanguage === 'ur' ? subject.nameUr : subject.nameEn;
+      const roomNum = schoolClass.roomNumber || '-';
+      const respectfulName = getRespectfulName(substitute, messageLanguage);
+      const greeting = messageLanguage === 'ur' ? 'السلام علیکم' : 'Assalamu Alaikum';
+
+      const conflictHtml = conflictClassName 
+        ? `<div style="margin-top: 25px; background: #fee2e2; border-left: 6px solid #ef4444; padding: 20px; border-radius: 8px;">
+              <div style="color: #b91c1c; font-weight: bold; font-size: 20px; text-transform: uppercase;">⚠ Conflict Warning</div>
+              <div style="color: #7f1d1d; font-size: 16px; margin-top: 8px;">You have a regular class with <strong>${conflictClassName}</strong>. Please manage accordingly.</div>
+           </div>`
+        : '';
+
       const isUrdu = messageLanguage === 'ur';
       const dir = isUrdu ? 'rtl' : 'ltr';
       const fontFamily = isUrdu ? "'Noto Nastaliq Urdu', serif" : "'Roboto', sans-serif";
-      
-      const greeting = isUrdu ? 'اسلام علیکم' : 'Assalam-o-Alaikum';
-      const respectfulName = subTeacher ? (isUrdu ? subTeacher.nameUr : subTeacher.nameEn) : 'Teacher';
-      const schoolName = isUrdu ? schoolConfig.schoolNameUr : schoolConfig.schoolNameEn;
-      const dateStr = new Date(selectedDate).toLocaleDateString(isUrdu ? 'ur-PK' : 'en-GB');
-      const roomNum = schoolClass?.roomNumber || '-';
-      const className = schoolClass ? (isUrdu ? schoolClass.nameUr : schoolClass.nameEn) : '-';
-      const subjName = subject ? (isUrdu ? subject.nameUr : subject.nameEn) : '-';
-      const origName = origTeacher ? (isUrdu ? origTeacher.nameUr : origTeacher.nameEn) : '-';
-
-      let conflictHtml = '';
-      if (adjustment.conflictDetails) {
-          const conflictClass = isUrdu ? adjustment.conflictDetails.classNameUr : adjustment.conflictDetails.classNameEn;
-          conflictHtml = `
-            <div style="background: #fee2e2; border: 2px solid #ef4444; padding: 20px; text-align: center; margin-top: 30px;">
-                <div style="font-weight: 900; color: #b91c1c; font-size: 24px; text-transform: uppercase;">${isUrdu ? 'تصادم کی وارننگ' : 'CONFLICT WARNING'}</div>
-                <div style="color: #991b1b; font-size: 18px; margin-top: 5px;">${isUrdu ? 'آپ کی پہلے سے کلاس ہے:' : 'You have a scheduled class with:'} <strong>${conflictClass}</strong></div>
-            </div>
-          `;
-      }
 
       const htmlContent = `
-        <div class="slip-container" style="width: 1200px; background: white; font-family: ${fontFamily}; border-radius: 0; overflow: hidden; direction: ${dir}; border: 4px solid #4f46e5;">
-          <style>
-             @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=block');
-             * { text-rendering: geometricPrecision; -webkit-font-smoothing: antialiased; }
-          </style>
+        <div style="width: 1200px; background: white; font-family: ${fontFamily}; border-radius: 0; overflow: hidden; direction: ${dir}; border: 4px solid #4f46e5;">
+          <!-- Top Accent -->
           <div style="height: 24px; background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);"></div>
           
           <div style="padding: 60px; text-align: center;">
@@ -176,23 +1094,28 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           
           <div style="padding: 0 60px 60px 60px;">
              <div style="background: #f3f4f6; padding: 40px; border: 2px solid #d1d5db;">
-                <div style="text-align: center; border-bottom: 3px dashed #d1d5db; padding-bottom: 30px; margin-bottom: 30px;">
-                    <div style="font-size: 24px; color: #6b7280; font-weight: bold; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 5px;">${isUrdu ? 'تاریخ' : 'DATE'}</div>
-                    <div style="font-size: 64px; color: #111827; font-weight: 900; letter-spacing: -1px;">${dateStr}</div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px dashed #d1d5db; padding-bottom: 30px; margin-bottom: 30px;">
+                    <div>
+                        <div style="font-size: 20px; color: #6b7280; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${isUrdu ? 'تاریخ' : 'DATE'}</div>
+                        <div style="font-size: 32px; color: #1f2937; font-weight: 700;">${dateStr}</div>
+                    </div>
+                    <div style="text-align: ${isUrdu ? 'left' : 'right'};">
+                        <div style="font-size: 20px; color: #6b7280; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${isUrdu ? 'وقت' : 'TIME'}</div>
+                         <div style="font-size: 32px; color: #1f2937; font-weight: 700;">${timeStr}</div>
+                    </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
-                    <div style="background: white; border: 2px solid #e5e7eb; padding: 25px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
-                        <span style="font-size: 18px; color: #6b7280; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">${isUrdu ? 'پیریڈ' : 'PERIOD'}</span>
-                        <span style="font-size: 64px; font-weight: 900; color: #4f46e5; line-height: 1;">${adjustment.periodIndex + 1}</span>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <!-- Period Box -->
+                    <div style="background: white; border: 2px solid #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                        <span style="font-size: 20px; color: #6b7280; font-weight: 800; letter-spacing: 2px;">PERIOD</span>
+                        <span style="font-size: 60px; font-weight: 900; color: #4f46e5; line-height: 1;">${adjustment.periodIndex + 1}</span>
                     </div>
-                    <div style="background: white; border: 2px solid #e5e7eb; padding: 25px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
-                        <span style="font-size: 18px; color: #6b7280; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">${isUrdu ? 'وقت' : 'TIME'}</span>
-                        <span style="font-size: 42px; font-weight: 900; color: #059669; line-height: 1; white-space: nowrap;">${timeStr}</span>
-                    </div>
-                    <div style="background: white; border: 2px solid #e5e7eb; padding: 25px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
-                        <span style="font-size: 18px; color: #6b7280; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">${isUrdu ? 'کمرہ' : 'ROOM'}</span>
-                        <span style="font-size: 64px; font-weight: 900; color: #ea580c; line-height: 1;">${roomNum}</span>
+
+                    <!-- Room Box -->
+                    <div style="background: white; border: 2px solid #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                        <span style="font-size: 20px; color: #6b7280; font-weight: 800; letter-spacing: 2px;">ROOM</span>
+                        <span style="font-size: 60px; font-weight: 900; color: #ea580c; line-height: 1;">${roomNum}</span>
                     </div>
                 </div>
 
@@ -200,22 +1123,22 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                     <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 30px; border: 2px solid #e5e7eb;">
                         <div>
                             <div style="font-size: 18px; color: #6b7280; font-weight: bold; text-transform: uppercase;">${isUrdu ? 'کلاس' : 'CLASS'}</div>
-                            <div style="font-size: 40px; font-weight: 900; color: #111827;">${className}</div>
+                            <div style="font-size: 36px; font-weight: 900; color: #111827;">${className}</div>
                         </div>
                         <div style="text-align: ${isUrdu ? 'left' : 'right'};">
                              <div style="font-size: 18px; color: #6b7280; font-weight: bold; text-transform: uppercase;">${isUrdu ? 'مضمون' : 'SUBJECT'}</div>
-                            <div style="font-size: 40px; font-weight: 900; color: #4f46e5;">${subjName}</div>
+                            <div style="font-size: 36px; font-weight: 900; color: #4f46e5;">${subjName}</div>
                         </div>
                     </div>
                 </div>
 
-                ${conflictHtml}
-
-                <div style="margin-top: 30px; text-align: center; border-top: 3px dashed #d1d5db; padding-top: 30px;">
-                    <div style="font-size: 20px; color: #9ca3af; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 2px;">${isUrdu ? 'اصل استاد' : 'ON BEHALF OF'}</div>
-                    <div style="font-size: 36px; font-weight: 700; color: #374151;">${origName}</div>
+                <div style="margin-top: 30px; text-align: center;">
+                    <div style="font-size: 18px; color: #9ca3af; font-weight: bold; text-transform: uppercase; margin-bottom: 8px;">${isUrdu ? 'اصل استاد' : 'ON BEHALF OF'}</div>
+                    <div style="font-size: 28px; font-weight: 700; color: #4b5563;">${origName}</div>
                 </div>
              </div>
+
+             ${conflictHtml}
           </div>
           
           <div style="background: #111827; color: white; padding: 20px; text-align: center; font-size: 18px; font-weight: 600; letter-spacing: 2px;">
@@ -231,287 +1154,668 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
       tempDiv.innerHTML = htmlContent;
       document.body.appendChild(tempDiv);
       
-      try {
-          await document.fonts.ready;
-          await new Promise(r => setTimeout(r, 800));
+      // Inject Google Font for Urdu if needed
+      if (isUrdu) {
+        const style = document.createElement('style');
+        style.innerHTML = `@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');`;
+        tempDiv.appendChild(style);
+        await document.fonts.ready;
+      }
 
-          const canvas = await html2canvas(tempDiv.querySelector('.slip-container'), {
+      try {
+          const canvas = await html2canvas(tempDiv, {
               scale: 2,
               useCORS: true,
-              backgroundColor: '#ffffff'
+              backgroundColor: '#ffffff' // Force white background
           });
           document.body.removeChild(tempDiv);
-          const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-          
-          if (blob) {
-              const file = new File([blob], `slip_${subTeacher?.nameEn}_${dateStr}.png`, { type: 'image/png' });
-              
-              if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                  try {
-                      await navigator.share({ files: [file], title: 'Substitution Slip' });
-                  } catch (err: any) {
-                      if (err.name !== 'AbortError') {
-                           // Fallback if share failed but wasn't cancelled
-                           const link = document.createElement('a');
-                           link.href = URL.createObjectURL(blob);
-                           link.download = `slip_${subTeacher?.nameEn}_${dateStr}.png`;
-                           link.click();
-                           URL.revokeObjectURL(link.href);
-                      }
-                      // If cancelled (AbortError), do nothing.
-                  }
-              } else {
-                  const link = document.createElement('a');
-                  link.href = URL.createObjectURL(blob);
-                  link.download = `slip_${subTeacher?.nameEn}_${dateStr}.png`;
-                  link.click();
-                  URL.revokeObjectURL(link.href);
-              }
-          }
+          return await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
       } catch (e) {
           console.error("Slip generation failed", e);
           if (document.body.contains(tempDiv)) document.body.removeChild(tempDiv);
-          alert("Failed to generate slip image.");
-      } finally {
-          setIsGeneratingSlip(false);
+          return null;
       }
   };
 
-  const handleSavePrintDesign = (newDesign: DownloadDesignConfig) => {
-    onUpdateSchoolConfig({
-      downloadDesigns: { ...schoolConfig.downloadDesigns, adjustments: newDesign }
+  const handleWhatsAppNotify = async (adjustment: Adjustment) => {
+    const substitute = teachers.find(t => t.id === adjustment.substituteTeacherId);
+    const originalTeacher = teachers.find(t => t.id === adjustment.originalTeacherId);
+    const schoolClass = classes.find(c => c.id === adjustment.classId);
+    const subject = subjects.find(s => s.id === adjustment.subjectId);
+
+    if (!substitute?.contactNumber || !originalTeacher || !schoolClass || !subject) {
+        alert("Missing data for notification.");
+        return;
+    }
+    
+    setIsGeneratingImage(true);
+
+    const date = new Date(selectedDate);
+    const locale = messageLanguage === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB';
+    const dayOfWeekStr = date.toLocaleDateString(locale, { weekday: 'long' });
+    const respectfulName = getRespectfulName(substitute, messageLanguage);
+    const msgT = translations[messageLanguage];
+    const dateStr = date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const startTime = getPeriodStartTime(adjustment.periodIndex);
+    const timeStr = formatTime(startTime);
+
+    // 1. Generate & Copy Image
+    try {
+        const conflictClassName = adjustment.conflictDetails 
+            ? (messageLanguage === 'ur' ? adjustment.conflictDetails.classNameUr : adjustment.conflictDetails.classNameEn)
+            : undefined;
+
+        const blob = await generateSubstitutionSlip(
+            adjustment, substitute, originalTeacher, schoolClass, subject, timeStr, conflictClassName
+        );
+
+        if (blob) {
+            try {
+                // Focus window first
+                window.focus();
+                const item = new ClipboardItem({ [blob.type]: blob });
+                await navigator.clipboard.write([item]);
+                
+                // Success Toast
+                const toast = document.createElement('div');
+                toast.textContent = "Slip Image Copied! Paste in WhatsApp.";
+                toast.style.cssText = "position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 10px 20px; border-radius: 50px; z-index: 9999; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); pointer-events: none; transition: opacity 0.5s ease-in-out;";
+                document.body.appendChild(toast);
+                setTimeout(() => { 
+                    toast.style.opacity = '0';
+                    setTimeout(() => document.body.removeChild(toast), 500); 
+                }, 3000);
+
+            } catch (clipboardError) {
+                console.warn("Clipboard write failed, falling back to download.", clipboardError);
+                
+                // Fallback: Download Image
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Substitution_${substitute.nameEn.replace(/\s+/g, '_')}_${dateStr}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Info Toast
+                const toast = document.createElement('div');
+                toast.textContent = "Image Downloaded (Clipboard blocked). Attach manually.";
+                toast.style.cssText = "position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #eab308; color: white; padding: 10px 20px; border-radius: 50px; z-index: 9999; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); pointer-events: none; transition: opacity 0.5s ease-in-out;";
+                document.body.appendChild(toast);
+                setTimeout(() => { 
+                    toast.style.opacity = '0';
+                    setTimeout(() => document.body.removeChild(toast), 500); 
+                }, 4000);
+            }
+        }
+    } catch (e) {
+        console.error("Failed to generate image", e);
+    }
+
+    // 2. Prepare Text Message
+    let message: string;
+    if (adjustment.conflictDetails) {
+        message = msgT.substituteNotificationMessageDoubleBook
+            .replace('{teacherName}', respectfulName)
+            .replace('{date}', dateStr)
+            .replace('{dayOfWeek}', dayOfWeekStr)
+            .replace('{period}', String(adjustment.periodIndex + 1))
+            .replace('{time}', timeStr)
+            .replace('{className}', messageLanguage === 'ur' ? schoolClass.nameUr : schoolClass.nameEn)
+            .replace('{subjectName}', messageLanguage === 'ur' ? subject.nameUr : subject.nameEn)
+            .replace('{roomNumber}', schoolClass.roomNumber || '-')
+            .replace('{originalTeacherName}', messageLanguage === 'ur' ? originalTeacher.nameUr : originalTeacher.nameEn)
+            .replace('{conflictClassName}', messageLanguage === 'ur' ? adjustment.conflictDetails.classNameUr : adjustment.conflictDetails.classNameEn);
+    } else {
+        message = msgT.notificationTemplateDefault
+            .replace('{teacherName}', respectfulName)
+            .replace('{date}', dateStr)
+            .replace('{dayOfWeek}', dayOfWeekStr)
+            .replace('{period}', String(adjustment.periodIndex + 1))
+            .replace('{time}', timeStr)
+            .replace('{className}', messageLanguage === 'ur' ? schoolClass.nameUr : schoolClass.nameEn)
+            .replace('{subjectName}', messageLanguage === 'ur' ? subject.nameUr : subject.nameEn)
+            .replace('{roomNumber}', schoolClass.roomNumber || '-')
+            .replace('{originalTeacherName}', messageLanguage === 'ur' ? originalTeacher.nameUr : originalTeacher.nameEn);
+    }
+
+    let phoneNumber = substitute.contactNumber.replace(/\D/g, '');
+    if (phoneNumber.startsWith('0')) phoneNumber = '92' + phoneNumber.substring(1);
+    
+    // 3. Open WhatsApp
+    const url = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+    
+    // Slight delay to allow UI to update
+    setTimeout(() => {
+        window.open(url, '_blank');
+        setIsGeneratingImage(false);
+    }, 800);
+  };
+
+  const handleCopyAll = () => {
+    if (dailyAdjustments.length === 0) { alert("No adjustments to copy."); return; }
+    const date = new Date(selectedDate);
+    const locale = messageLanguage === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB';
+    const dayOfWeekStr = date.toLocaleDateString(locale, { weekday: 'long' });
+    const dateStr = date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+    const msgT = translations[messageLanguage];
+    let fullMessage = `📅 *${msgT.dailyAdjustments}* \n🗓️ ${dateStr} (${dayOfWeekStr})\n${"-".repeat(20)}\n\n`;
+
+    const bySubstitute: Record<string, Adjustment[]> = {};
+    dailyAdjustments.forEach(adj => {
+        if (!bySubstitute[adj.substituteTeacherId]) bySubstitute[adj.substituteTeacherId] = [];
+        bySubstitute[adj.substituteTeacherId].push(adj);
     });
+
+    Object.entries(bySubstitute).forEach(([subId, adjs]) => {
+        const substitute = teachers.find(t => t.id === subId);
+        if (!substitute) return;
+        fullMessage += `👤 *${getRespectfulName(substitute, messageLanguage)}*\n`;
+        adjs.sort((a,b) => a.periodIndex - b.periodIndex).forEach(adj => {
+             const schoolClass = classes.find(c => c.id === adj.classId);
+             const subject = subjects.find(s => s.id === adj.subjectId);
+             const originalTeacher = teachers.find(t => t.id === adj.originalTeacherId);
+             const className = messageLanguage === 'ur' ? schoolClass?.nameUr : schoolClass?.nameEn;
+             const subjectName = messageLanguage === 'ur' ? subject?.nameUr : subject?.nameEn;
+             const originalTeacherName = messageLanguage === 'ur' ? originalTeacher?.nameUr : originalTeacher?.nameEn;
+             const roomNum = schoolClass?.roomNumber || '-';
+             
+             const startTime = getPeriodStartTime(adj.periodIndex);
+             const timeStr = formatTime(startTime);
+
+             fullMessage += `   🕒 *P${adj.periodIndex + 1}${timeStr ? ` (${timeStr})` : ''}* | 🏫 ${className} | 📖 ${subjectName} | 📍 Rm: ${roomNum}\n      ↳ 🔄 ${msgT.substitution}: ${originalTeacherName}\n`;
+             if(adj.conflictDetails) {
+                const conflictClass = messageLanguage === 'ur' ? adj.conflictDetails.classNameUr : adj.conflictDetails.classNameEn;
+                fullMessage += `      ⚠️ *${msgT.doubleBook} Warning:* ${conflictClass}\n`;
+             }
+        });
+        fullMessage += `\n`;
+    });
+    navigator.clipboard.writeText(fullMessage).then(() => alert(`${t.messagesCopied}`));
+  };
+  
+  const handleSavePrintDesign = (newDesign: DownloadDesignConfig) => {
+    onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, adjustments: newDesign } });
   };
 
-  // Helper to get available teachers for a slot
-  const getAvailableTeachers = (periodIndex: number, dayName: keyof TimetableGridData) => {
-      // Find busy teachers
-      const busyTeacherIds = new Set<string>();
-      
-      // Regular timetable check
-      classes.forEach(c => {
-          c.timetable[dayName]?.[periodIndex]?.forEach(p => {
-              if (p.teacherId) busyTeacherIds.add(p.teacherId);
+  const handleSignAndShare = async (signature: string) => {
+      setIsGeneratingImage(true);
+      try {
+          const design = schoolConfig.downloadDesigns.adjustments;
+          const langForImage = messageLanguage; 
+          
+          // Generate the multi-page HTML
+          const pagesHtml = generateAdjustmentsReportHtml(
+            t, langForImage, design, dailyAdjustments, teachers, classes, subjects, schoolConfig, selectedDate, absentTeacherIds, signature
+          );
+
+          const lastPageHtml = pagesHtml[pagesHtml.length - 1];
+
+          const tempContainer = document.createElement('div');
+          const isPortrait = design.page.orientation === 'portrait';
+          const widthPx = isPortrait ? 794 : 1123;
+          const heightPx = isPortrait ? 1123 : 794;
+          
+          Object.assign(tempContainer.style, {
+              position: 'fixed',
+              left: '-9999px',
+              top: '0',
+              width: `${widthPx}px`,
+              height: `${heightPx}px`,
+              backgroundColor: '#ffffff',
+              overflow: 'hidden',
+              visibility: 'visible',
+              zIndex: '-999'
           });
-      });
-      
-      // Adjustments check (Substitutes are busy, Original teachers on leave are handled by their adjustment record)
-      (adjustments[selectedDate] || []).forEach(adj => {
-          if (adj.periodIndex === periodIndex) {
-              busyTeacherIds.add(adj.substituteTeacherId);
-          }
-      });
+          document.body.appendChild(tempContainer);
+          tempContainer.innerHTML = lastPageHtml;
 
-      // Filter teachers
-      return teachers.filter(t => !busyTeacherIds.has(t.id) && !currentLeaveDetails[t.id]);
+          await document.fonts.ready;
+          await new Promise(r => setTimeout(r, 600)); 
+
+          const canvas = await html2canvas(tempContainer, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff',
+              width: widthPx,
+              height: heightPx,
+              logging: false,
+              allowTaint: true
+          });
+          document.body.removeChild(tempContainer);
+
+          const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+          if (blob) {
+              const file = new File([blob], `Signed_Adjustments_${selectedDate}.png`, { type: 'image/png' });
+              
+              // Attempt Share - FIX: Casting navigator for missing definitions
+              if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
+                  try {
+                      await (navigator as any).share({ files: [file], title: `Signed Adjustments - ${selectedDate}` });
+                  } catch (error: any) {
+                      // Silently handle cancellation
+                      if (error?.name !== 'AbortError') {
+                          throw error;
+                      }
+                  }
+              } else {
+                  // Fallback Download
+                  const link = document.createElement('a');
+                  link.href = canvas.toDataURL('image/png');
+                  link.download = `Signed_Adjustments_${selectedDate}.png`;
+                  link.click();
+              }
+          }
+      } catch (err: any) {
+          console.error("Image generation failed", err);
+          alert("Failed to generate and share image. Please try again.");
+      } finally {
+          setIsGeneratingImage(false);
+      }
   };
 
-  // Build the list of periods that need coverage
-  const periodsNeedingCoverage = useMemo(() => {
-      const dayName = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' }) as keyof TimetableGridData;
-      const items: {
-          periodIndex: number,
-          classId: string,
-          subjectId: string,
-          originalTeacherId: string,
-          adjustment?: Adjustment
-      }[] = [];
-
-      Object.entries(currentLeaveDetails).forEach(([teacherId, leave]) => {
-          if (leave.leaveType === 'full' || (leave.leaveType === 'half')) {
-              classes.forEach(c => {
-                  c.timetable[dayName]?.forEach((slot, pIdx) => {
-                      // Check if teacher has class in this slot
-                      const classPeriods = slot.filter(p => p.teacherId === teacherId);
-                      
-                      // Check if leave covers this period
-                      let isAbsent = false;
-                      if (leave.leaveType === 'full') isAbsent = true;
-                      else if (leave.leaveType === 'half') {
-                          if (leave.periods && leave.periods.length > 0) isAbsent = leave.periods.includes(pIdx + 1);
-                          else if (leave.startPeriod) isAbsent = (pIdx + 1) >= leave.startPeriod;
-                      }
-
-                      if (isAbsent && classPeriods.length > 0) {
-                          // Deduplicate joint periods if necessary, for now simple per-class entry
-                          classPeriods.forEach(p => {
-                              const existingAdj = currentDateAdjustments.find(a => 
-                                  a.periodIndex === pIdx && 
-                                  a.classId === c.id && 
-                                  a.originalTeacherId === teacherId
-                              );
-                              
-                              items.push({
-                                  periodIndex: pIdx,
-                                  classId: c.id,
-                                  subjectId: p.subjectId,
-                                  originalTeacherId: teacherId,
-                                  adjustment: existingAdj
-                              });
-                          });
-                      }
-                  });
-              });
-          }
-      });
-      
-      return items.sort((a, b) => a.periodIndex - b.periodIndex);
-  }, [currentLeaveDetails, currentDateAdjustments, classes, selectedDate]);
+  const formattedDateForTitle = new Date(selectedDate).toLocaleDateString(language === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <PrintPreview
-        t={t}
-        isOpen={isPrintPreviewOpen}
-        onClose={() => setIsPrintPreviewOpen(false)}
-        title={t.dailyAdjustments}
+      <PrintPreview 
+        t={t} 
+        isOpen={isPrintPreviewOpen} 
+        onClose={() => setIsPrintPreviewOpen(false)} 
+        title={`${t.dailyAdjustments}: ${formattedDateForTitle}`} 
         fileNameBase={`Adjustments_${selectedDate}`}
-        generateHtml={(lang, design) => {
-            return generateAdjustmentsReportHtml(t, lang, design, currentDateAdjustments, teachers, classes, subjects, schoolConfig, selectedDate, Object.keys(currentLeaveDetails));
-        }}
-        onGenerateExcel={(lang) => generateAdjustmentsExcel(t, currentDateAdjustments, teachers, classes, subjects, selectedDate)}
+        generateHtml={(lang, design) => generateAdjustmentsReportHtml(t, lang, design, dailyAdjustments, teachers, classes, subjects, schoolConfig, selectedDate, absentTeacherIds)}
+        onGenerateExcel={(lang) => generateAdjustmentsExcel(t, dailyAdjustments, teachers, classes, subjects, selectedDate)}
         designConfig={schoolConfig.downloadDesigns.adjustments}
         onSaveDesign={handleSavePrintDesign}
       />
 
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-4">
-              <label className="text-sm font-bold text-[var(--text-secondary)]">{t.selectDate}</label>
-              <input 
-                  type="date" 
-                  value={selectedDate} 
-                  onChange={handleDateChange} 
-                  className="px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg text-[var(--text-primary)] shadow-sm focus:ring-2 focus:ring-[var(--accent-primary)]"
-              />
-          </div>
-          <button 
-              onClick={() => setIsPrintPreviewOpen(true)} 
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-primary-hover)] shadow-sm"
-          >
-              <PrintIcon />
-              <span>{t.printViewAction}</span>
-          </button>
+      <SignatureModal 
+        t={t} 
+        isOpen={isSignModalOpen} 
+        onClose={() => setIsSignModalOpen(false)} 
+        onFinalSave={handleSignAndShare}
+      />
+
+      {/* Add/Edit Leave Modal */}
+      {modalState.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity" onClick={() => setModalState(prev => ({...prev, isOpen: false}))}>
+            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden transform transition-all border border-[var(--border-primary)]" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-[var(--border-primary)] bg-[var(--bg-tertiary)]/30 flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-[var(--text-primary)]">
+                        Add/Edit Leave
+                    </h3>
+                    <div className="flex bg-[var(--bg-secondary)] rounded-lg p-1 border border-[var(--border-secondary)]">
+                        <button 
+                            onClick={() => setModalState(prev => ({ ...prev, mode: 'teacher', data: { ...prev.data, id: '' } }))}
+                            className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${modalState.mode === 'teacher' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                        >
+                            Teacher
+                        </button>
+                        <button 
+                            onClick={() => setModalState(prev => ({ ...prev, mode: 'class', data: { ...prev.data, id: '' } }))}
+                            className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${modalState.mode === 'class' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                        >
+                            Class
+                        </button>
+                    </div>
+                </div>
+                
+                <div className="p-6 space-y-5">
+                    {/* Entity Selection */}
+                    <div>
+                        <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">
+                            Select {modalState.mode === 'teacher' ? 'Teacher' : 'Class'}
+                        </label>
+                        <select 
+                            value={modalState.data.id} 
+                            onChange={(e) => setModalState(prev => ({ ...prev, data: { ...prev.data, id: e.target.value } }))}
+                            className="block w-full px-3 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg text-[var(--text-primary)] focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
+                        >
+                            <option value="">Select...</option>
+                            {modalState.mode === 'teacher' 
+                                ? teachers.map(t => <option key={t.id} value={t.id}>{t.nameEn} {t.nameUr ? `/ ${t.nameUr}` : ''}</option>)
+                                : classes.map(c => <option key={c.id} value={c.id}>{c.nameEn} / {c.nameUr}</option>)
+                            }
+                        </select>
+                    </div>
+
+                    {/* Date Selection */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-semibold text-[var(--text-secondary)]">Date(s)</label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    checked={modalState.data.isMultiDay} 
+                                    onChange={(e) => setModalState(prev => ({ ...prev, data: { ...prev.data, isMultiDay: e.target.checked } }))} 
+                                    className="form-checkbox h-4 w-4 text-[var(--accent-primary)] rounded focus:ring-[var(--accent-primary)]"
+                                />
+                                <span className="text-sm text-[var(--text-primary)]">Multiple Days</span>
+                            </label>
+                        </div>
+                        
+                        <div className={`grid gap-4 ${modalState.data.isMultiDay ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                            <div>
+                                <label className="block text-xs text-[var(--text-secondary)] mb-1">{modalState.data.isMultiDay ? 'Start Date' : 'Date'}</label>
+                                <input 
+                                    type="date" 
+                                    value={modalState.data.startDate} 
+                                    onChange={(e) => setModalState(prev => ({ ...prev, data: { ...prev.data, startDate: e.target.value } }))}
+                                    className="block w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg text-[var(--text-primary)] focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
+                                />
+                            </div>
+                            {modalState.data.isMultiDay && (
+                                <div>
+                                    <label className="block text-xs text-[var(--text-secondary)] mb-1">End Date</label>
+                                    <input 
+                                        type="date" 
+                                        value={modalState.data.endDate} 
+                                        onChange={(e) => setModalState(prev => ({ ...prev, data: { ...prev.data, endDate: e.target.value } }))}
+                                        className="block w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg text-[var(--text-primary)] focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Reason */}
+                    <div>
+                        <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">Reason</label>
+                        <select 
+                            value={modalState.data.reason} 
+                            onChange={(e) => setModalState(prev => ({ ...prev, data: { ...prev.data, reason: e.target.value } }))}
+                            className="block w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg text-[var(--text-primary)] focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
+                        >
+                            {LEAVE_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                        
+                        {modalState.data.reason === 'Other' && (
+                            <input 
+                                type="text" 
+                                placeholder="Enter custom reason..." 
+                                value={modalState.data.customReason} 
+                                onChange={(e) => setModalState(prev => ({ ...prev, data: { ...prev.data, customReason: e.target.value } }))}
+                                className="mt-2 block w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg text-[var(--text-primary)] focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] animate-scale-in"
+                            />
+                        )}
+                    </div>
+
+                    {/* Leave Type & Period (Available for both Teacher and Class) */}
+                    <div className="space-y-4">
+                        <div className="w-1/2">
+                            <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">Leave Type</label>
+                            <select 
+                                value={modalState.data.leaveType} 
+                                onChange={(e) => setModalState(prev => ({ ...prev, data: { ...prev.data, leaveType: e.target.value as 'full' | 'half', periods: e.target.value === 'full' ? [] : prev.data.periods } }))}
+                                className="block w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg text-[var(--text-primary)] focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
+                            >
+                                <option value="full">Full Day</option>
+                                <option value="half">Half Day</option>
+                            </select>
+                        </div>
+                        {modalState.data.leaveType === 'half' && (
+                            <div className="animate-scale-in">
+                                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">Select Period(s) on Leave</label>
+                                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 bg-[var(--bg-tertiary)] p-3 rounded-lg border border-[var(--border-secondary)]">
+                                    {Array.from({ length: periodsForDropdown }, (_, i) => i + 1).map(p => (
+                                        <label key={p} className={`flex flex-col items-center justify-center p-2 rounded-lg border cursor-pointer transition-all ${modalState.data.periods.includes(p) ? 'bg-red-50 border-red-500 shadow-sm' : 'bg-[var(--bg-secondary)] border-[var(--border-secondary)] hover:border-red-300'}`}>
+                                            <span className={`text-xs font-black mb-1 ${modalState.data.periods.includes(p) ? 'text-red-700' : 'text-[var(--text-secondary)]'}`}>{p}</span>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={modalState.data.periods.includes(p)} 
+                                                onChange={(e) => {
+                                                    const newPeriods = e.target.checked 
+                                                        ? [...modalState.data.periods, p].sort((a,b) => a-b)
+                                                        : modalState.data.periods.filter(val => val !== p);
+                                                    setModalState(prev => ({ ...prev, data: { ...prev.data, periods: newPeriods } }));
+                                                }}
+                                                className="form-checkbox h-4 w-4 text-red-600 rounded border-red-300 focus:ring-red-500"
+                                            />
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="p-4 border-t border-[var(--border-primary)] bg-[var(--bg-tertiary)]/30 flex justify-end gap-3">
+                    <button 
+                        onClick={() => setModalState(prev => ({...prev, isOpen: false}))}
+                        className="px-5 py-2 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={handleSaveModal}
+                        className="px-6 py-2 text-sm font-semibold text-white bg-[var(--accent-primary)] rounded-lg hover:bg-[var(--accent-primary-hover)] shadow-sm transition-colors"
+                    >
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* Import/Export Modal */}
+      {isImportExportOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[101] transition-opacity" onClick={() => setIsImportExportOpen(false)}>
+            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-2xl max-md w-full mx-4 overflow-hidden transform transition-all border border-[var(--border-primary)]" onClick={e => e.stopPropagation()}>
+                <h3 className="text-xl font-bold p-5 border-b border-[var(--border-primary)] text-[var(--text-primary)]">Import / Export</h3>
+                <div className="p-6 space-y-6">
+                    <div>
+                        <h4 className="text-xs font-bold text-[var(--text-secondary)] mb-3 uppercase tracking-wider">EXPORT</h4>
+                        <div className="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-secondary)] space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <input type="date" value={exportStartDate} onChange={(e) => setExportStartDate(e.target.value)} className="block w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg text-[var(--text-primary)] focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] shadow-sm" />
+                                <input type="date" value={exportEndDate} onChange={(e) => setExportEndDate(e.target.value)} className="block w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg text-[var(--text-primary)] focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] shadow-sm" />
+                            </div>
+                            <button onClick={handleExport} className="w-full py-2.5 bg-[var(--accent-primary)] text-white rounded-lg hover:bg-[var(--accent-primary-hover)] transition-colors text-sm font-bold shadow-md">Export Adjustments</button>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="text-xs font-bold text-[var(--text-secondary)] mb-3 uppercase tracking-wider">IMPORT</h4>
+                        <div className="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-secondary)]">
+                            <button onClick={() => fileInputRef.current?.click()} className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] border-2 border-dashed border-[var(--border-secondary)] text-[var(--text-primary)] rounded-xl hover:bg-[var(--accent-secondary-hover)] hover:border-[var(--accent-primary)] transition-all text-sm font-bold group">
+                                <ImportIcon /> 
+                                <span className="group-hover:text-[var(--accent-primary)]">Select File</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-4 border-t border-[var(--border-primary)] flex justify-end bg-[var(--bg-tertiary)]/30">
+                    <button onClick={() => setIsImportExportOpen(false)} className="px-5 py-2 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors">Close</button>
+                </div>
+            </div>
+        </div>
+      )}
+      
+      {/* Main Page Content */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <label htmlFor="adjustment-date" className="block text-sm font-medium text-[var(--text-secondary)]">{t.selectDate}</label>
+          <input type="date" id="adjustment-date" value={selectedDate} onChange={(e) => onSelectionChange(prev => ({ ...prev, date: e.target.value }))} className="block w-full md:w-auto pl-3 pr-10 py-2 text-base bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-secondary)] focus:outline-none focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] sm:text-sm rounded-md shadow-sm" />
+          <button onClick={() => openModal('teacher')} title="Add Leave" className="py-4 px-24 text-sm font-medium bg-[var(--accent-primary)] text-white border border-[var(--border-primary)] rounded-xl shadow-lg hover:bg-[var(--accent-primary-hover)] transition-all hover:scale-105"><PlusIcon /></button>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+            <button onClick={() => setMessageLanguage(prev => prev === 'en' ? 'ur' : 'en')} title="Toggle Message Language" className="px-3 py-2 text-sm font-semibold text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] transition-colors flex items-center gap-2"><span className="text-xs text-center text-[var(--text-secondary)] uppercase">{t.msgLang}:</span><span className={messageLanguage === 'ur' ? 'font-urdu' : ''}>{messageLanguage === 'en' ? 'EN' : 'اردو'}</span></button>
+            <button onClick={() => setIsSignModalOpen(true)} disabled={dailyAdjustments.length === 0} title={t.sendAsImage} className="p-2 text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg shadow-sm hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <ShareIcon />
+            </button>
+            {dailyAdjustments.length > 0 && <button onClick={handleCopyAll} title={t.copyAllMessages} className="p-2 text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg></button>}
+             <button onClick={handleSaveAdjustments} title={t.saveAdjustments} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg></button>
+            <button onClick={() => setIsImportExportOpen(true)} title="Import / Export" className="p-2 text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] transition-colors"><ImportExportIcon /></button>
+            <input type="file" ref={fileInputRef} onChange={handleImportJson} accept=".json" className="hidden" />
+            <button onClick={() => setIsPrintPreviewOpen(true)} disabled={dailyAdjustments.length === 0} title={t.printViewAction} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg></button>
+            <button onClick={handleCancelAlternativeTimetable} disabled={dailyAdjustments.length === 0 && absentTeacherIds.length === 0} title={t.cancelAlternativeTimetable} className="p-2 text-sm font-medium text-red-600 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Teacher List & Attendance */}
-          <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-primary)] overflow-hidden flex flex-col h-[calc(100vh-200px)]">
-              <div className="p-4 border-b border-[var(--border-primary)] bg-[var(--bg-tertiary)] font-bold text-[var(--text-primary)]">
-                  {t.teacherOnLeave}
-              </div>
-              <div className="overflow-y-auto flex-grow p-2">
-                  {teachers.map(teacher => {
-                      const leave = currentLeaveDetails[teacher.id];
-                      return (
-                          <div key={teacher.id} className="flex items-center justify-between p-3 hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors border-b border-[var(--border-secondary)] last:border-0">
-                              <span className="font-medium text-[var(--text-primary)]">{teacher.nameEn}</span>
-                              <div className="flex gap-2">
-                                  <button 
-                                      onClick={() => handleLeaveToggle(teacher.id, leave?.leaveType === 'full' ? null : 'full')}
-                                      className={`px-3 py-1 text-xs font-bold rounded-md border ${leave?.leaveType === 'full' ? 'bg-red-500 text-white border-red-500' : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-secondary)] hover:border-red-300'}`}
-                                  >
-                                      Full
-                                  </button>
-                                  <button 
-                                      onClick={() => handleLeaveToggle(teacher.id, leave?.leaveType === 'half' ? null : 'half')}
-                                      className={`px-3 py-1 text-xs font-bold rounded-md border ${leave?.leaveType === 'half' ? 'bg-orange-500 text-white border-orange-500' : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-secondary)] hover:border-orange-300'}`}
-                                  >
-                                      Half
-                                  </button>
-                              </div>
-                          </div>
-                      );
-                  })}
-              </div>
-          </div>
+      <div className="grid grid-cols-1 gap-6">
+         {(absentTeacherIds.length > 0 || absentClassIds.length > 0) && (
+             <div className="bg-[var(--bg-secondary)] rounded-lg shadow-md border border-[var(--border-primary)] mb-6 overflow-hidden">
+                 <button 
+                    type="button"
+                    onClick={() => setIsLeaveDetailsExpanded(!isLeaveDetailsExpanded)}
+                    className="w-full flex items-center justify-between p-4 bg-[var(--bg-tertiary)]/50 hover:bg-[var(--bg-tertiary)] transition-colors focus:outline-none"
+                 >
+                    <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-bold text-[var(--text-primary)] m-0">{t.leaveDetails}</h3>
+                        <span className="px-2 py-0.5 text-xs font-bold bg-[var(--accent-primary)] text-[var(--accent-text)] rounded-full shadow-sm">
+                            {absentTeacherIds.length + absentClassIds.length}
+                        </span>
+                    </div>
+                    <div className={`text-[var(--text-secondary)] transform transition-transform duration-200 ${isLeaveDetailsExpanded ? 'rotate-180' : ''}`}>
+                       <ChevronDown /> 
+                    </div>
+                 </button>
+                 
+                 {isLeaveDetailsExpanded && (
+                     <div className="p-6 border-t border-[var(--border-primary)] bg-[var(--bg-secondary)] animate-scale-in">
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {absentTeachers.map(teacher => {
+                                const details = absenteeDetails[teacher.id];
+                                return (
+                                <div key={teacher.id} className="flex flex-col p-3 bg-[var(--bg-tertiary)] rounded-md border border-[var(--border-secondary)] gap-2 group hover:border-[var(--accent-primary)]/50 transition-colors">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <span className="font-bold text-[var(--text-primary)] block">{getTeacherName(teacher)}</span>
+                                            <span className="text-xs text-[var(--text-secondary)] block mt-0.5">
+                                                {details?.leaveType === 'half' ? (details.periods && details.periods.length > 0 ? `Periods: ${details.periods.join(', ')}` : `${t.halfDay} (from P${details.startPeriod})`) : t.fullDay}
+                                                {details?.reason ? ` • ${details.reason}` : ''}
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            <button onClick={() => openModal('teacher', teacher.id)} className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] rounded-md transition-colors"><EditIcon /></button>
+                                            <button onClick={() => handleDeleteItem(teacher.id, 'teacher')} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-md transition-colors"><TrashIcon /></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )})}
+                            {absentClassIds.map(classId => {
+                                const cls = classes.find(c => c.id === classId);
+                                if (!cls) return null;
+                                const details = absenteeDetails[`CLASS_${classId}`];
+                                return (
+                                    <div key={classId} className="flex flex-col p-3 bg-orange-50 dark:bg-orange-900/10 rounded-md border border-orange-200 dark:border-orange-800 gap-2 group">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <span className="font-bold text-orange-800 dark:text-orange-200 block">{getClassName(cls)}</span>
+                                                <span className="text-xs text-orange-600 dark:text-orange-300 block mt-0.5 font-medium">
+                                                    {details?.leaveType === 'half' ? (details.periods && details.periods.length > 0 ? `Periods: ${details.periods.join(', ')}` : `Half Leave (from P${details.startPeriod})`) : 'Full Leave'} {details?.reason ? `• ${details.reason}` : ''}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => openModal('class', classId)} className="p-1.5 text-orange-400 hover:text-orange-700 hover:bg-orange-200/50 rounded-md transition-colors"><EditIcon /></button>
+                                                <button onClick={() => handleDeleteItem(classId, 'class')} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-md transition-colors"><TrashIcon /></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                         </div>
+                     </div>
+                 )}
+             </div>
+         )}
 
-          {/* Right Column: Substitution Management */}
-          <div className="lg:col-span-2 bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-primary)] overflow-hidden flex flex-col h-[calc(100vh-200px)]">
-              <div className="p-4 border-b border-[var(--border-primary)] bg-[var(--bg-tertiary)] font-bold text-[var(--text-primary)]">
-                  {t.dailyAdjustments} ({new Date(selectedDate).toLocaleDateString()})
-              </div>
-              
-              <div className="overflow-y-auto flex-grow p-4 space-y-4">
-                  {periodsNeedingCoverage.length === 0 ? (
-                      <div className="text-center text-[var(--text-secondary)] py-10 opacity-60">
-                          <div className="text-4xl mb-2">🎉</div>
-                          No adjustments needed for this date.
-                      </div>
-                  ) : (
-                      periodsNeedingCoverage.map((item, idx) => {
-                          const schoolClass = classes.find(c => c.id === item.classId);
-                          const subject = subjects.find(s => s.id === item.subjectId);
-                          const origTeacher = teachers.find(t => t.id === item.originalTeacherId);
-                          const dayName = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' }) as keyof TimetableGridData;
-                          const availableTeachers = getAvailableTeachers(item.periodIndex, dayName);
-                          const subId = item.adjustment?.substituteTeacherId || '';
-                          const isConflict = !!item.adjustment?.conflictDetails;
+         {dayOfWeek ? (
+            substitutionGroups.length > 0 ? (
+            <div className="space-y-8">
+                {/* Group by absent teacher for consistent UI */}
+                {Array.from(new Set(substitutionGroups.map(g => g.absentTeacher.id))).map(tid => {
+                    const teacherGroups = substitutionGroups.filter(g => g.absentTeacher.id === tid);
+                    const absentTeacher = teacherGroups[0].absentTeacher;
+                    const isExpanded = expandedTeacherIds.has(tid);
 
-                          return (
-                              <div key={`${item.classId}-${item.periodIndex}-${idx}`} className="border border-[var(--border-secondary)] rounded-xl p-4 bg-[var(--bg-primary)]/30">
-                                  <div className="flex flex-wrap justify-between items-start gap-4 mb-3">
-                                      <div className="flex items-center gap-3">
-                                          <div className="w-10 h-10 rounded-full bg-[var(--accent-secondary)] text-[var(--accent-primary)] flex items-center justify-center font-black text-lg shadow-sm">
-                                              {item.periodIndex + 1}
-                                          </div>
-                                          <div>
-                                              <div className="font-bold text-[var(--text-primary)]">{schoolClass?.nameEn}</div>
-                                              <div className="text-xs text-[var(--text-secondary)]">{subject?.nameEn} ({origTeacher?.nameEn})</div>
-                                          </div>
-                                      </div>
-                                      
-                                      {item.adjustment && (
-                                          <div className="flex items-center gap-2">
-                                              <button 
-                                                  onClick={() => generateSlip(item.adjustment!)} 
-                                                  disabled={isGeneratingSlip}
-                                                  className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors" 
-                                                  title="Share Slip"
-                                              >
-                                                  <ShareIcon />
-                                              </button>
-                                              <button 
-                                                  onClick={() => handleSubstitutionChange(item.adjustment!.id, item.periodIndex, item.classId, item.subjectId, item.originalTeacherId, '')} 
-                                                  className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                                                  title="Clear Substitution"
-                                              >
-                                                  <TrashIcon />
-                                              </button>
-                                          </div>
-                                      )}
-                                  </div>
+                    return (
+                        <div key={tid} className="animate-fade-in">
+                            <button 
+                                onClick={() => toggleTeacherCollapse(tid)}
+                                className="w-full flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900 rounded-t-2xl transition-colors hover:bg-red-100 dark:hover:bg-red-900/20"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-2 h-8 bg-red-600 rounded-full"></div>
+                                    <h3 className="text-xl font-black text-red-900 dark:text-red-100 uppercase tracking-tighter">
+                                        {getTeacherName(absentTeacher)}
+                                    </h3>
+                                </div>
+                                <div className="text-red-600 transform transition-transform" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                                    <ChevronDown />
+                                </div>
+                            </button>
 
-                                  <div className="relative">
-                                      <select 
-                                          value={subId} 
-                                          onChange={(e) => handleSubstitutionChange(item.adjustment?.id || null, item.periodIndex, item.classId, item.subjectId, item.originalTeacherId, e.target.value)}
-                                          className={`w-full p-2.5 rounded-lg border text-sm appearance-none ${isConflict ? 'border-red-300 bg-red-50 text-red-900' : 'border-[var(--border-secondary)] bg-[var(--bg-secondary)] text-[var(--text-primary)]'} focus:ring-2 focus:ring-[var(--accent-primary)] outline-none`}
-                                      >
-                                          <option value="">Select Substitute...</option>
-                                          <optgroup label="Available Teachers">
-                                              {availableTeachers.map(t => (
-                                                  <option key={t.id} value={t.id}>{t.nameEn}</option>
-                                              ))}
-                                          </optgroup>
-                                          <optgroup label="Busy Teachers (Conflict)">
-                                              {teachers.filter(t => !availableTeachers.find(at => at.id === t.id) && t.id !== item.originalTeacherId).map(t => (
-                                                  <option key={t.id} value={t.id}>{t.nameEn}</option>
-                                              ))}
-                                          </optgroup>
-                                      </select>
-                                      {isConflict && (
-                                          <div className="text-xs text-red-600 mt-1 font-bold">
-                                              ⚠️ Conflict: Busy in {language === 'ur' ? item.adjustment?.conflictDetails?.classNameUr : item.adjustment?.conflictDetails?.classNameEn}
-                                          </div>
-                                      )}
-                                  </div>
-                              </div>
-                          );
-                      })
-                  )}
-              </div>
-          </div>
+                            {isExpanded && (
+                                <div className="p-4 bg-[var(--bg-secondary)] border-x border-b border-red-100 dark:border-red-900 rounded-b-2xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-scale-in">
+                                    {teacherGroups.map((group, gIdx) => {
+                                        const assignedAdj = dailyAdjustments.find(a => a.periodIndex === group.periodIndex && a.originalTeacherId === group.absentTeacher.id);
+                                        const currentSubstituteId = assignedAdj?.substituteTeacherId || '';
+                                        const availableTeachersList = findAvailableTeachers(group.periodIndex, group.period);
+                                        
+                                        return (
+                                            <div key={`${tid}-${group.periodIndex}-${gIdx}`} className={`relative p-5 rounded-3xl border-2 transition-all flex flex-col justify-between min-h-[220px] ${currentSubstituteId ? 'bg-[var(--bg-secondary)] border-emerald-100 dark:border-emerald-900/40 shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--border-primary)] shadow-md'}`}>
+                                                <div className="text-center mb-4">
+                                                    <span className="text-[10px] font-black text-[var(--text-placeholder)] uppercase tracking-widest block mb-1">Period</span>
+                                                    <span className="text-3xl font-black text-[var(--text-primary)] leading-none">{group.periodIndex + 1}</span>
+                                                </div>
+
+                                                <div className="mb-4">
+                                                    <div className="text-lg font-black text-[var(--text-primary)] leading-tight">
+                                                        {language === 'ur' ? <span className="font-urdu">{group.combinedClassNames.ur}</span> : group.combinedClassNames.en}
+                                                    </div>
+                                                    <div className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mt-1 opacity-70">
+                                                        {language === 'ur' ? <span className="font-urdu">{group.subjectInfo.ur}</span> : group.subjectInfo.en}
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-[var(--bg-tertiary)] p-3 rounded-2xl border border-[var(--border-secondary)] mb-4">
+                                                    <div className="text-[9px] font-black text-[var(--text-placeholder)] uppercase mb-2">Original: {absentTeacher.nameEn.split(' ')[0]}</div>
+                                                    
+                                                    <SubstitutePicker 
+                                                        teachersWithStatus={availableTeachersList}
+                                                        selectedId={currentSubstituteId}
+                                                        onChange={(id) => handleSubstituteChange(group, id)}
+                                                        language={language}
+                                                        weeklyStats={weeklyStats}
+                                                    />
+                                                </div>
+
+                                                {assignedAdj?.conflictDetails && (
+                                                    <div className="mb-4 flex items-center gap-1.5 px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/40 text-[10px] text-red-600 font-bold">
+                                                        <DoubleBookedWarningIcon />
+                                                        <span>{t.doubleBook}: {language === 'ur' ? assignedAdj.conflictDetails.classNameUr : assignedAdj.conflictDetails.classNameEn}</span>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-end mt-auto pt-2 border-t border-[var(--border-primary)]/10">
+                                                    {currentSubstituteId && (
+                                                        <button 
+                                                            onClick={() => handleWhatsAppNotify(assignedAdj!)} 
+                                                            className="w-10 h-10 flex items-center justify-center bg-emerald-100 text-emerald-700 rounded-full hover:bg-emerald-200 transition-all hover:scale-110 active:scale-95 shadow-sm"
+                                                            title={t.notifySubstitute}
+                                                        >
+                                                            <WhatsAppIcon />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+            ) : <div className="text-center py-12 bg-[var(--bg-secondary)] rounded-lg border border-dashed border-[var(--border-secondary)]"><p className="text-[var(--text-secondary)]">{t.noClassesScheduled}</p></div>
+         ) : <div className="text-center py-12 bg-[var(--bg-secondary)] rounded-lg border border-dashed border-[var(--border-secondary)]"><p className="text-[var(--text-secondary)]">Please select a date to begin.</p></div>}
       </div>
     </div>
   );
 };
+
+export default AlternativeTimetablePage;

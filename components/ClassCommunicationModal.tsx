@@ -117,7 +117,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
       } else if (triangleCorner === 'bottom-right') {
           triangleStyles = `bottom: 0; right: 0; border-width: 0 0 ${triangleSize}px ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
       } else { 
-          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
+          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent transparent currentColor;`;
       }
 
       let cardStyleCss = '';
@@ -305,7 +305,6 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
 
           /* Match Teacher Modal Styles */
           .period-subject { 
-            display: block;
             font-weight: 900; 
             font-size: 40px; /* Large Top Left */
             text-transform: none; 
@@ -320,7 +319,6 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             padding-left: 2px;
           }
           .period-teacher { 
-            display: block;
             font-weight: 700; 
             opacity: 0.9; 
             font-size: 22px; /* Smaller Bottom Right */
@@ -612,12 +610,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             });
             setIsGenerating(false);
             return;
-        } catch (error: any) {
-            if (error.name === 'AbortError') {
-                console.log("Share cancelled.");
-                setIsGenerating(false);
-                return;
-            }
+        } catch (error) {
             console.log("Share cancelled or failed, falling back to download.");
         }
     }

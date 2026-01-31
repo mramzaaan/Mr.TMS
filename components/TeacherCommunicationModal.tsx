@@ -19,7 +19,6 @@ interface TeacherCommunicationModalProps {
   subjectColorMap: Map<string, string>;
 }
 
-// ... keep const arrays ...
 const subjectColorNames = [
   'subject-cyan', 'subject-fuchsia', 'subject-yellow', 'subject-sky',
   'subject-pink', 'subject-lime', 'subject-red', 'subject-green',
@@ -128,7 +127,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       } else if (triangleCorner === 'bottom-right') {
           triangleStyles = `bottom: 0; right: 0; border-width: 0 0 ${triangleSize}px ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
       } else { // bottom-left default
-          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
+          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent transparent currentColor;`;
       }
       
       let cardStyleCss = '';
@@ -168,14 +167,12 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
 
       const styles = `
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=block');
+          @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
           * { 
             box-sizing: border-box !important; 
             -webkit-text-size-adjust: none !important; 
             text-size-adjust: none !important; 
             font-family: 'Inter', sans-serif !important; 
-            text-rendering: geometricPrecision !important;
-            font-variant-ligatures: none !important;
           }
           .timetable-image-container {
             background: #ffffff;
@@ -250,7 +247,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             font-size: 52px; 
             font-weight: 900; 
             text-transform: uppercase; 
-            line-height: 1.1;
+            line-height: 1;
             ${headerStyleCss}
           }
           
@@ -347,11 +344,10 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           }
 
           .period-class { 
-            display: block;
             font-weight: 900; 
             font-size: 40px; 
             text-transform: none; 
-            line-height: 1.1;
+            line-height: 1;
             text-align: left; 
             margin: 0;
             color: inherit;
@@ -362,7 +358,6 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             padding-left: 2px;
           }
           .period-subject { 
-            display: block;
             font-weight: 700; 
             opacity: 0.9; 
             font-size: 22px; 
@@ -671,13 +666,8 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             });
             setIsGenerating(false);
             return;
-        } catch (error: any) {
-            if (error.name === 'AbortError') {
-                console.log("Share cancelled.");
-                setIsGenerating(false);
-                return;
-            }
-            console.log("Share failed, falling back to download.");
+        } catch (error) {
+            console.log("Share cancelled or failed, falling back to download.");
         }
     }
 
