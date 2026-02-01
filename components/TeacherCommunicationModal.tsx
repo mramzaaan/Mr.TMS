@@ -167,12 +167,14 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
 
       const styles = `
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=block');
           * { 
             box-sizing: border-box !important; 
             -webkit-text-size-adjust: none !important; 
             text-size-adjust: none !important; 
             font-family: 'Inter', sans-serif !important; 
+            text-rendering: geometricPrecision !important;
+            font-variant-ligatures: none !important;
           }
           .timetable-image-container {
             background: #ffffff;
@@ -247,7 +249,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             font-size: 52px; 
             font-weight: 900; 
             text-transform: uppercase; 
-            line-height: 1;
+            line-height: 1.1;
             ${headerStyleCss}
           }
           
@@ -344,10 +346,11 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           }
 
           .period-class { 
+            display: block;
             font-weight: 900; 
-            font-size: 40px; 
+            font-size: 34px; 
             text-transform: none; 
-            line-height: 1;
+            line-height: 1.1;
             text-align: left; 
             margin: 0;
             color: inherit;
@@ -358,9 +361,10 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             padding-left: 2px;
           }
           .period-subject { 
+            display: block;
             font-weight: 700; 
             opacity: 0.9; 
-            font-size: 22px; 
+            font-size: 18px; 
             line-height: 1.1;
             white-space: nowrap; 
             overflow: hidden; 

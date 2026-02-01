@@ -1010,8 +1010,13 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
         setIsImportExportOpen(false); 
       } catch (error: any) { 
           console.error(error);
-          const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : "Failed to import.");
-          alert(String(errorMessage)); 
+          let errorMessage = "Failed to import.";
+          if (error instanceof Error) {
+              errorMessage = error.message;
+          } else if (typeof error === 'string') {
+              errorMessage = error;
+          }
+          alert(errorMessage); 
       }
     }).catch((err: any) => {
         console.error("File read error:", err);
