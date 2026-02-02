@@ -1396,7 +1396,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           if (blob) {
               const file = new File([blob], `Signed_Adjustments_${selectedDate}.png`, { type: 'image/png' });
               
-              // Attempt Share - FIX: Casting navigator for missing definitions
+              // Attempt Share - casting navigator for non-standard property
               if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
                   try {
                       await (navigator as any).share({ files: [file], title: `Signed Adjustments - ${selectedDate}` });

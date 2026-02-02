@@ -332,7 +332,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             overflow: hidden;
             ${cardStyleCss}
             position: relative;
-            padding: 6px;
+            padding: 4px; /* Reduced padding */
             border-bottom: 1px solid ${themeColors.accent};
           }
           .period-card-img:last-child { border-bottom: none; }
@@ -348,29 +348,31 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           .period-class { 
             display: block;
             font-weight: 900; 
-            font-size: 34px; 
+            font-size: 40px; 
             text-transform: none; 
-            line-height: 1.1;
+            line-height: 1 !important; /* Fixed line height */
             text-align: left; 
             margin: 0;
+            padding: 0;
             color: inherit;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             width: 100%;
-            padding-left: 2px;
           }
           .period-subject { 
             display: block;
             font-weight: 700; 
             opacity: 0.9; 
-            font-size: 18px; 
-            line-height: 1.1;
+            font-size: 22px; 
+            line-height: 1 !important; /* Fixed line height */
             white-space: nowrap; 
             overflow: hidden; 
             text-overflow: ellipsis; 
             text-align: right; 
-            align-self: flex-end; /* Force right alignment */
+            align-self: flex-end; 
+            margin: 0;
+            padding: 0;
             margin-top: auto;
             color: inherit;
             width: 100%;
@@ -413,8 +415,8 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
                   opacity: ${cardStyle === 'full' ? 0.3 : 1.0};
               }
               ${cardStyle === 'badge' ? `
-                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
-                  .${name} .period-class { ${badgeTarget === 'class' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
+                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 2px 8px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto; line-height: 1.1 !important;` : ''} }
+                  .${name} .period-class { ${badgeTarget === 'class' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 2px 8px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto; line-height: 1.1 !important;` : ''} }
               ` : ''}
           `).join('\n')}
 
@@ -456,7 +458,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
                       let teacherBadgeStyle = '';
                       if (cardStyle === 'badge') {
                           // Badge style matches image: Full width colored bar at bottom, white text
-                          const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 4px 8px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0;`;
+                          const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 2px 8px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; line-height: 1.1 !important;`;
                           
                           if (badgeTarget === 'teacher') {
                              teacherBadgeStyle = badgeCss;
