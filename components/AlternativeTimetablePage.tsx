@@ -240,10 +240,10 @@ interface SubstitutePickerProps {
     selectedId: string;
     onChange: (id: string) => void;
     language: Language;
-    weeklyStats: Record<string, number[]>; // teacherId -> [MonCount, TueCount, ...]
+    historyStats: { stats: Record<string, number[]>; labels: string[] }; // Updated Prop
 }
 
-const SubstitutePicker: React.FC<SubstitutePickerProps> = ({ teachersWithStatus, selectedId, onChange, language, weeklyStats }) => {
+const SubstitutePicker: React.FC<SubstitutePickerProps> = ({ teachersWithStatus, selectedId, onChange, language, historyStats }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const selectedTeacher = teachersWithStatus.find(t => t.teacher.id === selectedId);
@@ -258,7 +258,9 @@ const SubstitutePicker: React.FC<SubstitutePickerProps> = ({ teachersWithStatus,
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const days = ['M', 'T', 'W', 'T', 'F', 'S'];
+    // Labels for the last 7 days (current first)
+    const { stats: allStats, labels: dayLabels } = historyStats;
+    const isToday = (idx: number) => idx === dayLabels.length - 1;
 
     return (
         <div className="relative w-full" ref={dropdownRef}>
@@ -271,14 +273,27 @@ const SubstitutePicker: React.FC<SubstitutePickerProps> = ({ teachersWithStatus,
                         ? (language === 'ur' ? selectedTeacher.teacher.nameUr : selectedTeacher.teacher.nameEn)
                         : "Select Substitute..."}
                 </span>
-                <ChevronDown />
+                <div className="flex items-center gap-2">
+                    {selectedId && (
+                        <div 
+                            onClick={(e) => { e.stopPropagation(); onChange(''); }}
+                            className="p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition-colors cursor-pointer"
+                            title="Cancel Substitution"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                    )}
+                    <ChevronDown />
+                </div>
             </button>
 
             {isOpen && (
                 <div className="absolute z-50 w-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-xl max-h-80 overflow-y-auto custom-scrollbar animate-scale-in">
                     {teachersWithStatus.map(({ teacher, status }) => {
                         const name = language === 'ur' ? teacher.nameUr : teacher.nameEn;
-                        const stats = weeklyStats[teacher.id] || [0,0,0,0,0,0];
+                        const teacherStats = allStats[teacher.id] || [0,0,0,0,0,0,0];
                         
                         let nameColor = "text-blue-600 dark:text-blue-400"; // Default Available (Blue)
                         let bgColor = "";
@@ -309,20 +324,20 @@ const SubstitutePicker: React.FC<SubstitutePickerProps> = ({ teachersWithStatus,
                                 onClick={() => { onChange(teacher.id); setIsOpen(false); }}
                                 className={`p-2 border-b border-[var(--border-secondary)] last:border-0 hover:bg-[var(--bg-tertiary)] cursor-pointer transition-colors ${bgColor}`}
                             >
-                                <div className="flex justify-between items-start mb-1">
+                                <div className="flex justify-between items-center mb-1.5">
                                     <div className="flex flex-col">
-                                        <span className={`font-bold text-sm ${nameColor}`}>{name}</span>
+                                        <span className={`font-bold text-lg ${nameColor}`}>{name}</span>
                                         {statusText && <span className={`text-[10px] font-bold ${nameColor}`}>{statusText}</span>}
                                     </div>
                                 </div>
                                 
-                                {/* Weekly Stats Grid */}
-                                <div className="flex gap-1 mt-1 justify-end">
-                                    {days.map((day, idx) => (
-                                        <div key={idx} className="flex flex-col items-center w-5">
-                                            <span className="text-[8px] text-[var(--text-secondary)] font-bold">{day}</span>
-                                            <span className={`text-[9px] font-mono font-bold ${stats[idx] > 0 ? 'text-[var(--accent-primary)]' : 'text-[var(--text-placeholder)]'}`}>
-                                                {stats[idx]}
+                                {/* 7 Days Workload History */}
+                                <div className="flex gap-1 justify-end">
+                                    {dayLabels.map((dayLabel, idx) => (
+                                        <div key={idx} className={`flex flex-col items-center w-7 p-0.5 rounded ${isToday(idx) ? 'bg-[var(--accent-secondary)] ring-1 ring-[var(--accent-primary)]' : ''}`}>
+                                            <span className={`text-[10px] font-bold ${isToday(idx) ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}>{dayLabel}</span>
+                                            <span className={`text-sm font-mono font-black ${teacherStats[idx] > 0 ? (isToday(idx) ? 'text-[var(--accent-primary)]' : 'text-orange-500') : 'text-[var(--text-placeholder)]'}`}>
+                                                {teacherStats[idx]}
                                             </span>
                                         </div>
                                     ))}
@@ -393,13 +408,13 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastSyncedDate = useRef<string | null>(null);
 
+  // ... (Effects and Helper functions mostly unchanged until stats logic) ...
   const activeDays = useMemo(() => allDays.filter(day => schoolConfig.daysConfig?.[day]?.active ?? true), [schoolConfig.daysConfig]);
   const maxPeriods = useMemo(() => {
       const counts = activeDays.map(day => schoolConfig.daysConfig?.[day]?.periodCount ?? 8);
       return counts.length > 0 ? Math.max(...counts) : 8;
   }, [activeDays, schoolConfig.daysConfig]);
 
-  // Calculate periods for the specific selected day for the dropdown
   const periodsForDropdown = useMemo(() => {
       if (modalState.data.isMultiDay) return maxPeriods;
       if (!modalState.data.startDate) return maxPeriods;
@@ -656,31 +671,29 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     });
   }, [dayOfWeek, dailyAdjustments, absentTeacherIds, teachers, classes, teacherBookingsMap, absentClassIds, absenteeDetails]);
 
-  // Compute Weekly Stats for Dropdown (Last 7 Days Logic)
-  const weeklyStats = useMemo(() => {
-    if (!selectedDate) return {};
-    const d = new Date(selectedDate);
-    const dayOfWeekIndex = d.getDay(); // 0-6 (Sun-Sat)
-    
-    // Calculate start of the week (Monday)
-    const diffToMon = dayOfWeekIndex === 0 ? -6 : 1 - dayOfWeekIndex;
-    const monday = new Date(d);
-    monday.setDate(d.getDate() + diffToMon);
-    
-    const weekDays: string[] = [];
-    for(let i=0; i<6; i++) {
-        const temp = new Date(monday);
-        temp.setDate(monday.getDate() + i);
-        weekDays.push(temp.toISOString().split('T')[0]);
+  // Compute 7-day History Stats for Dropdown (Today + Previous 6 days)
+  const historyStats = useMemo(() => {
+    if (!selectedDate) return { stats: {}, labels: [] };
+    const current = new Date(selectedDate);
+    const labels: string[] = [];
+    const dateStrings: string[] = [];
+
+    // Generate last 7 days (Today is last/rightmost)
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(current);
+        d.setDate(current.getDate() - i);
+        const iso = d.toISOString().split('T')[0];
+        dateStrings.push(iso);
+        labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }).substring(0, 3));
     }
 
     const stats: Record<string, number[]> = {};
     
     teachers.forEach(t => {
-        stats[t.id] = [0,0,0,0,0,0]; // Mon-Sat
+        stats[t.id] = [0,0,0,0,0,0,0];
     });
 
-    weekDays.forEach((dateStr, idx) => {
+    dateStrings.forEach((dateStr, idx) => {
         const adjs = adjustments[dateStr] || [];
         adjs.forEach(adj => {
              if (stats[adj.substituteTeacherId]) {
@@ -689,7 +702,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
         });
     });
     
-    return stats;
+    return { stats, labels };
   }, [selectedDate, adjustments, teachers]);
 
   const handleSubstituteChange = (group: SubstitutionGroup, substituteTeacherId: string) => {
@@ -728,317 +741,137 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     onSetAdjustments(selectedDate, newAdjustments);
   };
   
-  const handleSaveAdjustments = () => {
-    onSetAdjustments(selectedDate, dailyAdjustments);
-    alert(`${t.saveAdjustments}`);
+  const handleSaveAdjustments = () => { onSetAdjustments(selectedDate, dailyAdjustments); alert(`${t.saveAdjustments}`); };
+  const openModal = (mode: 'teacher' | 'class' = 'teacher', id: string = '') => { let existingDetails = null; if (id) { const key = mode === 'class' ? `CLASS_${id}` : id; existingDetails = absenteeDetails[key]; } let reason = existingDetails?.reason || (mode === 'class' ? 'On Leave' : 'Illness'); let customReason = ''; if (reason && !LEAVE_REASONS.includes(reason) && reason !== 'Other') { customReason = reason; reason = 'Other'; } setModalState({ isOpen: true, mode, data: { id: id, isMultiDay: !!(existingDetails?.startDate && existingDetails?.endDate && existingDetails.startDate !== existingDetails.endDate), startDate: existingDetails?.startDate || selectedDate, endDate: existingDetails?.endDate || selectedDate, reason: reason, customReason: customReason, leaveType: existingDetails?.leaveType || 'full', startPeriod: existingDetails?.startPeriod || 1, periods: existingDetails?.periods || [] } }); };
+  const handleSaveModal = () => { const { id, isMultiDay, startDate, endDate, reason, customReason, leaveType, startPeriod, periods } = modalState.data; const { mode } = modalState; if (!id) { alert(`Please select a ${mode}.`); return; } const finalReason = reason === 'Other' ? customReason : reason; const datesToProcess = []; if (isMultiDay) { const start = new Date(startDate); const end = new Date(endDate); if (start > end) { alert('Start date must be before end date.'); return; } const curr = new Date(start); curr.setHours(12, 0, 0, 0); const last = new Date(end); last.setHours(12, 0, 0, 0); while (curr <= last) { datesToProcess.push(curr.toISOString().split('T')[0]); curr.setDate(curr.getDate() + 1); } } else { datesToProcess.push(startDate); } onUpdateSession(session => { const newLeaveDetails = { ...session.leaveDetails }; const key = mode === 'class' ? `CLASS_${id}` : id; datesToProcess.forEach(date => { const currentDayDetails = newLeaveDetails[date] || {}; newLeaveDetails[date] = { ...currentDayDetails, [key]: { leaveType, startPeriod: leaveType === 'full' ? 1 : (periods.length > 0 ? Math.min(...periods) : startPeriod), periods: leaveType === 'half' ? periods : undefined, reason: finalReason, startDate: isMultiDay ? startDate : undefined, endDate: isMultiDay ? endDate : undefined } }; }); return { ...session, leaveDetails: newLeaveDetails }; }); if (datesToProcess.includes(selectedDate)) { const key = mode === 'class' ? `CLASS_${id}` : id; const newDetails = { ...absenteeDetails }; newDetails[key] = { leaveType, startPeriod: leaveType === 'full' ? 1 : (periods.length > 0 ? Math.min(...periods) : startPeriod), periods: leaveType === 'half' ? periods : undefined, reason: finalReason, startDate: isMultiDay ? startDate : undefined, endDate: isMultiDay ? endDate : undefined }; setAbsenteeDetails(newDetails); if (mode === 'teacher') { if (!absentTeacherIds.includes(id)) { onSelectionChange(prev => ({ ...prev, teacherIds: [...prev.teacherIds, id] })); } } else { if (!absentClassIds.includes(id)) { setAbsentClassIds(prev => [...prev, id]); } } } setModalState(prev => ({ ...prev, isOpen: false })); };
+  const handleDeleteItem = (id: string, type: 'teacher' | 'class') => { const item = type === 'teacher' ? teachers.find(t => t.id === id) : classes.find(c => c.id === id); const name = item ? (language === 'ur' ? (item as any).nameUr : (item as any).nameEn) : ''; openConfirmation( t.delete, <span>{t.areYouSure} <strong>{name}</strong>?</span>, () => { const key = type === 'class' ? `CLASS_${id}` : id; onUpdateSession(session => { const updatedLeaveDetails = { ...(session.leaveDetails || {}) }; const currentDayLeaves = { ...(updatedLeaveDetails[selectedDate] || {}) }; delete currentDayLeaves[key]; updatedLeaveDetails[selectedDate] = currentDayLeaves; const updatedAdjustments = { ...session.adjustments }; if (type === 'teacher') { const dayAdjustments = (updatedAdjustments[selectedDate] || []).filter(adj => adj.originalTeacherId !== id); updatedAdjustments[selectedDate] = dayAdjustments; } return { ...session, leaveDetails: updatedLeaveDetails, adjustments: updatedAdjustments }; }); if (type === 'teacher') { onSelectionChange(prev => ({ ...prev, teacherIds: prev.teacherIds.filter(tid => tid !== id) })); } else { setAbsentClassIds(prev => prev.filter(cid => cid !== id)); } } ); };
+  const handleExport = () => { 
+    const dates = []; 
+    const current = new Date(exportStartDate); 
+    const end = new Date(exportEndDate); 
+    
+    if (current > end) { 
+        alert("Start date cannot be after end date."); 
+        return; 
+    } 
+    
+    while (current <= end) { 
+        dates.push(current.toISOString().split('T')[0]); 
+        current.setDate(current.getDate() + 1); 
+    } 
+    
+    const exportData: any[] = []; 
+    dates.forEach(date => { 
+        const dayAdjustments = adjustments[date] || []; 
+        const dayLeaveDetails = leaveDetails?.[date] || {}; 
+        if (dayAdjustments.length > 0 || Object.keys(dayLeaveDetails).length > 0) { 
+            exportData.push({ date: date, adjustments: dayAdjustments, leaveDetails: dayLeaveDetails }); 
+        } 
+    }); 
+    
+    if (exportData.length === 0) { 
+        alert("No data (adjustments or leaves) found for the selected date range."); 
+        return; 
+    } 
+    
+    const dataStr = JSON.stringify(exportData, null, 2); 
+    const blob = new Blob([dataStr], { type: "application/json" }); 
+    const url = URL.createObjectURL(blob); 
+    const link = document.createElement("a"); 
+    link.href = url; 
+    const dateRangeStr = exportStartDate === exportEndDate ? exportStartDate : `${exportStartDate}_to_${exportEndDate}`; 
+    link.download = `mr_timetable_data_${dateRangeStr}.json`; 
+    document.body.appendChild(link); 
+    link.click(); 
+    document.body.removeChild(link); 
+    URL.revokeObjectURL(url); 
   };
   
-  const openModal = (mode: 'teacher' | 'class' = 'teacher', id: string = '') => {
-      let existingDetails = null;
-      if (id) {
-          const key = mode === 'class' ? `CLASS_${id}` : id;
-          existingDetails = absenteeDetails[key];
-      }
-
-      let reason = existingDetails?.reason || (mode === 'class' ? 'On Leave' : 'Illness');
-      let customReason = '';
-      if (reason && !LEAVE_REASONS.includes(reason) && reason !== 'Other') {
-          customReason = reason;
-          reason = 'Other';
-      }
-
-      setModalState({
-          isOpen: true,
-          mode,
-          data: {
-              id: id,
-              isMultiDay: !!(existingDetails?.startDate && existingDetails?.endDate && existingDetails.startDate !== existingDetails.endDate),
-              startDate: existingDetails?.startDate || selectedDate,
-              endDate: existingDetails?.endDate || selectedDate,
-              reason: reason,
-              customReason: customReason,
-              leaveType: existingDetails?.leaveType || 'full',
-              startPeriod: existingDetails?.startPeriod || 1,
-              periods: existingDetails?.periods || []
-          }
-      });
-  };
-
-  const handleSaveModal = () => {
-      const { id, isMultiDay, startDate, endDate, reason, customReason, leaveType, startPeriod, periods } = modalState.data;
-      const { mode } = modalState;
-      
-      if (!id) {
-          alert(`Please select a ${mode}.`);
-          return;
-      }
-
-      const finalReason = reason === 'Other' ? customReason : reason;
-      const datesToProcess = [];
-
-      if (isMultiDay) {
-          const start = new Date(startDate);
-          const end = new Date(endDate);
-          if (start > end) {
-              alert('Start date must be before end date.');
-              return;
-          }
-          const curr = new Date(start);
-          curr.setHours(12, 0, 0, 0);
-          const last = new Date(end);
-          last.setHours(12, 0, 0, 0);
-
-          while (curr <= last) {
-              datesToProcess.push(curr.toISOString().split('T')[0]);
-              curr.setDate(curr.getDate() + 1);
-          }
-      } else {
-          datesToProcess.push(startDate);
-      }
-
-      onUpdateSession(session => {
-          const newLeaveDetails = { ...session.leaveDetails };
-          const key = mode === 'class' ? `CLASS_${id}` : id;
-
-          datesToProcess.forEach(date => {
-              const currentDayDetails = newLeaveDetails[date] || {};
-              newLeaveDetails[date] = {
-                  ...currentDayDetails,
-                  [key]: {
-                      leaveType,
-                      startPeriod: leaveType === 'full' ? 1 : (periods.length > 0 ? Math.min(...periods) : startPeriod),
-                      periods: leaveType === 'half' ? periods : undefined,
-                      reason: finalReason,
-                      startDate: isMultiDay ? startDate : undefined,
-                      endDate: isMultiDay ? endDate : undefined
-                  }
-              };
-          });
-          return { ...session, leaveDetails: newLeaveDetails };
-      });
-
-      if (datesToProcess.includes(selectedDate)) {
-          const key = mode === 'class' ? `CLASS_${id}` : id;
-          const newDetails = { ...absenteeDetails };
-          newDetails[key] = {
-              leaveType,
-              startPeriod: leaveType === 'full' ? 1 : (periods.length > 0 ? Math.min(...periods) : startPeriod),
-              periods: leaveType === 'half' ? periods : undefined,
-              reason: finalReason,
-              startDate: isMultiDay ? startDate : undefined,
-              endDate: isMultiDay ? endDate : undefined
-          };
-          setAbsenteeDetails(newDetails);
-          
-          if (mode === 'teacher') {
-              if (!absentTeacherIds.includes(id)) {
-                  onSelectionChange(prev => ({ ...prev, teacherIds: [...prev.teacherIds, id] }));
-              }
-          } else {
-              if (!absentClassIds.includes(id)) {
-                  setAbsentClassIds(prev => [...prev, id]);
-              }
-          }
-      }
-
-      setModalState(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const handleDeleteItem = (id: string, type: 'teacher' | 'class') => {
-      const item = type === 'teacher' ? teachers.find(t => t.id === id) : classes.find(c => c.id === id);
-      const name = item ? (language === 'ur' ? (item as any).nameUr : (item as any).nameEn) : '';
-      
-      openConfirmation(
-          t.delete,
-          <span>{t.areYouSure} <strong>{name}</strong>?</span>,
-          () => {
-              const key = type === 'class' ? `CLASS_${id}` : id;
-              
-              onUpdateSession(session => {
-                  const updatedLeaveDetails = { ...(session.leaveDetails || {}) };
-                  const currentDayLeaves = { ...(updatedLeaveDetails[selectedDate] || {}) };
-                  delete currentDayLeaves[key];
-                  updatedLeaveDetails[selectedDate] = currentDayLeaves;
-
-                  const updatedAdjustments = { ...session.adjustments };
-                  if (type === 'teacher') {
-                      const dayAdjustments = (updatedAdjustments[selectedDate] || []).filter(adj => adj.originalTeacherId !== id);
-                      updatedAdjustments[selectedDate] = dayAdjustments;
-                  }
-
-                  return {
-                      ...session,
-                      leaveDetails: updatedLeaveDetails,
-                      adjustments: updatedAdjustments
-                  };
-              });
-
-              if (type === 'teacher') {
-                  onSelectionChange(prev => ({ ...prev, teacherIds: prev.teacherIds.filter(tid => tid !== id) }));
-              } else {
-                  setAbsentClassIds(prev => prev.filter(cid => cid !== id));
-              }
-          }
-      );
-  };
-
-  const handleExport = () => {
-    const dates = [];
-    const current = new Date(exportStartDate);
-    const end = new Date(exportEndDate);
-    
-    if (current > end) {
-        alert("Start date cannot be after end date.");
-        return;
-    }
-
-    while (current <= end) {
-        dates.push(current.toISOString().split('T')[0]);
-        current.setDate(current.getDate() + 1);
-    }
-
-    const exportData: any[] = [];
-    
-    dates.forEach(date => {
-        const dayAdjustments = adjustments[date] || [];
-        const dayLeaveDetails = leaveDetails?.[date] || {};
-        
-        if (dayAdjustments.length > 0 || Object.keys(dayLeaveDetails).length > 0) {
-            exportData.push({
-                date: date,
-                adjustments: dayAdjustments,
-                leaveDetails: dayLeaveDetails
-            });
-        }
-    });
-    
-    if (exportData.length === 0) {
-      alert("No data (adjustments or leaves) found for the selected date range.");
-      return;
-    }
-
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    const dateRangeStr = exportStartDate === exportEndDate ? exportStartDate : `${exportStartDate}_to_${exportEndDate}`;
-    link.download = `mr_timetable_data_${dateRangeStr}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   const handleImportJson = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     file.text().then((result: string) => {
-      try {
-        const imported: any[] = JSON.parse(result);
-
-        onUpdateSession((session) => {
-            const newAdjustments = { ...session.adjustments };
-            const newLeaveDetails: Record<string, Record<string, LeaveDetails>> = { ...(session.leaveDetails || {}) };
-
-            const isNewFormat = imported.length > 0 && (imported[0].adjustments !== undefined || imported[0].leaveDetails !== undefined);
-
-            if (isNewFormat) {
-                imported.forEach(dayData => {
-                    const { date, adjustments: dayAdjs, leaveDetails: dayLeaves } = dayData;
-                    if (date) {
-                        if (Array.isArray(dayAdjs)) {
-                            newAdjustments[date] = dayAdjs.map((adj: any) => ({
-                                ...adj,
-                                id: generateUniqueId() 
-                            }));
-                        } 
-                        if (dayLeaves && typeof dayLeaves === 'object') {
-                            newLeaveDetails[date] = dayLeaves;
-                        } 
-                    }
-                });
-                alert("Data imported successfully (Leaves & Adjustments).");
-            } else {
-                const isMultiDate = imported.some(item => item.date);
-
-                if (isMultiDate) {
-                    const grouped: Record<string, Adjustment[]> = imported.reduce((acc: Record<string, Adjustment[]>, item: any) => {
-                        const date = String(item.date);
-                        if (item.date) {
-                            if (!acc[date]) acc[date] = [];
-                            const { date: _, ...adj } = item;
-                            acc[date].push({ ...adj, id: generateUniqueId() });
+        try {
+            const imported: any[] = JSON.parse(result);
+            onUpdateSession((session) => {
+                const newAdjustments = { ...session.adjustments };
+                const newLeaveDetails: Record<string, Record<string, LeaveDetails>> = { ...(session.leaveDetails || {}) };
+                const isNewFormat = imported.length > 0 && (imported[0].adjustments !== undefined || imported[0].leaveDetails !== undefined);
+                
+                if (isNewFormat) {
+                    imported.forEach(dayData => {
+                        const { date, adjustments: dayAdjs, leaveDetails: dayLeaves } = dayData;
+                        if (date) {
+                            if (Array.isArray(dayAdjs)) {
+                                newAdjustments[date] = dayAdjs.map((adj: any) => ({ ...adj, id: generateUniqueId() }));
+                            }
+                            if (dayLeaves && typeof dayLeaves === 'object') {
+                                newLeaveDetails[date] = dayLeaves;
+                            }
                         }
-                        return acc;
-                    }, {});
-
-                    Object.entries(grouped).forEach(([date, adjs]) => {
-                        newAdjustments[date] = adjs;
-                        const importedTeacherIds = [...new Set(adjs.map(adj => adj.originalTeacherId))];
+                    });
+                    alert("Data imported successfully (Leaves & Adjustments).");
+                } else {
+                    const isMultiDate = imported.some(item => item.date);
+                    if (isMultiDate) {
+                        const grouped: Record<string, Adjustment[]> = imported.reduce((acc: Record<string, Adjustment[]>, item: any) => {
+                            const date = String(item.date);
+                            if (item.date) {
+                                if (!acc[date]) acc[date] = [];
+                                const { date: _, ...adj } = item;
+                                acc[date].push({ ...adj, id: generateUniqueId() });
+                            }
+                            return acc;
+                        }, {});
+                        Object.entries(grouped).forEach(([date, adjs]) => {
+                            newAdjustments[date] = adjs;
+                            const importedTeacherIds = [...new Set(adjs.map(adj => adj.originalTeacherId))];
+                            if (importedTeacherIds.length > 0) {
+                                const dayLeaves = newLeaveDetails[date] || {};
+                                importedTeacherIds.forEach((id: string) => {
+                                    if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
+                                });
+                                newLeaveDetails[date] = dayLeaves;
+                            }
+                        });
+                    } else {
+                        const transformed = imported.map(adj => ({ ...adj, id: generateUniqueId(), day: dayOfWeek as keyof TimetableGridData }));
+                        newAdjustments[selectedDate] = transformed;
+                        const importedTeacherIds = [...new Set(transformed.map((adj: any) => String(adj.originalTeacherId)))];
                         if (importedTeacherIds.length > 0) {
-                            const dayLeaves = newLeaveDetails[date] || {};
+                            const dayLeaves = newLeaveDetails[selectedDate] || {};
                             importedTeacherIds.forEach((id: string) => {
                                 if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
                             });
-                            newLeaveDetails[date] = dayLeaves;
+                            newLeaveDetails[selectedDate] = dayLeaves;
                         }
-                    });
-                } else {
-                    const transformed = imported.map(adj => ({ ...adj, id: generateUniqueId(), day: dayOfWeek as keyof TimetableGridData }));
-                    newAdjustments[selectedDate] = transformed;
-                    const importedTeacherIds = [...new Set(transformed.map((adj: any) => String(adj.originalTeacherId)))];
-                    if (importedTeacherIds.length > 0) {
-                        const dayLeaves = newLeaveDetails[selectedDate] || {};
-                        importedTeacherIds.forEach((id: string) => {
-                            if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
-                        });
-                        newLeaveDetails[selectedDate] = dayLeaves;
                     }
+                    alert("Legacy adjustments imported.");
                 }
-                alert("Legacy adjustments imported.");
+                return { ...session, adjustments: newAdjustments, leaveDetails: newLeaveDetails };
+            });
+            setIsImportExportOpen(false);
+        } catch (error: unknown) {
+            console.error(error);
+            let errorMessage = "Failed to import.";
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            } else {
+                errorMessage = String(error);
             }
-
-            return { 
-                ...session, 
-                adjustments: newAdjustments, 
-                leaveDetails: newLeaveDetails 
-            };
-        });
-
-        setIsImportExportOpen(false); 
-      } catch (error: any) { 
-          console.error(error);
-          let errorMessage = "Failed to import.";
-          if (error instanceof Error) {
-              errorMessage = error.message;
-          } else if (typeof error === 'string') {
-              errorMessage = error;
-          }
-          alert(errorMessage); 
-      }
-    }).catch((err: any) => {
+            alert(errorMessage);
+        }
+    }).catch((err: unknown) => {
         console.error("File read error:", err);
-        alert("Failed to read file.");
+        const msg = err instanceof Error ? err.message : String(err);
+        alert("Failed to read file: " + msg);
     });
-    
     event.target.value = '';
   };
 
-    const handleCancelAlternativeTimetable = () => {
-        openConfirmation(
-            t.cancelAlternativeTimetable,
-            t.cancelAlternativeTimetableConfirm,
-            () => {
-                onSetAdjustments(selectedDate, []);
-                onSetLeaveDetails(selectedDate, {});
-                onSelectionChange(prev => ({ ...prev, teacherIds: [] }));
-                setAbsentClassIds([]);
-                setAbsenteeDetails({});
-            }
-        );
-    };
+  const handleCancelAlternativeTimetable = () => { openConfirmation( t.cancelAlternativeTimetable, t.cancelAlternativeTimetableConfirm, () => { onSetAdjustments(selectedDate, []); onSetLeaveDetails(selectedDate, {}); onSelectionChange(prev => ({ ...prev, teacherIds: [] })); setAbsentClassIds([]); setAbsenteeDetails({}); } ); };
 
   const formatTime = (time24: string | undefined) => {
     if (!time24) return '';
@@ -1073,7 +906,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
       const subjName = messageLanguage === 'ur' ? subject.nameUr : subject.nameEn;
       const roomNum = schoolClass.roomNumber || '-';
       const respectfulName = getRespectfulName(substitute, messageLanguage);
-      const greeting = messageLanguage === 'ur' ? 'السلام علیکم' : 'Assalamu Alaikum';
+      const greeting = messageLanguage === 'ur' ? 'السلام علیکم' : 'Assalam o Alaikum';
 
       const conflictHtml = conflictClassName 
         ? `<div style="margin-top: 25px; background: #fee2e2; border-left: 6px solid #ef4444; padding: 20px; border-radius: 8px;">
@@ -1099,27 +932,29 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           
           <div style="padding: 0 60px 60px 60px;">
              <div style="background: #f3f4f6; padding: 40px; border: 2px solid #d1d5db;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px dashed #d1d5db; padding-bottom: 30px; margin-bottom: 30px;">
-                    <div>
-                        <div style="font-size: 20px; color: #6b7280; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${isUrdu ? 'تاریخ' : 'DATE'}</div>
-                        <div style="font-size: 32px; color: #1f2937; font-weight: 700;">${dateStr}</div>
-                    </div>
-                    <div style="text-align: ${isUrdu ? 'left' : 'right'};">
-                        <div style="font-size: 20px; color: #6b7280; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${isUrdu ? 'وقت' : 'TIME'}</div>
-                         <div style="font-size: 32px; color: #1f2937; font-weight: 700;">${timeStr}</div>
-                    </div>
+                <!-- Centered Date Section -->
+                <div style="text-align: center; border-bottom: 3px dashed #d1d5db; padding-bottom: 30px; margin-bottom: 30px;">
+                    <div style="font-size: 24px; color: #6b7280; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px;">${isUrdu ? 'تاریخ' : 'DATE'}</div>
+                    <div style="font-size: 48px; color: #1f2937; font-weight: 900;">${dateStr}</div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <!-- 3 Columns: Period | Time | Room -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
                     <!-- Period Box -->
-                    <div style="background: white; border: 2px solid #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
-                        <span style="font-size: 20px; color: #6b7280; font-weight: 800; letter-spacing: 2px;">PERIOD</span>
+                    <div style="background: white; border: 2px solid #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
+                        <span style="font-size: 20px; color: #6b7280; font-weight: 800; letter-spacing: 2px;">${isUrdu ? 'پیریڈ' : 'PERIOD'}</span>
                         <span style="font-size: 60px; font-weight: 900; color: #4f46e5; line-height: 1;">${adjustment.periodIndex + 1}</span>
                     </div>
 
+                    <!-- Time Box -->
+                    <div style="background: white; border: 2px solid #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
+                        <span style="font-size: 20px; color: #6b7280; font-weight: 800; letter-spacing: 2px;">${isUrdu ? 'وقت' : 'TIME'}</span>
+                        <span style="font-size: 40px; font-weight: 900; color: #059669; line-height: 1; white-space: nowrap;">${timeStr}</span>
+                    </div>
+
                     <!-- Room Box -->
-                    <div style="background: white; border: 2px solid #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
-                        <span style="font-size: 20px; color: #6b7280; font-weight: 800; letter-spacing: 2px;">ROOM</span>
+                    <div style="background: white; border: 2px solid #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
+                        <span style="font-size: 20px; color: #6b7280; font-weight: 800; letter-spacing: 2px;">${isUrdu ? 'کمرہ' : 'ROOM'}</span>
                         <span style="font-size: 60px; font-weight: 900; color: #ea580c; line-height: 1;">${roomNum}</span>
                     </div>
                 </div>
@@ -1651,7 +1486,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             <button onClick={() => setIsSignModalOpen(true)} disabled={dailyAdjustments.length === 0} title={t.sendAsImage} className="p-2 text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg shadow-sm hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 <ShareIcon />
             </button>
-            {dailyAdjustments.length > 0 && <button onClick={handleCopyAll} title={t.copyAllMessages} className="p-2 text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg></button>}
+            {dailyAdjustments.length > 0 && <button onClick={handleCopyAll} title={t.copyAllMessages} className="p-2 text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg></button>}
              <button onClick={handleSaveAdjustments} title={t.saveAdjustments} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg></button>
             <button onClick={() => setIsImportExportOpen(true)} title="Import / Export" className="p-2 text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] transition-colors"><ImportExportIcon /></button>
             <input type="file" ref={fileInputRef} onChange={handleImportJson} accept=".json" className="hidden" />
@@ -1785,7 +1620,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                                                         selectedId={currentSubstituteId}
                                                         onChange={(id) => handleSubstituteChange(group, id)}
                                                         language={language}
-                                                        weeklyStats={weeklyStats}
+                                                        historyStats={historyStats}
                                                     />
                                                 </div>
 
