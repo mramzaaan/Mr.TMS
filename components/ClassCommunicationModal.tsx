@@ -139,14 +139,12 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
 
       const styles = `
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=block');
+          @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
           * { 
             box-sizing: border-box !important; 
             -webkit-text-size-adjust: none !important; 
             text-size-adjust: none !important; 
             font-family: 'Inter', sans-serif !important; 
-            text-rendering: geometricPrecision !important;
-            font-variant-ligatures: none !important;
           }
           .timetable-image-container {
             background: #ffffff;
@@ -292,7 +290,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             overflow: hidden;
             ${cardStyleCss}
             position: relative;
-            padding: 4px; /* Reduced padding */
+            padding: 6px;
             border-bottom: 1px solid #000000;
           }
           .period-card-img:last-child { border-bottom: none; }
@@ -311,10 +309,9 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             font-weight: 900; 
             font-size: 34px; /* Reduced from 40px */
             text-transform: none; 
-            line-height: 1 !important; /* Fixed line height */
+            line-height: 1;
             text-align: left; 
             margin: 0;
-            padding: 0;
             color: inherit;
             white-space: nowrap;
             overflow: hidden;
@@ -358,8 +355,8 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                   opacity: ${cardStyle === 'full' ? 0.3 : 1.0};
               }
               ${cardStyle === 'badge' ? `
-                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 2px 8px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto; line-height: 1.1 !important;` : ''} }
-                  .${name} .period-teacher { ${badgeTarget === 'teacher' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 2px 8px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto; line-height: 1.1 !important;` : ''} }
+                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
+                  .${name} .period-teacher { ${badgeTarget === 'teacher' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
               ` : ''}
           `).join('\n')}
 
