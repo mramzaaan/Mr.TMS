@@ -167,12 +167,12 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
 
       const styles = `
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=block');
+          @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
           * { 
             box-sizing: border-box !important; 
             -webkit-text-size-adjust: none !important; 
             text-size-adjust: none !important; 
-            font-family: 'Inter', sans-serif !important; 
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; 
             text-rendering: geometricPrecision !important;
             font-variant-ligatures: none !important;
           }
@@ -223,7 +223,8 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           }
 
           .img-school-name { 
-            font-family: 'Anton', sans-serif !important;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; 
+            font-weight: 900;
             font-size: 60px; 
             color: ${themeColors.accent}; 
             text-align: center;

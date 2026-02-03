@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { Language, SchoolClass, Subject, Teacher, TimetableGridData, Adjustment, SchoolConfig, Period, LeaveDetails, DownloadDesignConfig, TimetableSession } from '../types';
 import PrintPreview from './PrintPreview';
@@ -851,7 +850,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                 return { ...session, adjustments: newAdjustments, leaveDetails: newLeaveDetails };
             });
             setIsImportExportOpen(false);
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error(error);
             let errorMessage = "Failed to import.";
             if (error instanceof Error) {
@@ -863,7 +862,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             }
             alert(errorMessage);
         }
-    }).catch((err: unknown) => {
+    }).catch((err: any) => {
         console.error("File read error:", err);
         const msg = err instanceof Error ? err.message : String(err);
         alert("Failed to read file: " + msg);
@@ -1234,7 +1233,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
               // Attempt Share - FIX: Casting navigator for missing definitions
               if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
                   try {
-                      await (navigator as any).share({ files: [file], title: `Signed Adjustments - ${selectedDate}` });
+                      await (navigator as any).share({ files: [file], title: `Signed_Adjustments_${selectedDate}` });
                   } catch (error: any) {
                       // Silently handle cancellation
                       if (error?.name !== 'AbortError') {
