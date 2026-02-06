@@ -1,13 +1,11 @@
 
-// ... keep imports ...
-import React, { useState, useMemo } from 'react';
-import type { SchoolClass, Teacher, Subject, SchoolConfig, CardStyle } from '../types';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import type { SchoolClass, Teacher, Subject, SchoolConfig, CardStyle, TriangleCorner } from '../types';
 import { allDays } from '../types';
 
 declare const html2canvas: any;
 
 interface ClassCommunicationModalProps {
-// ... keep interface ...
   t: any;
   isOpen: boolean;
   onClose: () => void;
@@ -35,6 +33,13 @@ const cardStyles: { label: string; value: CardStyle }[] = [
     { label: 'Gradient', value: 'gradient' },
     { label: 'Minimal', value: 'minimal-left' },
     { label: 'Badge', value: 'badge' }
+];
+
+const triangleCorners: { label: string; value: TriangleCorner }[] = [
+    { label: 'Bottom Left', value: 'bottom-left' },
+    { label: 'Bottom Right', value: 'bottom-right' },
+    { label: 'Top Left', value: 'top-left' },
+    { label: 'Top Right', value: 'top-right' }
 ];
 
 const COLOR_HEX_MAP: Record<string, string> = {
@@ -67,6 +72,20 @@ const abbreviateName = (name: string | undefined) => {
     return cleanName.substring(0, 6) + '.';
 };
 
+const formatTime12 = (time24: string | undefined) => {
+    if (!time24) return '';
+    const [h, m] = time24.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return '';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m.toString().padStart(2, '0')}`;
+};
+
+const XIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
 export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = ({
   t,
   isOpen,
@@ -80,7 +99,15 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [mergePatterns, setMergePatterns] = useState(schoolConfig.downloadDesigns.class.table.mergeIdenticalPeriods ?? true);
+  const [showStartTimes, setShowStartTimes] = useState(false);
   const [selectedCardStyle, setSelectedCardStyle] = useState<CardStyle>(schoolConfig.downloadDesigns.class.table.cardStyle || 'full');
+  const [selectedTriangleCorner, setSelectedTriangleCorner] = useState<TriangleCorner>(schoolConfig.downloadDesigns.class.table.triangleCorner || 'bottom-left');
+  const [badgeTarget, setBadgeTarget] = useState<'subject' | 'teacher'>('subject');
+
+  // State for preview HTML
+  const [previewHtml, setPreviewHtml] = useState<string>('');
+  const [previewScale, setPreviewScale] = useState(1);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const themeColors = useMemo(() => {
     if (typeof window === 'undefined') return { accent: '#6366f1', bg: '#ffffff', text: '#0f172a' };
@@ -100,9 +127,8 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
   const generateTimetableImageHtml = () => {
       const allColorClasses = [...subjectColorNames, 'subject-default'];
       const cardStyle = selectedCardStyle;
-      const triangleCorner = schoolConfig.downloadDesigns.class.table.triangleCorner || 'bottom-left';
-      const outlineWidth = schoolConfig.downloadDesigns.class.table.outlineWidth || 2;
-      const badgeTarget = schoolConfig.downloadDesigns.class.table.badgeTarget || 'subject';
+      const triangleCorner = selectedTriangleCorner;
+      const outlineWidth = 2;
       
       const size = 1200;
       const width = size;
@@ -137,6 +163,24 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
           cardStyleCss = 'background-color: transparent !important; border: none !important; box-shadow: none !important;';
       }
 
+      // Header Style Logic
+      let headerStyleCss = '';
+      if (cardStyle === 'full') {
+          headerStyleCss = `background-color: ${themeColors.accent}; color: #ffffff; border-radius: 12px; padding: 10px 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);`;
+      } else if (cardStyle === 'outline') {
+          headerStyleCss = `border: 3px solid ${themeColors.accent}; color: ${themeColors.accent}; border-radius: 12px; padding: 10px 30px; background: #fff;`;
+      } else if (cardStyle === 'glass') {
+          headerStyleCss = `background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); color: ${themeColors.text}; border-radius: 12px; padding: 10px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);`;
+      } else if (cardStyle === 'gradient') {
+          headerStyleCss = `background: linear-gradient(135deg, ${themeColors.accent} 0%, ${themeColors.accent}dd 100%); color: #ffffff; border-radius: 12px; padding: 10px 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);`;
+      } else if (cardStyle === 'minimal-left') {
+          headerStyleCss = `border-left: 10px solid ${themeColors.accent}; background-color: #f1f5f9; color: ${themeColors.text}; padding: 10px 30px; border-radius: 4px;`;
+      } else if (cardStyle === 'badge') {
+          headerStyleCss = `background-color: ${themeColors.accent}; color: #ffffff; border-radius: 999px; padding: 10px 40px;`;
+      } else {
+           headerStyleCss = `color: ${themeColors.text}; padding: 10px 0;`;
+      }
+
       const styles = `
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
@@ -145,7 +189,10 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             -webkit-text-size-adjust: none !important; 
             text-size-adjust: none !important; 
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; 
+            text-rendering: geometricPrecision !important;
+            font-variant-ligatures: none !important;
           }
+          body { margin: 0; padding: 0; overflow: hidden; background: #fff; }
           .timetable-image-container {
             background: #ffffff;
             padding: 30px;
@@ -153,7 +200,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             height: ${height}px;
             color: #000000;
             box-sizing: border-box;
-            border: 2px solid #000000;
+            border: 2px solid ${themeColors.accent};
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -187,21 +234,24 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
           
           .img-header {
             flex-shrink: 0;
-            margin-bottom: 15px;
-            border-bottom: 3px solid #000000;
-            padding-bottom: 10px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid ${themeColors.accent};
+            padding-bottom: 15px;
           }
 
           .img-school-name { 
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; 
             font-weight: 900;
-            font-size: 48px; 
+            font-size: 56px; 
             color: ${themeColors.accent}; 
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 1px;
             line-height: 1;
-            margin-bottom: 5px;
+            margin-bottom: 15px;
+            white-space: nowrap;
+            overflow: visible;
+            width: 100%;
           }
           
           .header-info-row {
@@ -209,27 +259,32 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             justify-content: space-between;
             align-items: flex-end;
             padding: 0 10px;
+            margin-top: 15px;
           }
           
           .info-class-name { 
-            font-size: 42px; 
+            font-size: 52px; 
             font-weight: 900; 
-            color: #000000; 
             text-transform: uppercase; 
-            line-height: 1;
+            line-height: 1.1;
+            ${headerStyleCss}
           }
           
           .info-stats-side { 
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
-            color: #000000;
+            color: #64748b;
             text-transform: uppercase;
+            min-width: 150px;
+            padding-bottom: 5px;
           }
+
+          .compact-val { color: #1e293b; font-weight: 900; font-size: 20px; }
 
           .img-table-wrapper {
             flex-grow: 1;
             width: 100%;
-            border: 2px solid #000000;
+            border: 2px solid ${themeColors.accent};
             display: flex;
             flex-direction: column;
           }
@@ -242,32 +297,46 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
           }
           
           .img-table th { 
-            background-color: ${themeColors.accent}20;
-            color: #000000; 
+            background-color: transparent;
+            color: ${themeColors.accent}; 
             font-weight: 900; 
             text-transform: uppercase;
-            font-size: 24px;
+            padding: 10px 4px;
+            font-size: 32px;
             line-height: 1;
-            border: 1px solid #000000; 
-            padding: 5px;
-            height: 50px;
+            letter-spacing: 0.025em;
+            border: 1px solid ${themeColors.accent}; 
+            height: auto;
+            min-height: 55px;
           }
-          .img-table th:first-child { width: 50px; background: #ffffff; }
+          .img-table th:first-child { width: 75px; background: #ffffff; }
           
           .period-label { 
             background-color: #f8fafc; 
-            color: #000000; 
+            color: ${themeColors.accent}; 
             font-weight: 900; 
-            font-size: 32px;
+            font-size: 70px;
             text-align: center;
-            border: 1px solid #000000; 
+            line-height: 1;
+            border: 1px solid ${themeColors.accent};
+            position: relative; 
+          }
+
+          .period-time-label {
+             display: block;
+             font-size: 24px;
+             font-weight: 800;
+             color: #000000;
+             margin-top: 4px;
+             line-height: 1;
+             white-space: pre;
           }
           
           .slot-cell { 
             padding: 0; 
             margin: 0;
             background-color: transparent; 
-            border: 1px solid #000000; 
+            border: 1px solid ${themeColors.accent}; 
             vertical-align: top;
             height: 1px;
           }
@@ -277,7 +346,8 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             flex-direction: column;
             width: 100%;
             height: 100%;
-            justify-content: flex-start;
+            justify-content: center;
+            align-items: center;
           }
 
           .period-card-img { 
@@ -292,7 +362,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             ${cardStyleCss}
             position: relative;
             padding: 6px;
-            border-bottom: 1px solid #000000;
+            border-bottom: 1px solid ${themeColors.accent};
           }
           .period-card-img:last-child { border-bottom: none; }
 
@@ -304,13 +374,13 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             height: 100%;
           }
 
-          /* Match Teacher Modal Styles */
+          /* Match Styles */
           .period-subject { 
             display: block;
             font-weight: 900; 
-            font-size: 34px; /* Reduced from 40px */
+            font-size: 36px;
             text-transform: none; 
-            line-height: 1;
+            line-height: 1.1;
             text-align: left; 
             margin: 0;
             color: inherit;
@@ -322,9 +392,9 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
           }
           .period-teacher { 
             display: block;
-            font-weight: 700; 
-            opacity: 0.9; 
-            font-size: 18px; /* Reduced from 22px */
+            font-weight: 800; 
+            opacity: 0.95; 
+            font-size: 28px;
             line-height: 1.1;
             white-space: nowrap; 
             overflow: hidden; 
@@ -344,6 +414,22 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
               border-style: solid;
               ${triangleStyles}
               z-index: 5;
+          }
+
+          .logo-overlay {
+             display: flex;
+             justify-content: center;
+             align-items: center;
+             width: 100%;
+             height: 100%;
+             opacity: 0.15;
+             pointer-events: none;
+          }
+          .logo-overlay img {
+             max-width: 80%;
+             max-height: 80%;
+             object-fit: contain;
+             filter: grayscale(100%);
           }
           
           ${allColorClasses.map(name => `
@@ -370,7 +456,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
              color: #000000; 
              font-weight: 700; 
              text-transform: uppercase;
-             border-top: 1px solid #000000;
+             border-top: 1px solid ${themeColors.accent};
              padding-top: 5px;
           }
         </style>
@@ -383,6 +469,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
       for (let r = 0; r < maxPeriods; r++) {
           for (let c = 0; c < activeDays.length; c++) {
               const day = activeDays[c];
+              // @ts-ignore
               const slot = selectedClass.timetable[day]?.[r] || [];
               if (slot.length > 0) {
                   const sortedPeriods = [...slot].sort((a, b) => a.subjectId.localeCompare(b.subjectId));
@@ -402,10 +489,8 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                           
                           if (badgeTarget === 'teacher') {
                              teacherBadgeStyle = badgeCss;
-                             // Class (Teacher in this context) becomes badge
                           } else {
                              subjectBadgeStyle = badgeCss;
-                             // Subject becomes badge
                           }
                       }
                       
@@ -429,7 +514,17 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
       const visited = Array.from({ length: maxPeriods }, () => Array(activeDays.length).fill(false));
 
       for (let r = 0; r < maxPeriods; r++) {
-          let rowHtml = `<td class="period-label">${r + 1}</td>`;
+          const startTime = showStartTimes && schoolConfig.periodTimings?.default?.[r]?.start 
+              ? formatTime12(schoolConfig.periodTimings.default[r].start) 
+              : '';
+
+          let rowHtml = `<td class="period-label">
+              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+                <span>${r + 1}</span>
+                ${startTime ? `<span class="period-time-label">${startTime}</span>` : ''}
+              </div>
+          </td>`;
+
           for (let c = 0; c < activeDays.length; c++) {
               const dayName = activeDays[c];
               const dayLimit = schoolConfig.daysConfig?.[dayName]?.periodCount ?? 8;
@@ -517,7 +612,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                 </div>
                 <div class="info-class-name">${selectedClass.nameEn}</div>
                 <div class="info-stats-side" style="text-align: right;">
-                    IC: <span class="compact-val">${inChargeTeacher.nameEn}</span>
+                    IC: <span class="compact-val">${inChargeTeacher?.nameEn || '-'}</span>
                 </div>
             </div>
           </div>
@@ -525,7 +620,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             <table class="img-table">
                 <thead>
                 <tr>
-                    <th style="width: 50px"></th>
+                    <th style="width: 75px"></th>
                     ${activeDays.map(day => `<th>${t[day.toLowerCase()].substring(0,3)}</th>`).join('')}
                 </tr>
                 </thead>
@@ -533,13 +628,37 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             </table>
           </div>
           <div class="footer-watermark">
-            <span>OFFICIAL SCHEDULE</span>
+            <span>OFFICIAL CLASS SCHEDULE</span>
             <span style="font-weight: 900; color: ${themeColors.accent}; font-size: 14px;">Generated by Mr. 🇵🇰</span>
             <span>${currentTimestamp}</span>
           </div>
         </div>
       `;
   };
+
+  useEffect(() => {
+    // Generate HTML for preview whenever relevant props change
+    if (isOpen) {
+        const html = generateTimetableImageHtml();
+        setPreviewHtml(html);
+    }
+  }, [isOpen, selectedCardStyle, selectedTriangleCorner, badgeTarget, mergePatterns, showStartTimes, selectedClass, themeColors]);
+
+  // Adjust scale based on container width
+  useEffect(() => {
+    if (previewContainerRef.current) {
+        const updateScale = () => {
+            if (previewContainerRef.current) {
+                const containerWidth = previewContainerRef.current.offsetWidth;
+                const scale = (containerWidth - 16) / 1200; 
+                setPreviewScale(scale);
+            }
+        };
+        updateScale();
+        window.addEventListener('resize', updateScale);
+        return () => window.removeEventListener('resize', updateScale);
+    }
+  }, [isOpen, previewHtml]);
 
   const generateAndGetBlob = async (): Promise<Blob | null> => {
     const size = 1200;
@@ -605,9 +724,9 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
 
     const file = new File([blob], `timetable_${selectedClass.nameEn.replace(/\s/g, '_')}.png`, { type: 'image/png' });
 
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
         try {
-            await navigator.share({
+            await (navigator as any).share({
                 files: [file],
                 title: 'Timetable',
             });
@@ -640,22 +759,26 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
     const blob = await generateAndGetBlob();
 
     if (blob) {
+        let copied = false;
         try {
             if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
                  await navigator.clipboard.write([new ClipboardItem({[blob.type]: blob})]);
-            } else {
-                 const dataUrl = URL.createObjectURL(blob);
-                 const link = document.createElement('a');
-                 link.href = dataUrl;
-                 link.download = `timetable_${selectedClass.nameEn.replace(/\s/g, '_')}.png`;
-                 document.body.appendChild(link);
-                 link.click();
-                 document.body.removeChild(link);
-                 URL.revokeObjectURL(dataUrl);
-                 alert("Could not copy to clipboard. Image downloaded. Please attach manually in WhatsApp.");
+                 copied = true;
             }
         } catch (clipboardError) {
             console.warn("Clipboard write failed", clipboardError);
+        }
+
+        if (!copied) {
+             const dataUrl = URL.createObjectURL(blob);
+             const link = document.createElement('a');
+             link.href = dataUrl;
+             link.download = `timetable_${selectedClass.nameEn.replace(/\s/g, '_')}.png`;
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+             URL.revokeObjectURL(dataUrl);
+             alert("Could not copy to clipboard. Image downloaded. Please attach manually in WhatsApp.");
         }
 
         let phoneNumber = inChargeTeacher.contactNumber.replace(/\D/g, '');
@@ -675,54 +798,133 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[101]" onClick={onClose}>
-      <div className="bg-[#1a2333] rounded-xl shadow-2xl w-full max-w-sm mx-4 flex flex-col border border-white/10" onClick={e => e.stopPropagation()}>
-        <div className="p-5 border-b border-white/10 flex justify-between items-center bg-[#252f44]">
-            <h3 className="text-xl font-black text-white uppercase tracking-tight">
-                Send to Class In-Charge
-            </h3>
-        </div>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[101] p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#1a2333] rounded-xl shadow-2xl w-full max-w-[98vw] flex flex-col border border-white/10 max-h-[95vh] overflow-hidden transition-all" onClick={e => e.stopPropagation()}>
         
-        <div className="flex-shrink-0 p-4 space-y-3 bg-[#1a2333]">
-            <div className="flex flex-col gap-2 bg-[#252f44] p-3 rounded-xl border border-white/10">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Card Design</label>
-                <select 
-                    value={selectedCardStyle} 
-                    onChange={(e) => setSelectedCardStyle(e.target.value as CardStyle)}
-                    className="w-full bg-[#1a2333] text-white text-xs font-bold rounded-lg border border-white/10 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-                >
-                    {cardStyles.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+        {/* Header */}
+        <div className="p-5 border-b border-white/10 bg-[#252f44] flex-shrink-0 flex justify-between items-center">
+            <div>
+                <h3 className="text-xl font-black text-white uppercase tracking-tight">
+                    SEND TO CLASS IN-CHARGE
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">{selectedClass.nameEn}</p>
             </div>
-
-            <div className="flex items-center justify-between bg-[#252f44] p-3 rounded-xl border border-white/10">
-                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Merge Patterns</span>
-                <button 
-                    onClick={() => setMergePatterns(!mergePatterns)}
-                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${mergePatterns ? 'bg-[var(--accent-primary)]' : 'bg-gray-600'}`}
-                >
-                    <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${mergePatterns ? 'translate-x-4' : 'translate-x-0'}`} />
+            
+            <div className="flex items-center gap-3">
+                 <div className="flex items-center gap-2 bg-[#1a2333] px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Time</span>
+                    <button 
+                        onClick={() => setShowStartTimes(!showStartTimes)}
+                        className={`relative inline-flex h-4 w-7 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${showStartTimes ? 'bg-blue-600' : 'bg-gray-600'}`}
+                    >
+                        <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${showStartTimes ? 'translate-x-3' : 'translate-x-0'}`} />
+                    </button>
+                </div>
+                 <div className="flex items-center gap-2 bg-[#1a2333] px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Merge</span>
+                    <button 
+                        onClick={() => setMergePatterns(!mergePatterns)}
+                        className={`relative inline-flex h-4 w-7 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${mergePatterns ? 'bg-blue-600' : 'bg-gray-600'}`}
+                    >
+                        <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${mergePatterns ? 'translate-x-3' : 'translate-x-0'}`} />
+                    </button>
+                </div>
+                
+                <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/10">
+                    <XIcon />
                 </button>
             </div>
+        </div>
+        
+        {/* Scrollable Content */}
+        <div className="flex-grow overflow-y-auto p-2 custom-scrollbar bg-[#1a2333]">
 
-            <button onClick={handleSendImageAsPicture} disabled={isGenerating} className="w-full h-16 flex items-center justify-center gap-3 px-4 py-4 text-sm font-black uppercase tracking-[0.2em] bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 shadow-2xl transition-all transform active:scale-95">
-                {isGenerating ? (
-                    <div className="flex items-center gap-3">
-                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        <span>{t.generating}</span>
+            {/* Preview Section - Moved to Top */}
+            <div className="flex flex-col items-center w-full mb-8" ref={previewContainerRef}>
+                <div className="mb-3 px-3 py-1 bg-[#0f172a] rounded-full">
+                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Preview Mode</span>
+                </div>
+                <div 
+                    className="relative shadow-2xl rounded-lg overflow-hidden bg-white border border-gray-700/50 mx-auto transition-all duration-300 ease-out" 
+                    style={{ 
+                        width: `${1200 * previewScale}px`, 
+                        height: `${1200 * previewScale}px` 
+                    }}
+                >
+                    <div 
+                        dangerouslySetInnerHTML={{ __html: previewHtml }} 
+                        style={{ 
+                            transform: `scale(${previewScale})`, 
+                            transformOrigin: 'top left', 
+                            width: '1200px', 
+                            height: '1200px',
+                            pointerEvents: 'none' 
+                        }} 
+                    />
+                </div>
+            </div>
+
+            {/* Controls Section - Moved below Preview */}
+            <div className="max-w-2xl mx-auto space-y-6 pb-4">
+                
+                {/* Card Design Section */}
+                <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Card Design</label>
+                    <select 
+                        value={selectedCardStyle} 
+                        onChange={(e) => setSelectedCardStyle(e.target.value as CardStyle)}
+                        className="w-full bg-[#0f172a] text-white text-sm font-bold rounded-lg border border-white/10 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-inner transition-colors hover:border-white/20"
+                    >
+                        {cardStyles.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+                    
+                    {selectedCardStyle === 'triangle' && (
+                    <div className="flex flex-col gap-2 animate-scale-in">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Triangle Corner</label>
+                        <select 
+                            value={selectedTriangleCorner} 
+                            onChange={(e) => setSelectedTriangleCorner(e.target.value as TriangleCorner)}
+                            className="w-full bg-[#0f172a] text-white text-sm font-bold rounded-lg border border-white/10 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-inner transition-colors hover:border-white/20"
+                        >
+                            {triangleCorners.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        </select>
                     </div>
-                ) : (
-                    <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" /></svg>
-                    <span>SEND AS PICTURE</span>
-                    </>
-                )}
-            </button>
-            <button onClick={handleSendWhatsApp} disabled={isGenerating} className="w-full h-16 flex items-center justify-center gap-3 px-4 py-4 text-sm font-black uppercase tracking-[0.2em] bg-[#128C7E] text-white rounded-xl hover:bg-[#075e54] disabled:opacity-50 shadow-2xl transition-all transform active:scale-95">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.905 6.03l-.419 1.533 1.519-.4zM15.53 17.53c-.07-.121-.267-.202-.56-.347-.297-.146-1.758-.868-2.031-.967-.272-.099-.47-.146-.669.146-.199.293-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.15-1.255-.463-2.39-1.475-1.134-1.012-1.31-1.36-1.899-2.258-.151-.231-.04-.355.043-.463.083-.107.185-.293.28-.439.095-.146.12-.245.18-.41.06-.164.03-.311-.015-.438-.046-.127-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.177-.008-.375-.01-1.04-.01h-.11c-.307.003-1.348-.043-1.348 1.438 0 1.482.791 2.906 1.439 3.82.648.913 2.51 3.96 6.12 5.368 3.61 1.408 3.61 1.054 4.258 1.034.648-.02 1.758-.715 2.006-1.413.248-.698.248-1.289.173-1.413z" /></svg>
-                <span>SEND VIA WHATSAPP</span>
-            </button>
-            <button onClick={onClose} className="w-full py-3 text-sm font-black uppercase tracking-widest bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 shadow-lg transition-all active:scale-95">{t.close}</button>
+                    )}
+                    
+                    {selectedCardStyle === 'badge' && (
+                    <div className="flex flex-col gap-2 animate-scale-in">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Badge Target</label>
+                        <select 
+                            value={badgeTarget} 
+                            onChange={(e) => setBadgeTarget(e.target.value as any)}
+                            className="w-full bg-[#0f172a] text-white text-sm font-bold rounded-lg border border-white/10 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-inner transition-colors hover:border-white/20"
+                        >
+                            <option value="subject">Subject</option>
+                            <option value="teacher">Teacher</option>
+                        </select>
+                    </div>
+                    )}
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3 w-full">
+                    <button onClick={handleSendImageAsPicture} disabled={isGenerating} className="flex-1 h-14 flex items-center justify-center gap-2 px-2 text-sm font-black uppercase tracking-wider bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 shadow-lg transition-all transform active:scale-95 hover:-translate-y-0.5">
+                        {isGenerating ? (
+                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        ) : (
+                            <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" /></svg>
+                            <span>Send Picture</span>
+                            </>
+                        )}
+                    </button>
+                    <button onClick={handleSendWhatsApp} disabled={isGenerating} className="flex-1 h-14 flex items-center justify-center gap-2 px-2 text-sm font-black uppercase tracking-wider bg-[#128C7E] text-white rounded-xl hover:bg-[#075e54] disabled:opacity-50 shadow-lg transition-all transform active:scale-95 hover:-translate-y-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.905 6.03l-.419 1.533 1.519-.4zM15.53 17.53c-.07-.121-.267-.202-.56-.347-.297-.146-1.758-.868-2.031-.967-.272-.099-.47-.146-.669.146-.199.293-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.15-1.255-.463-2.39-1.475-1.134-1.012-1.31-1.36-1.899-2.258-.151-.231-.04-.355.043-.463.083-.107.185-.293.28-.439.095-.146.12-.245.18-.41.06-.164.03-.311-.015-.438-.046-.127-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.177-.008-.375-.01-1.04-.01h-.11c-.307.003-1.348-.043-1.348 1.438 0 1.482.791 2.906 1.439 3.82.648.913 2.51 3.96 6.12 5.368 3.61 1.408 3.61 1.054 4.258 1.034.648-.02 1.758-.715 2.006-1.413.248-.698.248-1.289.173-1.413z" /></svg>
+                        <span>SEND VIA WHATSAPP</span>
+                    </button>
+                </div>
+            </div>
+
         </div>
       </div>
     </div>

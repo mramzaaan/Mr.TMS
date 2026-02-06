@@ -407,7 +407,6 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastSyncedDate = useRef<string | null>(null);
 
-  // ... (Effects and Helper functions mostly unchanged until stats logic) ...
   const activeDays = useMemo(() => allDays.filter(day => schoolConfig.daysConfig?.[day]?.active ?? true), [schoolConfig.daysConfig]);
   const maxPeriods = useMemo(() => {
       const counts = activeDays.map(day => schoolConfig.daysConfig?.[day]?.periodCount ?? 8);
@@ -800,7 +799,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                 if (isNewFormat) {
                     imported.forEach(dayData => {
                         const { date, adjustments: dayAdjs, leaveDetails: dayLeaves } = dayData;
-                        if (date) {
+                        if (date && typeof date === 'string') {
                             if (Array.isArray(dayAdjs)) {
                                 newAdjustments[date] = dayAdjs.map((adj: any) => ({ ...adj, id: generateUniqueId() }));
                             }
@@ -834,7 +833,8 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                             }
                         });
                     } else {
-                        const transformed = imported.map(adj => ({ ...adj, id: generateUniqueId(), day: dayOfWeek as keyof TimetableGridData }));
+                        const validDay = dayOfWeek || 'Monday';
+                        const transformed = imported.map(adj => ({ ...adj, id: generateUniqueId(), day: validDay as keyof TimetableGridData }));
                         newAdjustments[selectedDate] = transformed;
                         const importedTeacherIds = [...new Set(transformed.map((adj: any) => String(adj.originalTeacherId)))];
                         if (importedTeacherIds.length > 0) {
@@ -850,19 +850,12 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                 return { ...session, adjustments: newAdjustments, leaveDetails: newLeaveDetails };
             });
             setIsImportExportOpen(false);
-        } catch (error: any) {
+        } catch (error: any) { 
             console.error(error);
-            let errorMessage = "Failed to import.";
-            if (error instanceof Error) {
-                errorMessage = error.message;
-            } else if (typeof error === 'string') {
-                errorMessage = error;
-            } else {
-                errorMessage = String(error);
-            }
+            const errorMessage = error instanceof Error ? error.message : String(error);
             alert(errorMessage);
         }
-    }).catch((err: any) => {
+    }).catch((err: any) => { 
         console.error("File read error:", err);
         const msg = err instanceof Error ? err.message : String(err);
         alert("Failed to read file: " + msg);
@@ -1009,129 +1002,95 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           });
           document.body.removeChild(tempDiv);
           return await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-      } catch (e) {
+      } catch (e: any) {
           console.error("Slip generation failed", e);
           if (document.body.contains(tempDiv)) document.body.removeChild(tempDiv);
           return null;
       }
   };
 
-  const handleWhatsAppNotify = async (adjustment: Adjustment) => {
-    const substitute = teachers.find(t => t.id === adjustment.substituteTeacherId);
-    const originalTeacher = teachers.find(t => t.id === adjustment.originalTeacherId);
-    const schoolClass = classes.find(c => c.id === adjustment.classId);
-    const subject = subjects.find(s => s.id === adjustment.subjectId);
+  const handleSendImageAsPicture = async () => {
+    window.focus(); 
+    setIsGenerating(true);
 
-    if (!substitute?.contactNumber || !originalTeacher || !schoolClass || !subject) {
-        alert("Missing data for notification.");
+    const blob = await generateAndGetBlob();
+    if (!blob) {
+        alert("Failed to generate image.");
+        setIsGenerating(false);
         return;
     }
-    
-    setIsGeneratingImage(true);
 
-    const date = new Date(selectedDate);
-    const locale = messageLanguage === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB';
-    const dayOfWeekStr = date.toLocaleDateString(locale, { weekday: 'long' });
-    const respectfulName = getRespectfulName(substitute, messageLanguage);
-    const msgT = translations[messageLanguage];
-    const dateStr = date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+    const file = new File([blob], `timetable_${selectedClass.nameEn.replace(/\s/g, '_')}.png`, { type: 'image/png' });
 
-    const startTime = getPeriodStartTime(adjustment.periodIndex);
-    const timeStr = formatTime(startTime);
-
-    // 1. Generate & Copy Image
-    try {
-        const conflictClassName = adjustment.conflictDetails 
-            ? (messageLanguage === 'ur' ? adjustment.conflictDetails.classNameUr : adjustment.conflictDetails.classNameEn)
-            : undefined;
-
-        const blob = await generateSubstitutionSlip(
-            adjustment, substitute, originalTeacher, schoolClass, subject, timeStr, conflictClassName
-        );
-
-        if (blob) {
-            try {
-                // Focus window first
-                window.focus();
-                const item = new ClipboardItem({ [blob.type]: blob });
-                await navigator.clipboard.write([item]);
-                
-                // Success Toast
-                const toast = document.createElement('div');
-                toast.textContent = "Slip Image Copied! Paste in WhatsApp.";
-                toast.style.cssText = "position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 10px 20px; border-radius: 50px; z-index: 9999; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); pointer-events: none; transition: opacity 0.5s ease-in-out;";
-                document.body.appendChild(toast);
-                setTimeout(() => { 
-                    toast.style.opacity = '0';
-                    setTimeout(() => document.body.removeChild(toast), 500); 
-                }, 3000);
-
-            } catch (clipboardError) {
-                console.warn("Clipboard write failed, falling back to download.", clipboardError);
-                
-                // Fallback: Download Image
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Substitution_${substitute.nameEn.replace(/\s+/g, '_')}_${dateStr}.png`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                // Info Toast
-                const toast = document.createElement('div');
-                toast.textContent = "Image Downloaded (Clipboard blocked). Attach manually.";
-                toast.style.cssText = "position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #eab308; color: white; padding: 10px 20px; border-radius: 50px; z-index: 9999; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); pointer-events: none; transition: opacity 0.5s ease-in-out;";
-                document.body.appendChild(toast);
-                setTimeout(() => { 
-                    toast.style.opacity = '0';
-                    setTimeout(() => document.body.removeChild(toast), 500); 
-                }, 4000);
-            }
+    if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
+        try {
+            await (navigator as any).share({
+                files: [file],
+                title: 'Timetable',
+            });
+            setIsGenerating(false);
+            return;
+        } catch (error) {
+            console.log("Share cancelled or failed, falling back to download.");
         }
-    } catch (e) {
-        console.error("Failed to generate image", e);
     }
 
-    // 2. Prepare Text Message
-    let message: string;
-    if (adjustment.conflictDetails) {
-        message = msgT.substituteNotificationMessageDoubleBook
-            .replace('{teacherName}', respectfulName)
-            .replace('{date}', dateStr)
-            .replace('{dayOfWeek}', dayOfWeekStr)
-            .replace('{period}', String(adjustment.periodIndex + 1))
-            .replace('{time}', timeStr)
-            .replace('{className}', messageLanguage === 'ur' ? schoolClass.nameUr : schoolClass.nameEn)
-            .replace('{subjectName}', messageLanguage === 'ur' ? subject.nameUr : subject.nameEn)
-            .replace('{roomNumber}', schoolClass.roomNumber || '-')
-            .replace('{originalTeacherName}', messageLanguage === 'ur' ? originalTeacher.nameUr : originalTeacher.nameEn)
-            .replace('{conflictClassName}', messageLanguage === 'ur' ? adjustment.conflictDetails.classNameUr : adjustment.conflictDetails.classNameEn);
+    const dataUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(dataUrl);
+    
+    setIsGenerating(false);
+  };
+
+  const handleSendWhatsApp = async () => {
+    if (!inChargeTeacher?.contactNumber) {
+        alert("In-charge teacher's contact number not found.");
+        return;
+    }
+
+    setIsGenerating(true);
+    const blob = await generateAndGetBlob();
+
+    if (blob) {
+        let copied = false;
+        try {
+            if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
+                 await navigator.clipboard.write([new ClipboardItem({[blob.type]: blob})]);
+                 copied = true;
+            }
+        } catch (clipboardError) {
+            console.warn("Clipboard write failed", clipboardError);
+        }
+
+        if (!copied) {
+             const dataUrl = URL.createObjectURL(blob);
+             const link = document.createElement('a');
+             link.href = dataUrl;
+             link.download = `timetable_${selectedClass.nameEn.replace(/\s/g, '_')}.png`;
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+             URL.revokeObjectURL(dataUrl);
+             alert("Could not copy to clipboard. Image downloaded. Please attach manually in WhatsApp.");
+        }
+
+        let phoneNumber = inChargeTeacher.contactNumber.replace(/\D/g, '');
+        if (phoneNumber.startsWith('0')) phoneNumber = '92' + phoneNumber.substring(1);
+        const url = `https://wa.me/${phoneNumber}`;
+        
+        setTimeout(() => {
+             window.open(url, '_blank');
+        }, 500);
     } else {
-        message = msgT.notificationTemplateDefault
-            .replace('{teacherName}', respectfulName)
-            .replace('{date}', dateStr)
-            .replace('{dayOfWeek}', dayOfWeekStr)
-            .replace('{period}', String(adjustment.periodIndex + 1))
-            .replace('{time}', timeStr)
-            .replace('{className}', messageLanguage === 'ur' ? schoolClass.nameUr : schoolClass.nameEn)
-            .replace('{subjectName}', messageLanguage === 'ur' ? subject.nameUr : subject.nameEn)
-            .replace('{roomNumber}', schoolClass.roomNumber || '-')
-            .replace('{originalTeacherName}', messageLanguage === 'ur' ? originalTeacher.nameUr : originalTeacher.nameEn);
+        alert("Failed to generate image.");
     }
 
-    let phoneNumber = substitute.contactNumber.replace(/\D/g, '');
-    if (phoneNumber.startsWith('0')) phoneNumber = '92' + phoneNumber.substring(1);
-    
-    // 3. Open WhatsApp
-    const url = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-    
-    // Slight delay to allow UI to update
-    setTimeout(() => {
-        window.open(url, '_blank');
-        setIsGeneratingImage(false);
-    }, 800);
+    setIsGenerating(false);
   };
 
   const handleCopyAll = () => {
@@ -1230,7 +1189,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           if (blob) {
               const file = new File([blob], `Signed_Adjustments_${selectedDate}.png`, { type: 'image/png' });
               
-              // Attempt Share - FIX: Casting navigator for missing definitions
+              // Attempt Share
               if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
                   try {
                       await (navigator as any).share({ files: [file], title: `Signed_Adjustments_${selectedDate}` });
@@ -1248,9 +1207,10 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                   link.click();
               }
           }
-      } catch (err: any) {
+      } catch (err: unknown) {
           console.error("Image generation failed", err);
-          alert("Failed to generate and share image. Please try again.");
+          const errMsg = err instanceof Error ? err.message : String(err);
+          alert(errMsg);
       } finally {
           setIsGeneratingImage(false);
       }
@@ -1489,7 +1449,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
              <button onClick={handleSaveAdjustments} title={t.saveAdjustments} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg></button>
             <button onClick={() => setIsImportExportOpen(true)} title="Import / Export" className="p-2 text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] transition-colors"><ImportExportIcon /></button>
             <input type="file" ref={fileInputRef} onChange={handleImportJson} accept=".json" className="hidden" />
-            <button onClick={() => setIsPrintPreviewOpen(true)} disabled={dailyAdjustments.length === 0} title={t.printViewAction} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg></button>
+            <button onClick={() => setIsPrintPreviewOpen(true)} disabled={dailyAdjustments.length === 0} title={t.printViewAction} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 00-2-2H5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg></button>
             <button onClick={handleCancelAlternativeTimetable} disabled={dailyAdjustments.length === 0 && absentTeacherIds.length === 0} title={t.cancelAlternativeTimetable} className="p-2 text-sm font-medium text-red-600 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
       </div>

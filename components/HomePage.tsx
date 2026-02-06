@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import type { Language, Page, TimetableSession, SchoolConfig, TimetableGridData, DownloadDesignConfig, DownloadDesigns } from '../types';
 import TimetableSessionModal from './TimetableSessionModal';
 import GlobalSearch from './GlobalSearch';
@@ -254,7 +254,7 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
                 }
             });
 
-            breaks.forEach(b => {
+            breaks.forEach((b) => {
                 if (b.beforePeriod <= maxPeriods + 1 && b.startTime && b.endTime) {
                     events.push({ name: b.name, startTime: parseTime(b.startTime)!, endTime: parseTime(b.endTime)!, type: 'break' });
                 }
@@ -355,7 +355,7 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
             const progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
             const remaining = end - now;
             const rHrs = Math.floor(remaining / (1000 * 60 * 60));
-            const rMins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+            const rMins = Math.floor((remaining % (1000 * 60 * 60)) / 1000 * 60);
             const rSecs = Math.floor((remaining % (1000 * 60)) / 1000);
             const hStr = rHrs > 0 ? `${rHrs}${t.hourAbbr} ` : '';
             const mStr = rHrs > 0 ? `${rMins}${t.minAbbr}` : `${rMins}${t.minAbbr} `;
@@ -456,12 +456,14 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
   const [isTeacherTimetablePreviewOpen, setIsTeacherTimetablePreviewOpen] = useState(false);
 
   const touchStartRef = useRef<number | null>(null);
+  const lastWheelTime = useRef<number>(0);
 
   const featuresSectionRef = useRef<HTMLDivElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const currentTimetableSession = timetableSessions.find(s => s.id === currentTimetableSessionId);
   const teachers = currentTimetableSession?.teachers || [];
   const classes = currentTimetableSession?.classes || [];
+  const subjects = currentTimetableSession?.subjects || [];
   const visibleClasses = useMemo(() => classes.filter(c => c.id !== 'non-teaching-duties'), [classes]);
 
   const teacherItems = useMemo(() => teachers.map(t => ({ id: t.id, label: <span>{t.nameEn} / <span className="font-urdu">{t.nameUr}</span></span> })), [teachers]);
@@ -550,6 +552,23 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
     if (diff > 50) nextCard(); else if (diff < -50) prevCard();
     touchStartRef.current = null;
   };
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    const now = Date.now();
+    if (now - lastWheelTime.current < 250) return;
+
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    
+    if (Math.abs(delta) > 15) {
+        if (delta > 0) {
+            nextCard();
+        } else {
+            prevCard();
+        }
+        lastWheelTime.current = now;
+    }
+  }, []);
+
   const scrollToFeatures = () => featuresSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   return (
@@ -630,7 +649,7 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
             <PrintPreview t={t} isOpen={isAttendanceReportPreviewOpen} onClose={() => setIsAttendanceReportPreviewOpen(false)} title={t.attendanceReport} fileNameBase={`Attendance_Report_${selectedWeekDate}`} generateHtml={(lang, design) => generateAttendanceReportHtml(t, lang, design, currentTimetableSession.classes, teachers, schoolConfig, selectedWeekDate, currentTimetableSession.adjustments, currentTimetableSession.leaveDetails || {}, currentTimetableSession.attendance || {})} onGenerateExcel={(lang) => generateAttendanceReportExcel(t, lang, currentTimetableSession.classes, teachers, selectedWeekDate, currentTimetableSession.adjustments, currentTimetableSession.leaveDetails || {}, currentTimetableSession.attendance || {})} designConfig={schoolConfig.downloadDesigns.attendance} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, attendance: newDesign }})} />
             
             <PrintPreview t={t} isOpen={isClassTimetablePreviewOpen} onClose={() => setIsClassTimetablePreviewOpen(false)} title={t.classTimetable} fileNameBase="Class_Timetables" generateHtml={(lang, options) => { const selectedClasses = visibleClasses.filter(c => selectedClassIdsForPrint.includes(c.id)); return (selectedClasses.map(c => generateClassTimetableHtml(c, lang, options, teachers, currentTimetableSession.subjects, schoolConfig)) as any).flat(); }} designConfig={schoolConfig.downloadDesigns.class} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, class: newDesign }})} />
-            <PrintPreview t={t} isOpen={isTeacherTimetablePreviewOpen} onClose={() => setIsTeacherTimetablePreviewOpen(false)} title={t.teacherTimetable} fileNameBase="Teacher_Timetables" generateHtml={(lang, options) => { const selectedTeachers = teachers.filter(t => selectedTeacherIdsForPrint.includes(t.id)); return (selectedTeachers.map(t => generateTeacherTimetableHtml(t, lang, options, classes, currentTimetableSession.subjects, schoolConfig, currentTimetableSession.adjustments, teachers)) as any).flat(); }} designConfig={schoolConfig.downloadDesigns.teacher} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, teacher: newDesign }})} />
+            <PrintPreview t={t} isOpen={isTeacherTimetablePreviewOpen} onClose={() => setIsTeacherTimetablePreviewOpen(false)} title={t.teacherTimetable} fileNameBase="Teacher_Timetables" generateHtml={(lang, options) => { const selectedTeachers = teachers.filter(t => selectedTeacherIdsForPrint.includes(t.id)); return (selectedTeachers.map(t => generateTeacherTimetableHtml(t, lang, options, classes, subjects, schoolConfig, currentTimetableSession.adjustments, teachers)) as any).flat(); }} designConfig={schoolConfig.downloadDesigns.teacher} onSaveDesign={(newDesign) => onUpdateSchoolConfig({ downloadDesigns: { ...schoolConfig.downloadDesigns, teacher: newDesign }})} />
         </>
       )}
       
@@ -667,7 +686,7 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                             <div key={session.id} className={`group p-6 rounded-[2rem] flex items-center justify-between transition-all duration-300 cursor-pointer ${session.id === currentTimetableSessionId ? 'bg-[var(--accent-secondary)] border-2 border-[var(--accent-primary)] shadow-2xl' : 'bg-[var(--bg-tertiary)] border-2 border-transparent hover:bg-[var(--bg-tertiary)]/80 hover:scale-[1.01]'}`} onClick={() => { setCurrentTimetableSessionId(session.id); setIsSelectSessionModalOpen(false); }}>
                                 <div className="flex items-center gap-6">
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg transition-transform group-hover:rotate-12 ${session.id === currentTimetableSessionId ? 'bg-[var(--accent-primary)] text-white' : 'bg-white dark:bg-black/20 text-[var(--text-secondary)]'}`}>
-                                        {session.name.charAt(0).toUpperCase()}
+                                        {(session.name || '?').charAt(0).toUpperCase()}
                                     </div>
                                     <div>
                                         <h4 className="font-black text-xl text-[var(--text-primary)] uppercase tracking-tight leading-none mb-2">{session.name}</h4>
@@ -695,13 +714,13 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
       )}
 
       <div className="min-h-screen flex flex-col overflow-x-hidden">
-        {/* ... (Header and DigitalClock logic unchanged) ... */}
+        {/* Header */}
         <header className="fixed top-0 left-0 right-0 z-40 bg-transparent border-none shadow-none transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none opacity-50"></div>
           <div className="container mx-auto px-4 py-3 flex justify-between items-center relative z-10">
             <div className="flex items-center gap-3">
                {schoolConfig.schoolLogoBase64 && <img src={schoolConfig.schoolLogoBase64} alt="School Logo" className="h-10 w-10 object-contain rounded-full shadow-lg border-2 border-white/20" />}
-               <div className="flex flex-col justify-center"><span className="text-2xl font-black text-gray-900 dark:text-white leading-none tracking-tighter">Mr. TMS</span><span className="text-[0.6rem] font-black text-indigo-500 uppercase tracking-widest leading-none mt-1">Timetable Management System</span></div>
+               <div className="flex flex-col justify-center"><span className="text-2xl font-black text-gray-900 dark:text-white leading-none tracking-tighter">Mr. Timetable</span><span className="text-[0.6rem] font-black text-indigo-500 uppercase tracking-widest leading-none mt-1">Timetable Management System</span></div>
             </div>
             <div className="flex items-center gap-3">
                 {currentTimetableSession && (
@@ -721,7 +740,7 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
             <div className="w-full animate-scale-in max-w-7xl relative flex flex-col items-center">
                 <DigitalClock language={language} schoolConfig={schoolConfig} t={t} />
                 
-                {/* ... (Active Session Card logic unchanged) ... */}
+                {/* Active Session Card */}
                 {currentTimetableSession ? (
                     <div className="mb-12 relative group max-w-3xl mx-auto w-full px-4">
                         <div 
@@ -741,7 +760,7 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                                     {t.selectActiveTimetable}
                                 </div>
                                 <h2 className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tighter leading-tight drop-shadow-[0_2px_8px_rgba(255,255,255,0.9)] dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)] group-hover/card:scale-105 transition-transform duration-500">
-                                  {currentTimetableSession.name}
+                                  {currentTimetableSession.name || 'Untitled Session'}
                                 </h2>
                                 <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 text-[9px] sm:text-base font-black text-gray-700 dark:text-gray-200 uppercase tracking-[0.15em]">
                                     <div className="px-3 py-1.5 rounded-xl bg-white/40 dark:bg-black/20 border border-white/60 shadow-sm backdrop-blur-md transition-all duration-300 hover:bg-white/60 dark:hover:bg-black/40">
@@ -785,7 +804,10 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                 >
-                    <div className="relative w-full max-w-[200px] sm:max-w-[240px] h-[300px] sm:h-[350px] mb-12 flex items-center justify-center deck-container">
+                    <div 
+                        className="relative w-full max-w-[200px] sm:max-w-[240px] h-[300px] sm:h-[350px] mb-12 flex items-center justify-center deck-container"
+                        onWheel={handleWheel}
+                    >
                         {navigationModules.map((module, idx) => (
                             <FeatureCard 
                                 key={module.id}

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { Page } from '../types';
-import type { NavPosition, NavDesign, NavShape } from '../App';
+import type { NavPosition, NavDesign, NavShape } from '../types';
 
 interface BottomNavBarProps {
   t: any;

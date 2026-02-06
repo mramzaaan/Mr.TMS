@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import type { Language, Page, SchoolClass, Subject, Teacher, TimetableGridData, Adjustment, TimetableSession, UserData, SchoolConfig, DataEntryTab, Period, DownloadDesignConfig, DownloadDesigns, GroupSet, JointPeriod, LeaveDetails, PeriodTime, Break, AttendanceData } from './types';
+import type { Language, Page, SchoolClass, Subject, Teacher, TimetableGridData, Adjustment, TimetableSession, UserData, SchoolConfig, DataEntryTab, Period, DownloadDesignConfig, DownloadDesigns, GroupSet, JointPeriod, LeaveDetails, PeriodTime, Break, AttendanceData, NavPosition, NavDesign, NavShape } from './types';
 import { translations } from './i18n';
 import HomePage from './components/HomePage';
 import DataEntryPage from './components/DataEntryPage';
@@ -15,20 +15,13 @@ import TopNavBar from './components/TopNavBar';
 import GlobalSearch from './components/GlobalSearch';
 import SchoolInfoModal from './components/SchoolInfoModal';
 
-export type Theme = 'light' | 'dark' | 'contrast' | 'mint' | 'ocean' | 'sunset' | 'rose' | 'amoled';
-export type NavPosition = 'top' | 'bottom';
-export type NavDesign = 'classic' | 'modern' | 'minimal' | '3d' | 'gradient' | 'outline' | 'crystal' | 'soft' | 'transparent';
-export type NavShape = 'square' | 'pill' | 'circle' | 'leaf' | 'squircle' | 'diamond' | 'arch' | 'shield' | 'petal';
+export type Theme = 'light' | 'dark' | 'mint' | 'amoled';
 
 // Great Theme Presets
 const THEME_PRESETS: Record<Theme, { bgPrimary: string, bgSecondary: string, textPrimary: string, accentPrimary: string }> = {
     light: { bgPrimary: '#f8fafc', bgSecondary: '#ffffff', textPrimary: '#0f172a', accentPrimary: '#6366f1' }, // Indigo
     dark: { bgPrimary: '#0f172a', bgSecondary: '#1e293b', textPrimary: '#f8fafc', accentPrimary: '#8b5cf6' }, // Violet
-    contrast: { bgPrimary: '#ffffff', bgSecondary: '#f3f4f6', textPrimary: '#000000', accentPrimary: '#000000' }, // High Contrast
     mint: { bgPrimary: '#f0fdfa', bgSecondary: '#ffffff', textPrimary: '#042f2e', accentPrimary: '#0d9488' }, // Teal
-    ocean: { bgPrimary: '#f0f9ff', bgSecondary: '#ffffff', textPrimary: '#082f49', accentPrimary: '#0284c7' }, // Sky
-    sunset: { bgPrimary: '#fff7ed', bgSecondary: '#ffedd5', textPrimary: '#431407', accentPrimary: '#ea580c' }, // Orange (Upgraded Surface)
-    rose: { bgPrimary: '#fff1f2', bgSecondary: '#ffffff', textPrimary: '#881337', accentPrimary: '#e11d48' }, // Rose
     amoled: { bgPrimary: '#000000', bgSecondary: '#121212', textPrimary: '#ffffff', accentPrimary: '#22d3ee' }, // Cyan
 };
 
@@ -129,8 +122,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ t, isOpen, onClos
 const App: React.FC = () => {
     const [theme, setTheme] = useState<Theme>(() => {
         let savedTheme = localStorage.getItem('mrtimetable_theme') as any;
-        if (savedTheme === 'high-contrast') savedTheme = 'contrast';
+        if (savedTheme === 'high-contrast') savedTheme = 'light'; // Fallback
         if (savedTheme === 'custom') savedTheme = 'light'; 
+        if (!['light', 'dark', 'mint', 'amoled'].includes(savedTheme)) savedTheme = 'light';
         return (savedTheme as Theme) || 'light';
     });
     
@@ -161,7 +155,7 @@ const App: React.FC = () => {
 
     const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('mrtimetable_language') as Language) || 'en');
     const [navPosition, setNavPosition] = useState<NavPosition>(() => (localStorage.getItem('mrtimetable_navPosition') as NavPosition) || 'bottom');
-    const [navDesign, setNavDesign] = useState<NavDesign>(() => (localStorage.getItem('mrtimetable_navDesign') as NavDesign) || 'classic');
+    const [navDesign, setNavDesign] = useState<NavDesign>(() => (localStorage.getItem('mrtimetable_navDesign') as NavDesign) || 'modern');
     const [navShape, setNavShape] = useState<NavShape>(() => (localStorage.getItem('mrtimetable_navShape') as NavShape) || 'squircle');
     const [navShowLabels, setNavShowLabels] = useState<boolean>(() => { const saved = localStorage.getItem('mrtimetable_navShowLabels'); return saved !== null ? JSON.parse(saved) : false; });
     
@@ -421,7 +415,7 @@ const App: React.FC = () => {
                 {currentPage !== 'home' && (
                     <TopNavBar t={t} currentPage={currentPage} setCurrentPage={setCurrentPage} schoolConfig={effectiveSchoolConfig} />
                 )}
-                <main className={`${currentPage === 'home' ? '!pt-0' : (navPosition === 'top' ? 'pt-24 xl:pt-6' : 'pt-6 xl:pt-6')}`}>
+                <main className={`${currentPage === 'home' ? '!pt-0' : (navPosition === 'top' ? 'pt-24 xl:pt-28' : 'pt-6 xl:pt-28')}`}>
                     {renderPage()}
                 </main>
                 

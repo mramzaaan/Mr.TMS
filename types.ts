@@ -3,6 +3,10 @@ export type Language = 'en' | 'ur';
 export type Page = 'home' | 'classTimetable' | 'teacherTimetable' | 'alternativeTimetable' | 'attendance' | 'dataEntry' | 'settings';
 export type DataEntryTab = 'class' | 'teacher' | 'subject' | 'jointPeriods' | 'structure' | 'lesson' | 'importExport' | 'school';
 
+export type NavPosition = 'top' | 'bottom';
+export type NavDesign = 'modern' | 'classic' | 'minimal' | '3d' | 'gradient' | 'outline' | 'crystal' | 'soft' | 'transparent';
+export type NavShape = 'circle' | 'pill' | 'leaf' | 'squircle' | 'diamond' | 'arch' | 'shield' | 'petal' | 'square';
+
 export interface Subject {
   id: string;
   nameEn: string;
@@ -251,6 +255,7 @@ export interface DownloadDesignConfig {
         triangleCorner?: TriangleCorner;
         outlineWidth?: number;
         mergeIdenticalPeriods?: boolean;
+        badgeTarget?: 'subject' | 'teacher' | 'class'; // For badge style configuration
     };
     footer: {
         show: boolean;
