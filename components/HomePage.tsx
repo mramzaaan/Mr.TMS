@@ -187,7 +187,6 @@ const FeatureCard: React.FC<{
     </button>
 );
 
-// ... (DigitalClock and other components remain the same) ...
 interface CurrentEvent {
     name: string;
     startTime: Date;
@@ -205,7 +204,6 @@ interface SchoolDayStatus {
 }
 
 const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, t: any }> = ({ language, schoolConfig, t }) => {
-    // ... (Clock logic remains same)
     const [time, setTime] = useState(new Date());
     const [status, setStatus] = useState<SchoolDayStatus>({ state: 'closed', currentEvent: null, nextEvent: null, schoolStartTime: null, schoolEndTime: null });
 
@@ -347,27 +345,46 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
             };
         }
 
-        if (state === 'active' && currentEvent) {
-            const start = currentEvent.startTime.getTime();
-            const end = currentEvent.endTime.getTime();
-            const total = end - start;
-            const elapsed = now - start;
-            const progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
-            const remaining = end - now;
-            const rHrs = Math.floor(remaining / (1000 * 60 * 60));
-            const rMins = Math.floor((remaining % (1000 * 60 * 60)) / 1000 * 60);
-            const rSecs = Math.floor((remaining % (1000 * 60)) / 1000);
-            const hStr = rHrs > 0 ? `${rHrs}${t.hourAbbr} ` : '';
-            const mStr = rHrs > 0 ? `${rMins}${t.minAbbr}` : `${rMins}${t.minAbbr} `;
-            const sStr = rHrs === 0 ? `${rSecs}${t.secAbbr}` : '';
-            const badge = language === 'ur' ? `${hStr}${mStr}${sStr} ${t.inTime}` : `${t.inTime} ${hStr}${mStr}${sStr}`;
-            return {
-                title: currentEvent.name,
-                badge: badge,
-                left: `${currentEvent.startTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})} - ${currentEvent.endTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}`,
-                right: nextEvent ? `${t.next}: ${nextEvent.name}` : t.nextHome,
-                progress: progress,
-            };
+        if (state === 'active') {
+             if (currentEvent) {
+                const start = currentEvent.startTime.getTime();
+                const end = currentEvent.endTime.getTime();
+                const total = end - start;
+                const elapsed = now - start;
+                const progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                const remaining = end - now;
+                const rHrs = Math.floor(remaining / (1000 * 60 * 60));
+                const rMins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                const rSecs = Math.floor((remaining % (1000 * 60)) / 1000);
+                const hStr = rHrs > 0 ? `${rHrs}${t.hourAbbr} ` : '';
+                const mStr = rHrs > 0 ? `${rMins}${t.minAbbr}` : `${rMins}${t.minAbbr} `;
+                const sStr = rHrs === 0 ? `${rSecs}${t.secAbbr}` : '';
+                const badge = language === 'ur' ? `${hStr}${mStr}${sStr} ${t.inTime}` : `${t.inTime} ${hStr}${mStr}${sStr}`;
+                return {
+                    title: currentEvent.name,
+                    badge: badge,
+                    left: `${currentEvent.startTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})} - ${currentEvent.endTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}`,
+                    right: nextEvent ? `${t.next}: ${nextEvent.name}` : t.nextHome,
+                    progress: progress,
+                };
+             } else if (nextEvent) {
+                 const diff = nextEvent.startTime.getTime() - now;
+                 const rHrs = Math.floor(diff / (1000 * 60 * 60));
+                 const rMins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                 const rSecs = Math.floor((diff % (1000 * 60)) / 1000);
+                 const hStr = rHrs > 0 ? `${rHrs}${t.hourAbbr} ` : '';
+                 const mStr = rHrs > 0 ? `${rMins}${t.minAbbr}` : `${rMins}${t.minAbbr} `;
+                 const sStr = rHrs === 0 ? `${rSecs}${t.secAbbr}` : '';
+                 const badge = language === 'ur' ? `${hStr}${mStr}${sStr} ${t.inTime}` : `${t.inTime} ${hStr}${mStr}${sStr}`;
+
+                 return {
+                     title: `${t.next}: ${nextEvent.name}`,
+                     badge: badge,
+                     left: `${t.starts} ${nextEvent.startTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}`,
+                     right: '',
+                     progress: 0 
+                 };
+             }
         }
 
         if (state === 'post-school') {

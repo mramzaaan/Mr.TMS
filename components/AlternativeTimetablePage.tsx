@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { Language, SchoolClass, Subject, Teacher, TimetableGridData, Adjustment, SchoolConfig, Period, LeaveDetails, DownloadDesignConfig, TimetableSession } from '../types';
 import PrintPreview from './PrintPreview';
@@ -23,7 +24,7 @@ const DoubleBookedWarningIcon = () => (
     </svg>
 );
 const WhatsAppIcon: React.FC = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.905 6.03l-.419 1.533 1.519-.4zM15.53 17.53c-.07-.121-.267-.202-.56-.347-.297-.146-1.758-.868-2.031-.967-.272-.099-.47-.146-.669.146-.199.293-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.15-1.255-.463-2.39-1.475-1.134-1.012-1.31-1.36-1.899-2.258-.151-.231-.04-.355.043-.463.083-.107.185-.293.28-.439.095-.146.12-.245.18-.41.06-.164.03-.311-.015-.438-.046-.127-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.177-.008-.375-.01-1.04-.01h-.11c-.307.003-1.348-.043-1.348 1.438 0 1.482.791 2.906 1.439 3.82.648.913 2.51 3.96 6.12 5.368 3.61 1.408 3.61 1.054 4.258 1.034.648-.02 1.758-.715 2.006-1.413.248-.698.248-1.289.173-1.413z" />
     </svg>
 );
@@ -47,6 +48,8 @@ const ShareIcon = () => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
     </svg>
 );
+const RefreshIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
+const ChatBubbleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 
 const SignatureModal: React.FC<{
     t: any;
@@ -778,7 +781,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     const link = document.createElement("a"); 
     link.href = url; 
     const dateRangeStr = exportStartDate === exportEndDate ? exportStartDate : `${exportStartDate}_to_${exportEndDate}`; 
-    link.download = `mr_timetable_data_${dateRangeStr}.json`; 
+    link.download = `mr_timetable_adjustments_${dateRangeStr}.json`; 
     document.body.appendChild(link); 
     link.click(); 
     document.body.removeChild(link); 
@@ -791,69 +794,33 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
     file.text().then((result: string) => {
         try {
             const imported: any[] = JSON.parse(result);
+            if (!Array.isArray(imported)) throw new Error("Invalid format: expected array");
+
             onUpdateSession((session) => {
                 const newAdjustments = { ...session.adjustments };
-                const newLeaveDetails: Record<string, Record<string, LeaveDetails>> = { ...(session.leaveDetails || {}) };
-                const isNewFormat = imported.length > 0 && (imported[0].adjustments !== undefined || imported[0].leaveDetails !== undefined);
+                const newLeaveDetails = { ...(session.leaveDetails || {}) };
                 
-                if (isNewFormat) {
-                    imported.forEach(dayData => {
-                        const { date, adjustments: dayAdjs, leaveDetails: dayLeaves } = dayData;
-                        if (date && typeof date === 'string') {
-                            if (Array.isArray(dayAdjs)) {
-                                newAdjustments[date] = dayAdjs.map((adj: any) => ({ ...adj, id: generateUniqueId() }));
-                            }
-                            if (dayLeaves && typeof dayLeaves === 'object') {
-                                newLeaveDetails[date] = dayLeaves;
-                            }
+                imported.forEach(dayData => {
+                    const { date, adjustments: dayAdjs, leaveDetails: dayLeaves } = dayData;
+                    if (date && typeof date === 'string') {
+                        if (Array.isArray(dayAdjs)) {
+                            // Ensure IDs are unique or preserve them? Better to regenerate IDs to avoid collisions if merging, but these are adjustments.
+                            newAdjustments[date] = dayAdjs.map((adj: any) => ({ ...adj, id: generateUniqueId() }));
                         }
-                    });
-                    alert("Data imported successfully (Leaves & Adjustments).");
-                } else {
-                    const isMultiDate = imported.some(item => item.date);
-                    if (isMultiDate) {
-                        const grouped: Record<string, Adjustment[]> = imported.reduce((acc: Record<string, Adjustment[]>, item: any) => {
-                            const date = String(item.date);
-                            if (item.date) {
-                                if (!acc[date]) acc[date] = [];
-                                const { date: _, ...adj } = item;
-                                acc[date].push({ ...adj, id: generateUniqueId() });
-                            }
-                            return acc;
-                        }, {});
-                        Object.entries(grouped).forEach(([date, adjs]) => {
-                            newAdjustments[date] = adjs;
-                            const importedTeacherIds = [...new Set(adjs.map(adj => adj.originalTeacherId))];
-                            if (importedTeacherIds.length > 0) {
-                                const dayLeaves = newLeaveDetails[date] || {};
-                                importedTeacherIds.forEach((id: string) => {
-                                    if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
-                                });
-                                newLeaveDetails[date] = dayLeaves;
-                            }
-                        });
-                    } else {
-                        const validDay = dayOfWeek || 'Monday';
-                        const transformed = imported.map(adj => ({ ...adj, id: generateUniqueId(), day: validDay as keyof TimetableGridData }));
-                        newAdjustments[selectedDate] = transformed;
-                        const importedTeacherIds = [...new Set(transformed.map((adj: any) => String(adj.originalTeacherId)))];
-                        if (importedTeacherIds.length > 0) {
-                            const dayLeaves = newLeaveDetails[selectedDate] || {};
-                            importedTeacherIds.forEach((id: string) => {
-                                if (!dayLeaves[id]) dayLeaves[id] = { leaveType: 'full', startPeriod: 1 };
-                            });
-                            newLeaveDetails[selectedDate] = dayLeaves;
+                        if (dayLeaves && typeof dayLeaves === 'object') {
+                            newLeaveDetails[date] = dayLeaves;
                         }
                     }
-                    alert("Legacy adjustments imported.");
-                }
+                });
                 return { ...session, adjustments: newAdjustments, leaveDetails: newLeaveDetails };
             });
+            
+            alert("Data imported successfully.");
             setIsImportExportOpen(false);
-        } catch (error: any) { 
+        } catch (error: any) {
             console.error(error);
             const errorMessage = error instanceof Error ? error.message : String(error);
-            alert(errorMessage);
+            alert("Failed to import: " + errorMessage);
         }
     }).catch((err: any) => { 
         console.error("File read error:", err);
@@ -1009,88 +976,117 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
       }
   };
 
-  const handleSendImageAsPicture = async () => {
-    window.focus(); 
-    setIsGenerating(true);
+  const handleWhatsAppNotify = async (adjustment: Adjustment) => {
+      const substitute = teachers.find(t => t.id === adjustment.substituteTeacherId);
+      const originalTeacher = teachers.find(t => t.id === adjustment.originalTeacherId);
+      const schoolClass = classes.find(c => c.id === adjustment.classId);
+      const subject = subjects.find(s => s.id === adjustment.subjectId);
+      
+      if (!substitute || !originalTeacher || !schoolClass || !subject) {
+          alert("Missing data for substitution slip.");
+          return;
+      }
 
-    const blob = await generateAndGetBlob();
-    if (!blob) {
-        alert("Failed to generate image.");
-        setIsGenerating(false);
-        return;
-    }
+      if (!substitute.contactNumber) {
+          alert("Teacher has no contact number.");
+          return;
+      }
 
-    const file = new File([blob], `timetable_${selectedClass.nameEn.replace(/\s/g, '_')}.png`, { type: 'image/png' });
+      setIsGeneratingImage(true);
 
-    if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
-        try {
-            await (navigator as any).share({
-                files: [file],
-                title: 'Timetable',
-            });
-            setIsGenerating(false);
-            return;
-        } catch (error) {
-            console.log("Share cancelled or failed, falling back to download.");
-        }
-    }
+      const startTime = getPeriodStartTime(adjustment.periodIndex);
+      const timeStr = formatTime(startTime);
+      
+      let conflictClassName = '';
+      if (adjustment.conflictDetails) {
+          conflictClassName = messageLanguage === 'ur' ? adjustment.conflictDetails.classNameUr : adjustment.conflictDetails.classNameEn;
+      }
 
-    const dataUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(dataUrl);
-    
-    setIsGenerating(false);
-  };
+      const blob = await generateSubstitutionSlip(
+          adjustment,
+          substitute,
+          originalTeacher,
+          schoolClass,
+          subject,
+          timeStr,
+          conflictClassName
+      );
 
-  const handleSendWhatsApp = async () => {
-    if (!inChargeTeacher?.contactNumber) {
-        alert("In-charge teacher's contact number not found.");
-        return;
-    }
+      if (blob) {
+          // 1. Copy Image to Clipboard
+          try {
+              if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
+                  const item = new ClipboardItem({ [blob.type]: blob });
+                  await navigator.clipboard.write([item]);
+                  
+                  // Show a toast or notification
+                  const toast = document.createElement('div');
+                  toast.textContent = "Image Copied! Paste in WhatsApp.";
+                  toast.style.cssText = "position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 10px 20px; border-radius: 50px; z-index: 9999; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); pointer-events: none; transition: opacity 0.5s ease-in-out;";
+                  document.body.appendChild(toast);
+                  setTimeout(() => { 
+                      toast.style.opacity = '0';
+                      setTimeout(() => document.body.removeChild(toast), 500); 
+                  }, 3000);
+              } else {
+                  throw new Error("Clipboard API unavailable");
+              }
+          } catch (e) {
+              console.warn("Clipboard failed, attempting download as fallback", e);
+              // Fallback: Download Image
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `substitution_${substitute.nameEn.replace(/\s/g, '_')}.png`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              alert("Could not copy image automatically. Image downloaded. Please attach manually in WhatsApp.");
+          }
 
-    setIsGenerating(true);
-    const blob = await generateAndGetBlob();
+          // 2. Prepare Text Message
+          const dateObj = new Date(selectedDate);
+          const locale = messageLanguage === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB';
+          const dateStr = dateObj.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+          const dayOfWeekStr = dateObj.toLocaleDateString(locale, { weekday: 'long' });
+          
+          const msgT = translations[messageLanguage];
+          const respectfulName = getRespectfulName(substitute, messageLanguage);
+          
+          let messageTemplate = msgT.notificationTemplateDefault;
+          if (adjustment.conflictDetails) {
+             messageTemplate = msgT.substituteNotificationMessageDoubleBook;
+          }
 
-    if (blob) {
-        let copied = false;
-        try {
-            if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
-                 await navigator.clipboard.write([new ClipboardItem({[blob.type]: blob})]);
-                 copied = true;
-            }
-        } catch (clipboardError) {
-            console.warn("Clipboard write failed", clipboardError);
-        }
+          const className = messageLanguage === 'ur' ? schoolClass.nameUr : schoolClass.nameEn;
+          const subjectName = messageLanguage === 'ur' ? subject.nameUr : subject.nameEn;
+          const originalName = messageLanguage === 'ur' ? originalTeacher.nameUr : originalTeacher.nameEn;
 
-        if (!copied) {
-             const dataUrl = URL.createObjectURL(blob);
-             const link = document.createElement('a');
-             link.href = dataUrl;
-             link.download = `timetable_${selectedClass.nameEn.replace(/\s/g, '_')}.png`;
-             document.body.appendChild(link);
-             link.click();
-             document.body.removeChild(link);
-             URL.revokeObjectURL(dataUrl);
-             alert("Could not copy to clipboard. Image downloaded. Please attach manually in WhatsApp.");
-        }
+          const message = messageTemplate
+              .replace('{teacherName}', respectfulName)
+              .replace('{date}', dateStr)
+              .replace('{dayOfWeek}', dayOfWeekStr)
+              .replace('{period}', (adjustment.periodIndex + 1).toString())
+              .replace('{time}', timeStr)
+              .replace('{className}', className)
+              .replace('{subjectName}', subjectName)
+              .replace('{roomNumber}', schoolClass.roomNumber || '-')
+              .replace('{originalTeacherName}', originalName)
+              .replace('{conflictClassName}', conflictClassName);
 
-        let phoneNumber = inChargeTeacher.contactNumber.replace(/\D/g, '');
-        if (phoneNumber.startsWith('0')) phoneNumber = '92' + phoneNumber.substring(1);
-        const url = `https://wa.me/${phoneNumber}`;
-        
-        setTimeout(() => {
-             window.open(url, '_blank');
-        }, 500);
-    } else {
-        alert("Failed to generate image.");
-    }
+          let phoneNumber = substitute.contactNumber.replace(/\D/g, '');
+          if (phoneNumber.startsWith('0')) phoneNumber = '92' + phoneNumber.substring(1);
+          
+          // 3. Open WhatsApp
+          setTimeout(() => {
+              window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
+          }, 500);
 
-    setIsGenerating(false);
+      } else {
+          alert("Failed to generate image.");
+      }
+      setIsGeneratingImage(false);
   };
 
   const handleCopyAll = () => {
@@ -1193,9 +1189,9 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
               if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
                   try {
                       await (navigator as any).share({ files: [file], title: `Signed_Adjustments_${selectedDate}` });
-                  } catch (error: any) {
+                  } catch (error: unknown) {
                       // Silently handle cancellation
-                      if (error?.name !== 'AbortError') {
+                      if ((error as any)?.name !== 'AbortError') {
                           throw error;
                       }
                   }
@@ -1209,7 +1205,12 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           }
       } catch (err: unknown) {
           console.error("Image generation failed", err);
-          const errMsg = err instanceof Error ? err.message : String(err);
+          let errMsg: string;
+          if (err instanceof Error) {
+              errMsg = err.message;
+          } else {
+              errMsg = String(err);
+          }
           alert(errMsg);
       } finally {
           setIsGeneratingImage(false);

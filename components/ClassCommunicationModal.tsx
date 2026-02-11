@@ -378,15 +378,14 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
           .period-subject { 
             display: block;
             font-weight: 900; 
-            font-size: 36px;
+            font-size: 22px;
             text-transform: none; 
             line-height: 1.1;
             text-align: left; 
             margin: 0;
             color: inherit;
-            white-space: nowrap;
+            white-space: normal;
             overflow: hidden;
-            text-overflow: ellipsis;
             width: 100%;
             padding-left: 2px;
           }
@@ -394,11 +393,10 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             display: block;
             font-weight: 800; 
             opacity: 0.95; 
-            font-size: 28px;
+            font-size: 16px;
             line-height: 1.1;
-            white-space: nowrap; 
+            white-space: normal; 
             overflow: hidden; 
-            text-overflow: ellipsis; 
             text-align: right; 
             align-self: flex-end;
             margin-top: auto;
@@ -472,38 +470,52 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
               // @ts-ignore
               const slot = selectedClass.timetable[day]?.[r] || [];
               if (slot.length > 0) {
-                  const sortedPeriods = [...slot].sort((a, b) => a.subjectId.localeCompare(b.subjectId));
+                  // Sort to ensure consistent order
+                  const sortedPeriods = [...slot].sort((a, b) => {
+                      const subA = subjects.find(s => s.id === a.subjectId);
+                      const subB = subjects.find(s => s.id === b.subjectId);
+                      return (subA?.nameEn || '').localeCompare(subB?.nameEn || '');
+                  });
+
                   const key = sortedPeriods.map(p => `${p.subjectId}:${p.teacherId}`).join('|');
                   
-                  const cardsContent = sortedPeriods.map(p => {
+                  // Aggregate data for merged card
+                  const subjectNames = sortedPeriods.map(p => {
                       const sub = subjects.find(s => s.id === p.subjectId);
+                      return abbreviateName(sub?.nameEn);
+                  }).join(' / ');
+
+                  const teacherNames = sortedPeriods.map(p => {
                       const tea = teachers.find(t => t.id === p.teacherId);
-                      const colorName = subjectColorMap.get(p.teacherId) || 'subject-default';
-                      const triangleHtml = (cardStyle === 'triangle' || cardStyle === 'full') ? `<div class="card-triangle"></div>` : '';
-                      
-                      let subjectBadgeStyle = '';
-                      let teacherBadgeStyle = '';
-                      if (cardStyle === 'badge') {
-                          // Badge style matches image: Full width colored bar at bottom, white text
-                          const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 4px 8px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0;`;
-                          
-                          if (badgeTarget === 'teacher') {
-                             teacherBadgeStyle = badgeCss;
-                          } else {
-                             subjectBadgeStyle = badgeCss;
-                          }
+                      return abbreviateName(tea?.nameEn);
+                  }).join(' / ');
+
+                  // Use color of the first period's teacher
+                  const firstPeriod = sortedPeriods[0];
+                  const colorName = subjectColorMap.get(firstPeriod.teacherId) || 'subject-default';
+
+                  const triangleHtml = (cardStyle === 'triangle' || cardStyle === 'full') ? `<div class="card-triangle"></div>` : '';
+                  
+                  let subjectBadgeStyle = '';
+                  let teacherBadgeStyle = '';
+                  if (cardStyle === 'badge') {
+                      const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 2px 8px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
+                      if (badgeTarget === 'teacher') {
+                         teacherBadgeStyle = badgeCss;
+                      } else {
+                         subjectBadgeStyle = badgeCss;
                       }
-                      
-                      return `
-                          <div class="period-card-img ${colorName}">
-                              ${triangleHtml}
-                              <div class="period-content-spread">
-                                  <p class="period-subject" style="${subjectBadgeStyle}">${sub?.nameEn || ''}</p>
-                                  <p class="period-teacher" style="${teacherBadgeStyle}">${abbreviateName(tea?.nameEn)}</p>
-                              </div>
+                  }
+                  
+                  const cardsContent = `
+                      <div class="period-card-img ${colorName}">
+                          ${triangleHtml}
+                          <div class="period-content-spread">
+                              <p class="period-subject" style="${subjectBadgeStyle}">${subjectNames}</p>
+                              <p class="period-teacher" style="${teacherBadgeStyle}">${teacherNames}</p>
                           </div>
-                      `;
-                  }).join('');
+                      </div>
+                  `;
                   
                   grid[r][c] = { html: `<div class="card-wrapper">${cardsContent}</div>`, key };
               }

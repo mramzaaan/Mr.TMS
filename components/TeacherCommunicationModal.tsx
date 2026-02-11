@@ -80,6 +80,39 @@ const formatTime12 = (time24: string | undefined) => {
     return `${h12}:${m.toString().padStart(2, '0')}`;
 };
 
+// Helper to format class list like "10th A, B"
+const formatClassList = (classIds: string[], classes: SchoolClass[]) => {
+    const relevantClasses = classIds.map(id => classes.find(c => c.id === id)).filter(Boolean) as SchoolClass[];
+    // Sort by serial or name
+    relevantClasses.sort((a, b) => (a.serialNumber ?? 9999) - (b.serialNumber ?? 9999) || a.nameEn.localeCompare(b.nameEn));
+    
+    const groups = new Map<string, string[]>();
+    const singles: string[] = [];
+
+    relevantClasses.forEach(c => {
+        const name = c.nameEn;
+        const lastSpace = name.lastIndexOf(' ');
+        if (lastSpace > 0) {
+            const prefix = name.substring(0, lastSpace);
+            const suffix = name.substring(lastSpace + 1);
+            if (!groups.has(prefix)) groups.set(prefix, []);
+            groups.get(prefix)!.push(suffix);
+        } else {
+            singles.push(name);
+        }
+    });
+
+    const parts: string[] = [];
+    groups.forEach((suffixes, prefix) => {
+        // Sort suffixes (A, B, C)
+        suffixes.sort();
+        parts.push(`${prefix} ${suffixes.join(', ')}`);
+    });
+    parts.push(...singles);
+    
+    return parts.join(' & ');
+};
+
 const XIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -127,9 +160,20 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
   const workload = useMemo(() => {
     let count = 0;
     activeDays.forEach(day => {
+      // Need to count groups, not just periods if they are joint
+      const processedJointIds = new Set<string>();
       teacherTimetableData[day]?.forEach(slot => {
         if (slot && slot.length > 0) {
-          count++;
+            slot.forEach(p => {
+                if (p.jointPeriodId) {
+                    if (!processedJointIds.has(p.jointPeriodId)) {
+                        processedJointIds.add(p.jointPeriodId);
+                        count++;
+                    }
+                } else {
+                    count++;
+                }
+            });
         }
       });
     });
@@ -453,8 +497,8 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
                   opacity: ${cardStyle === 'full' ? 0.3 : 1.0};
               }
               ${cardStyle === 'badge' ? `
-                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
-                  .${name} .period-class { ${badgeTarget === 'class' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
+                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 8px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
+                  .${name} .period-class { ${badgeTarget === 'class' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 8px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
               ` : ''}
           `).join('\n')}
 
@@ -482,20 +526,45 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
               const day = activeDays[c];
               const slot = teacherTimetableData[day]?.[r] || [];
               if (slot.length > 0) {
-                  const sortedPeriods = [...slot].sort((a, b) => a.subjectId.localeCompare(b.subjectId));
-                  const key = sortedPeriods.map(p => `${p.subjectId}:${p.classId}`).join('|');
+                  // Group periods by jointPeriodId or SubjectID to combine classes
+                  const groupedPeriods = new Map<string, { subjectId: string, classIds: Set<string>, firstPeriod: Period }>();
+
+                  slot.forEach(p => {
+                      // If it's a joint period, use that as key to merge. 
+                      // If it's a regular subject, merge by subjectId (assuming same subject in same slot = combined class).
+                      const groupKey = p.jointPeriodId ? `JP-${p.jointPeriodId}` : `SUB-${p.subjectId}`;
+                      
+                      if (!groupedPeriods.has(groupKey)) {
+                          groupedPeriods.set(groupKey, {
+                              subjectId: p.subjectId,
+                              classIds: new Set(),
+                              firstPeriod: p
+                          });
+                      }
+                      groupedPeriods.get(groupKey)!.classIds.add(p.classId);
+                  });
+
+                  // Convert map to array and sort
+                  const sortedGroups = Array.from(groupedPeriods.values()).sort((a, b) => a.subjectId.localeCompare(b.subjectId));
                   
-                  const cardsContent = sortedPeriods.map(p => {
-                      const sub = subjects.find(s => s.id === p.subjectId);
-                      const cls = classes.find(c => c.id === p.classId);
-                      const colorKey = `${p.classId}-${p.subjectId}`;
+                  // Generate Key for merging cells
+                  const key = sortedGroups.map(g => `${g.subjectId}:${Array.from(g.classIds).sort().join(',')}`).join('|');
+                  
+                  const cardsContent = sortedGroups.map(group => {
+                      const sub = subjects.find(s => s.id === group.subjectId);
+                      
+                      // Combine Class Names
+                      const combinedClassName = formatClassList(Array.from(group.classIds), classes);
+                      
+                      // Color based on the first period (usually consistent for the subject)
+                      const colorKey = `${group.firstPeriod.classId}-${group.firstPeriod.subjectId}`;
                       const colorName = subjectColorMap.get(colorKey) || 'subject-default';
+                      
                       const triangleHtml = (cardStyle === 'triangle' || cardStyle === 'full') ? `<div class="card-triangle"></div>` : '';
                       
                       let subjectBadgeStyle = '';
-                      let classBadgeStyle = ''; // Replaced teacherBadgeStyle in logic for teacher timetable
+                      let classBadgeStyle = ''; 
                       if (cardStyle === 'badge') {
-                          // Badge style matches image: Full width colored bar at bottom, white text
                           const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 4px 8px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0;`;
                           
                           if (badgeTarget === 'class') {
@@ -509,7 +578,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
                           <div class="period-card-img ${colorName}">
                               ${triangleHtml}
                               <div class="period-content-spread">
-                                <p class="period-class" style="${classBadgeStyle}">${cls?.nameEn || ''}</p>
+                                <p class="period-class" style="${classBadgeStyle}">${combinedClassName}</p>
                                 <p class="period-subject" style="${subjectBadgeStyle}">${abbreviateSubject(sub?.nameEn)}</p>
                               </div>
                           </div>
@@ -521,7 +590,6 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           }
       }
 
-      // ... rest of generation logic (tableRows, etc.) ...
       let tableRows = '';
       const visited = Array.from({ length: maxPeriods }, () => Array(activeDays.length).fill(false));
 
@@ -605,7 +673,12 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       }
 
       const currentTimestamp = new Date().toLocaleString('en-GB', { 
-        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
       });
 
       return `
