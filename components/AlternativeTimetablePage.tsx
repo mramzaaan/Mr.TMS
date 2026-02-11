@@ -1203,14 +1203,9 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                   link.click();
               }
           }
-      } catch (err: unknown) {
+      } catch (err: any) {
           console.error("Image generation failed", err);
-          let errMsg: string;
-          if (err instanceof Error) {
-              errMsg = err.message;
-          } else {
-              errMsg = String(err);
-          }
+          const errMsg = err instanceof Error ? err.message : String(err);
           alert(errMsg);
       } finally {
           setIsGeneratingImage(false);
@@ -1450,7 +1445,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
              <button onClick={handleSaveAdjustments} title={t.saveAdjustments} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg></button>
             <button onClick={() => setIsImportExportOpen(true)} title="Import / Export" className="p-2 text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] transition-colors"><ImportExportIcon /></button>
             <input type="file" ref={fileInputRef} onChange={handleImportJson} accept=".json" className="hidden" />
-            <button onClick={() => setIsPrintPreviewOpen(true)} disabled={dailyAdjustments.length === 0} title={t.printViewAction} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 00-2-2H5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg></button>
+            <button onClick={() => setIsPrintPreviewOpen(true)} disabled={dailyAdjustments.length === 0} title={t.printViewAction} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--border-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 00-2-2H5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg></button>
             <button onClick={handleCancelAlternativeTimetable} disabled={dailyAdjustments.length === 0 && absentTeacherIds.length === 0} title={t.cancelAlternativeTimetable} className="p-2 text-sm font-medium text-red-600 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
       </div>

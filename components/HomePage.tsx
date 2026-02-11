@@ -124,28 +124,25 @@ const DocumentCard: React.FC<{
     title: string;
     subtitle: string;
     icon: React.ReactNode;
-    colorClass: string;
+    colorGradient: string;
     onClick: () => void;
-}> = ({ title, subtitle, icon, colorClass, onClick }) => (
+}> = ({ title, subtitle, icon, colorGradient, onClick }) => (
     <button 
         onClick={onClick}
-        className="flex items-center p-6 bg-[var(--bg-primary)] rounded-2xl shadow-sm border border-[var(--border-secondary)] hover:shadow-lg transition-all group text-left w-full hover:-translate-y-1 relative overflow-hidden"
+        className={`group relative flex flex-col items-center justify-center p-4 rounded-[2rem] transition-all duration-300 w-full aspect-square shadow-xl ${colorGradient} border-b-[4px] border-black/20 ring-1 ring-white/10 hover:scale-105 active:scale-95`}
     >
-        <div className={`w-16 h-16 rounded-2xl ${colorClass} text-white flex items-center justify-center mr-6 shadow-md group-hover:scale-110 transition-transform relative z-10`}>
-            {/* Clone icon to enforce size */}
-            {React.isValidElement(icon) 
-                ? React.cloneElement(icon as React.ReactElement, { className: "h-8 w-8" }) 
-                : icon
-            }
-        </div>
-        <div className="flex-1 min-w-0 relative z-10">
-            <h4 className="text-lg font-black text-[var(--text-primary)] uppercase tracking-tight leading-tight">{title}</h4>
-            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-70 mt-1">{subtitle}</p>
-        </div>
-        <div className="text-[var(--text-placeholder)] opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0 absolute right-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem]"></div>
+        
+        <div className="relative z-10 flex flex-col items-center h-full justify-center">
+             <div className="mb-3 text-white drop-shadow-md transform group-hover:scale-110 transition-transform duration-300">
+                {React.isValidElement(icon) 
+                    ? React.cloneElement(icon as React.ReactElement, { className: "h-10 w-10 sm:h-12 sm:w-12" }) 
+                    : icon
+                }
+            </div>
+            
+            <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-tighter leading-tight text-center mb-1 drop-shadow-md line-clamp-2">{title}</h4>
+            <p className="text-[8px] sm:text-[9px] font-bold text-white/80 uppercase tracking-[0.15em] text-center">{subtitle}</p>
         </div>
     </button>
 );
@@ -481,6 +478,9 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
   const teachers = currentTimetableSession?.teachers || [];
   const classes = currentTimetableSession?.classes || [];
   const subjects = currentTimetableSession?.subjects || [];
+  const adjustments = currentTimetableSession?.adjustments || {};
+  const leaveDetails = currentTimetableSession?.leaveDetails || {};
+  const attendance = currentTimetableSession?.attendance || {};
   const visibleClasses = useMemo(() => classes.filter(c => c.id !== 'non-teaching-duties'), [classes]);
 
   const teacherItems = useMemo(() => teachers.map(t => ({ id: t.id, label: <span>{t.nameEn} / <span className="font-urdu">{t.nameUr}</span></span> })), [teachers]);
@@ -605,28 +605,30 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
 
       {isReportsModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={() => setIsReportsModalOpen(false)}>
-            <div className="bg-[var(--bg-secondary)] rounded-3xl shadow-2xl max-w-4xl w-full p-6 sm:p-8 animate-scale-in" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-8 px-2 border-b border-[var(--border-primary)] pb-4">
-                    <h3 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tighter">DOCUMENTS</h3>
+            <div className="bg-[var(--bg-secondary)] rounded-[2.5rem] shadow-2xl max-w-5xl w-full p-6 sm:p-8 animate-scale-in flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-6 px-2">
+                    <h3 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tighter">DOCUMENTS</h3>
                     <button onClick={() => setIsReportsModalOpen(false)} className="p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] rounded-full transition-colors"><CloseIcon /></button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                    
-                    <DocumentCard title={t.basicInformation} subtitle="STATS & ROOMS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} colorClass="bg-blue-500" onClick={() => setIsBasicInfoPreviewOpen(true)} />
-                    
-                    <DocumentCard title={t.byPeriod} subtitle="AVAILABLE MATRIX" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorClass="bg-cyan-500" onClick={() => setIsByPeriodPreviewOpen(true)} />
-                    
-                    <DocumentCard title={t.schoolTimings} subtitle="BELL SCHEDULE" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorClass="bg-amber-500" onClick={() => setIsSchoolTimingsPreviewOpen(true)} />
-                    
-                    <DocumentCard title={t.workloadSummaryReport} subtitle="EFFORT ANALYTICS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} colorClass="bg-rose-500" onClick={workloadReportClick} />
-                    
-                    <DocumentCard title={t.classTimetable} subtitle="CLASS SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} colorClass="bg-violet-500" onClick={handleClassTimetableClick} />
+                <div className="flex-grow overflow-y-auto pr-1 custom-scrollbar pb-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        
+                        <DocumentCard title={t.basicInformation} subtitle="STATS & ROOMS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} colorGradient="bg-gradient-to-br from-blue-500 to-indigo-600" onClick={() => setIsBasicInfoPreviewOpen(true)} />
+                        
+                        <DocumentCard title={t.byPeriod} subtitle="AVAILABLE MATRIX" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorGradient="bg-gradient-to-br from-cyan-500 to-teal-600" onClick={() => setIsByPeriodPreviewOpen(true)} />
+                        
+                        <DocumentCard title={t.schoolTimings} subtitle="BELL SCHEDULE" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorGradient="bg-gradient-to-br from-amber-500 to-orange-600" onClick={() => setIsSchoolTimingsPreviewOpen(true)} />
+                        
+                        <DocumentCard title={t.workloadSummaryReport} subtitle="EFFORT ANALYTICS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} colorGradient="bg-gradient-to-br from-rose-500 to-pink-600" onClick={workloadReportClick} />
+                        
+                        <DocumentCard title={t.classTimetable} subtitle="CLASS SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} colorGradient="bg-gradient-to-br from-violet-500 to-purple-600" onClick={handleClassTimetableClick} />
 
-                    <DocumentCard title={t.teacherTimetable} subtitle="TEACHER SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>} colorClass="bg-emerald-500" onClick={handleTeacherTimetableClick} />
+                        <DocumentCard title={t.teacherTimetable} subtitle="TEACHER SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>} colorGradient="bg-gradient-to-br from-emerald-500 to-green-600" onClick={handleTeacherTimetableClick} />
 
-                    <DocumentCard title={t.alternative} subtitle="SUBSTITUTION REGISTERS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>} colorClass="bg-indigo-500" onClick={() => setIsAlternativePreviewOpen(true)} />
-                    
-                    <DocumentCard title={t.attendanceReport} subtitle="ENROLLMENT DATA" icon={<AttendanceIcon className="h-6 w-6" />} colorClass="bg-teal-500" onClick={() => setIsAttendanceReportPreviewOpen(true)} />
+                        <DocumentCard title={t.alternative} subtitle="SUBSTITUTION REGISTERS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>} colorGradient="bg-gradient-to-br from-indigo-500 to-violet-600" onClick={() => setIsAlternativePreviewOpen(true)} />
+                        
+                        <DocumentCard title={t.attendanceReport} subtitle="ENROLLMENT DATA" icon={<AttendanceIcon className="h-6 w-6" />} colorGradient="bg-gradient-to-br from-teal-500 to-emerald-600" onClick={() => setIsAttendanceReportPreviewOpen(true)} />
+                    </div>
                 </div>
             </div>
         </div>
@@ -644,6 +646,9 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                         <div className="bg-[var(--bg-tertiary)] p-3 rounded-lg border border-[var(--border-secondary)] animate-scale-in">
                             <label className="block text-xs text-[var(--text-secondary)] mb-1">Select Week (Any date)</label>
                             <input type="date" value={selectedWeekDate} onChange={(e) => setSelectedWeekDate(e.target.value)} className="block w-full px-2 py-1.5 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-md text-sm text-[var(--text-primary)]" />
+                            <p className="text-[10px] text-[var(--text-secondary)] mt-1">
+                                Week: {workloadStartDate} to {workloadEndDate}
+                            </p>
                         </div>
                     )}
                     {workloadReportMode === 'range' && (
