@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { Language, SchoolClass, Subject, Teacher, Period, TimetableGridData, SchoolConfig, Adjustment, JointPeriod, DownloadDesignConfig, JointPeriodAssignment, LeaveDetails } from '../types';
 import { allDays, generateUniqueId } from '../types';
@@ -20,9 +21,12 @@ const PrintIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w
 const UndoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>;
 const RedoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>;
 const SaveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 011-1h3.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V6a1 1 0 01-1 1h-1a1 1 0 01-1-1V4z" /></svg>;
-const ChevronDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>;
+const ChevronDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>;
 const HistoryIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
 const SortIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>;
+const ChevronLeftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>;
+const ChevronRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>;
+const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 
 const NON_TEACHING_CLASS_ID = 'non-teaching-duties';
 
@@ -75,6 +79,13 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
   const [historySortOrder, setHistorySortOrder] = useState<'asc' | 'desc'>('desc');
   const [historySortField, setHistorySortField] = useState<SortField>('date');
 
+  // Custom Dropdown State
+  const [isTeacherDropdownOpen, setIsTeacherDropdownOpen] = useState(false);
+  const [teacherSortBy, setTeacherSortBy] = useState<'serial' | 'name' | 'workload'>('serial');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [teacherSearchQuery, setTeacherSearchQuery] = useState('');
+  const teacherDropdownRef = useRef<HTMLDivElement>(null);
+
   const selectedTeacher = useMemo(() => teachers.find(t => t.id === selectedTeacherId), [teachers, selectedTeacherId]);
 
   useEffect(() => {
@@ -83,20 +94,75 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
       }
   }, [teachers, selectedTeacherId, onSelectedTeacherChange]);
 
-  // Click outside to cancel selection
+  // Click outside to cancel selection and dropdown
   useEffect(() => {
       const handleClickOutside = (e: MouseEvent) => {
           if (moveSource && !(e.target as Element).closest('.period-stack-clickable') && !(e.target as Element).closest('.timetable-slot')) {
               setMoveSource(null);
           }
+          if (teacherDropdownRef.current && !teacherDropdownRef.current.contains(e.target as Node)) {
+              setIsTeacherDropdownOpen(false);
+          }
       };
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [moveSource]);
 
   const activeDays = useMemo(() => allDays.filter(day => schoolConfig.daysConfig?.[day]?.active ?? true), [schoolConfig.daysConfig]);
   const maxPeriods = useMemo(() => Math.max(...activeDays.map(day => schoolConfig.daysConfig?.[day]?.periodCount ?? 8)), [activeDays, schoolConfig.daysConfig]);
   const periodLabels = useMemo(() => Array.from({length: maxPeriods}, (_, i) => (i + 1).toString()), [maxPeriods]);
+
+  // Memoize Teacher Workloads for Sorting
+  const teacherWorkloads = useMemo(() => {
+    const workloads = new Map<string, number>();
+    teachers.forEach(t => {
+        const stats = calculateWorkloadStats(t.id, classes, adjustments, leaveDetails, undefined, undefined, schoolConfig);
+        workloads.set(t.id, stats.totalWorkload);
+    });
+    return workloads;
+  }, [teachers, classes, adjustments, leaveDetails, schoolConfig]);
+
+  const sortedTeachers = useMemo(() => {
+      let sorted = [...teachers];
+      if (teacherSearchQuery) {
+          const q = teacherSearchQuery.toLowerCase();
+          sorted = sorted.filter(t => 
+              t.nameEn.toLowerCase().includes(q) || 
+              t.nameUr.includes(q)
+          );
+      }
+      
+      return sorted.sort((a, b) => {
+          let res = 0;
+          if (teacherSortBy === 'serial') {
+              res = (a.serialNumber ?? 99999) - (b.serialNumber ?? 99999);
+          } else if (teacherSortBy === 'workload') {
+              const wa = teacherWorkloads.get(a.id) || 0;
+              const wb = teacherWorkloads.get(b.id) || 0;
+              res = wa - wb;
+          } else { // name
+              res = a.nameEn.localeCompare(b.nameEn);
+          }
+          return sortDirection === 'asc' ? res : -res;
+      });
+  }, [teachers, teacherSearchQuery, teacherSortBy, sortDirection, teacherWorkloads]);
+
+  const currentTeacherIndex = useMemo(() => {
+    if (!selectedTeacherId) return -1;
+    return sortedTeachers.findIndex(t => t.id === selectedTeacherId);
+  }, [selectedTeacherId, sortedTeachers]);
+
+  const handlePreviousTeacher = () => {
+    if (currentTeacherIndex > 0) {
+        onSelectedTeacherChange(sortedTeachers[currentTeacherIndex - 1].id);
+    }
+  };
+
+  const handleNextTeacher = () => {
+    if (currentTeacherIndex < sortedTeachers.length - 1) {
+        onSelectedTeacherChange(sortedTeachers[currentTeacherIndex + 1].id);
+    }
+  };
 
   const teacherSpecificColorMap = useMemo(() => {
       if (!selectedTeacherId) return new Map<string, string>();
@@ -131,10 +197,6 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
   const getCombinationColor = useCallback((periods: Period[]) => {
       if (!periods.length) return 'subject-default';
       const p = periods[0];
-      // Use classId and subjectId to determine color. 
-      // If it's a joint period group (multiple periods), they should share the same color if they are the same logical block.
-      // However, joint periods typically link multiple classes. 
-      // We pick the first period in the stack to determine the color.
       const key = `${p.classId}-${p.subjectId}`;
       return teacherSpecificColorMap.get(key) || 'subject-default';
   }, [teacherSpecificColorMap]);
@@ -826,15 +888,130 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
       />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-wrap">
-          <label htmlFor="teacher-select" className="block text-sm font-medium text-[var(--text-secondary)]">{t.selectATeacher}</label>
-          <select id="teacher-select" value={selectedTeacherId || ''} onChange={(e) => onSelectedTeacherChange(e.target.value)} 
-            className="block w-full md:w-auto pl-3 pr-10 py-2 text-base bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-secondary)] focus:outline-none focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] sm:text-sm rounded-md shadow-sm">
-            {teachers.map(tea => (
-                <option key={tea.id} value={tea.id}>{tea.nameEn} / {tea.nameUr}</option>
-            ))}
-          </select>
+        <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t.selectATeacher}</label>
+            <div className="flex items-center gap-2">
+                <button 
+                    onClick={handlePreviousTeacher} 
+                    disabled={currentTeacherIndex <= 0}
+                    className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] disabled:opacity-50 transition-colors"
+                >
+                    <ChevronLeftIcon />
+                </button>
+
+                <div className="relative" ref={teacherDropdownRef}>
+                    <button
+                        onClick={() => setIsTeacherDropdownOpen(!isTeacherDropdownOpen)}
+                        className="w-full md:w-[32rem] flex items-center justify-between px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-xl shadow-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all hover:border-[var(--accent-primary)] group"
+                    >
+                        {selectedTeacher ? (
+                            <div className="flex items-center gap-3 w-full overflow-hidden">
+                                <span className="font-mono text-xs opacity-50 bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] group-hover:bg-[var(--accent-secondary)] group-hover:text-[var(--accent-primary)] transition-colors min-w-[2rem] text-center">
+                                    #{selectedTeacher.serialNumber ?? '-'}
+                                </span>
+                                <span className="font-bold truncate flex-grow text-left text-lg break-words leading-tight">
+                                    {language === 'ur' ? selectedTeacher.nameUr : selectedTeacher.nameEn}
+                                </span>
+                                <span className="text-xs font-medium opacity-70 whitespace-nowrap bg-[var(--bg-tertiary)] px-2 py-1 rounded text-[var(--text-secondary)] flex-shrink-0 group-hover:bg-[var(--accent-secondary)] group-hover:text-[var(--accent-primary)] transition-colors">
+                                    {teacherWorkloads.get(selectedTeacher.id) || 0} p/w
+                                </span>
+                            </div>
+                        ) : (
+                            <span className="truncate text-left flex-grow">{t.selectATeacher}</span>
+                        )}
+                        <div className="ml-2 flex-shrink-0 text-[var(--text-secondary)]">
+                            <ChevronDownIcon />
+                        </div>
+                    </button>
+
+                    {isTeacherDropdownOpen && (
+                        <div className="absolute top-full left-0 mt-2 w-full md:w-[32rem] bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-2xl shadow-2xl z-50 p-3 animate-scale-in origin-top-left">
+                            {/* Search */}
+                            <div className="relative mb-3">
+                                <div className="relative">
+                                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-placeholder)] pointer-events-none">
+                                        <SearchIcon />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Search teachers..."
+                                        value={teacherSearchQuery}
+                                        onChange={(e) => setTeacherSearchQuery(e.target.value)}
+                                        className="w-full pl-10 pr-10 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-xl text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
+                                        autoFocus
+                                    />
+                                    {teacherSearchQuery && (
+                                        <button 
+                                            onClick={() => setTeacherSearchQuery('')}
+                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] hover:text-red-500 transition-colors p-1 rounded-full hover:bg-[var(--bg-secondary)]"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Sort Controls */}
+                            <div className="flex gap-1 mb-2 bg-[var(--bg-tertiary)] p-1 rounded-lg">
+                                {(['serial', 'name', 'workload'] as const).map(key => (
+                                    <button
+                                        key={key}
+                                        onClick={() => {
+                                            if (teacherSortBy === key) {
+                                                setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                                            } else {
+                                                setTeacherSortBy(key);
+                                                setSortDirection('asc');
+                                            }
+                                        }}
+                                        className={`flex-1 text-[10px] font-bold uppercase py-1 rounded-md transition-colors flex items-center justify-center gap-1 ${teacherSortBy === key ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
+                                    >
+                                        {key === 'serial' ? '#' : key}
+                                        {teacherSortBy === key && (
+                                            <span className="text-[8px]">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* List */}
+                            <div className="max-h-60 overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                                {sortedTeachers.length === 0 ? (
+                                    <div className="p-3 text-center text-xs text-[var(--text-secondary)] italic">No teachers found</div>
+                                ) : (
+                                    sortedTeachers.map(t => (
+                                        <button
+                                            key={t.id}
+                                            onClick={() => {
+                                                onSelectedTeacherChange(t.id);
+                                                setIsTeacherDropdownOpen(false);
+                                            }}
+                                            className={`w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-3 transition-colors ${selectedTeacherId === t.id ? 'bg-[var(--accent-secondary)] text-[var(--accent-primary)] ring-1 ring-[var(--accent-primary)]' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]'}`}
+                                        >
+                                            <span className={`font-mono text-xs opacity-50 w-8 text-center flex-shrink-0 py-0.5 rounded ${selectedTeacherId === t.id ? 'bg-[var(--accent-primary)]/10' : 'bg-[var(--bg-primary)]'}`}>#{t.serialNumber ?? '-'}</span>
+                                            <span className="font-bold flex-grow text-base break-words text-left leading-tight">{language === 'ur' ? t.nameUr : t.nameEn}</span>
+                                            <span className={`text-xs opacity-70 whitespace-nowrap min-w-[50px] text-center px-2 py-0.5 rounded ${selectedTeacherId === t.id ? 'bg-[var(--accent-primary)]/10' : 'bg-[var(--bg-primary)]'}`}>{teacherWorkloads.get(t.id) || 0} p/w</span>
+                                            {selectedTeacherId === t.id && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] flex-shrink-0"></div>}
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <button 
+                    onClick={handleNextTeacher}
+                    disabled={currentTeacherIndex >= sortedTeachers.length - 1}
+                    className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] disabled:opacity-50 transition-colors"
+                >
+                    <ChevronRightIcon />
+                </button>
+            </div>
         </div>
+        
         <div className="flex items-center gap-3 flex-wrap">
             {onUndo && (
               <button onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" className="p-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><UndoIcon /></button>
@@ -1132,3 +1309,5 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
     </div>
   );
 };
+
+export default TeacherTimetablePage;

@@ -129,20 +129,32 @@ const DocumentCard: React.FC<{
 }> = ({ title, subtitle, icon, colorGradient, onClick }) => (
     <button 
         onClick={onClick}
-        className={`group relative flex flex-col items-center justify-center p-4 rounded-[2rem] transition-all duration-300 w-full aspect-square shadow-xl ${colorGradient} border-b-[4px] border-black/20 ring-1 ring-white/10 hover:scale-105 active:scale-95`}
+        className={`group relative flex flex-col items-center justify-between p-6 rounded-[2.5rem] transition-all duration-500 w-full aspect-[3/4] shadow-2xl overflow-hidden hover:scale-[1.02] active:scale-95 border-2 border-white/40 ring-4 ring-white/10`}
     >
-        <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem]"></div>
+        {/* Base Layer with Gradient */}
+        <div className={`absolute inset-0 ${colorGradient} opacity-90`}></div>
         
-        <div className="relative z-10 flex flex-col items-center h-full justify-center">
-             <div className="mb-3 text-white drop-shadow-md transform group-hover:scale-110 transition-transform duration-300">
+        {/* Crystal Facets & Reflections for Live Look */}
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.4)0%,rgba(255,255,255,0.1)50%,rgba(255,255,255,0)51%,rgba(255,255,255,0.1)100%)]"></div>
+        <div className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[radial-gradient(circle,rgba(255,255,255,0.3)0%,transparent_60%)] animate-[pulse_4s_infinite]"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent"></div>
+        
+        {/* Dynamic Reflection */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-[200%] group-hover:animate-[shimmer_1.5s_infinite] skew-x-12"></div>
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col items-center justify-center h-full w-full gap-5">
+             <div className="p-5 rounded-3xl bg-white/20 backdrop-blur-md shadow-[inset_0_0_20px_rgba(255,255,255,0.4)] border border-white/50 text-white drop-shadow-[0_8px_8px_rgba(0,0,0,0.25)] transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
                 {React.isValidElement(icon) 
-                    ? React.cloneElement(icon as React.ReactElement, { className: "h-10 w-10 sm:h-12 sm:w-12" }) 
+                    ? React.cloneElement(icon as React.ReactElement, { className: "h-16 w-16 sm:h-20 sm:w-20 stroke-[1.5]" }) 
                     : icon
                 }
             </div>
             
-            <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-tighter leading-tight text-center mb-1 drop-shadow-md line-clamp-2">{title}</h4>
-            <p className="text-[8px] sm:text-[9px] font-bold text-white/80 uppercase tracking-[0.15em] text-center">{subtitle}</p>
+            <div className="flex flex-col items-center gap-1 w-full px-2">
+                <h4 className="text-lg sm:text-2xl font-black text-white uppercase tracking-tighter leading-none text-center drop-shadow-lg w-full line-clamp-2">{title}</h4>
+                <p className="text-[10px] sm:text-xs font-bold text-white/90 uppercase tracking-[0.25em] text-center">{subtitle}</p>
+            </div>
         </div>
     </button>
 );
@@ -517,7 +529,14 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
   };
 
   const workloadReportClick = () => { 
-      const idsToSelect = teachers.filter(t => { const name = t.nameEn.toUpperCase(); return !name.includes('MIAN M. YOUNAS') && !name.includes('MIAN M. YOUNIS'); }).map(t => t.id); setWorkloadReportMode('weekly'); setSelectedWeekDate(new Date().toISOString().split('T')[0]); setSelectedTeacherIdsForWorkload(idsToSelect); setIsTeacherSelectionForWorkloadOpen(true); 
+      const idsToSelect = teachers.filter(t => { 
+          const name = t.nameEn.toUpperCase(); 
+          return !name.includes('MIAN M. YOUNAS') && !name.includes('MIAN M. YOUNIS'); 
+      }).map(t => t.id); 
+      setWorkloadReportMode('weekly'); 
+      setSelectedWeekDate(new Date().toISOString().split('T')[0]); 
+      setSelectedTeacherIdsForWorkload(idsToSelect); 
+      setIsTeacherSelectionForWorkloadOpen(true); 
   };
   const handleWorkloadConfirm = () => { setIsTeacherSelectionForWorkloadOpen(false); setIsWorkloadPreviewOpen(true); };
 
@@ -611,7 +630,7 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                     <button onClick={() => setIsReportsModalOpen(false)} className="p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] rounded-full transition-colors"><CloseIcon /></button>
                 </div>
                 <div className="flex-grow overflow-y-auto pr-1 custom-scrollbar pb-2">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
                         
                         <DocumentCard title={t.basicInformation} subtitle="STATS & ROOMS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} colorGradient="bg-gradient-to-br from-blue-500 to-indigo-600" onClick={() => setIsBasicInfoPreviewOpen(true)} />
                         
@@ -619,7 +638,7 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                         
                         <DocumentCard title={t.schoolTimings} subtitle="BELL SCHEDULE" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorGradient="bg-gradient-to-br from-amber-500 to-orange-600" onClick={() => setIsSchoolTimingsPreviewOpen(true)} />
                         
-                        <DocumentCard title={t.workloadSummaryReport} subtitle="EFFORT ANALYTICS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} colorGradient="bg-gradient-to-br from-rose-500 to-pink-600" onClick={workloadReportClick} />
+                        <DocumentCard title={t.workloadSummaryReport} subtitle="EFFORT ANALYTICS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} colorGradient="bg-gradient-to-br from-rose-500 to-pink-600" onClick={workloadReportClick} />
                         
                         <DocumentCard title={t.classTimetable} subtitle="CLASS SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} colorGradient="bg-gradient-to-br from-violet-500 to-purple-600" onClick={handleClassTimetableClick} />
 
@@ -675,11 +694,9 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
         </>
       )}
       
-      {/* ... (Session management modals remain unchanged) ... */}
       {isSelectSessionModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity" onClick={() => setIsSelectSessionModalOpen(false)}>
             <div className="bg-[var(--bg-secondary)] rounded-3xl shadow-2xl max-w-2xl w-full mx-4 transform transition-all flex flex-col max-h-[90vh] border border-[var(--border-primary)]" onClick={e => e.stopPropagation()}>
-                {/* ... (Session modal content unchanged) ... */}
                 <div className="p-8 border-b border-[var(--border-primary)]">
                     <div className="flex flex-wrap justify-between items-center gap-6">
                         <div>

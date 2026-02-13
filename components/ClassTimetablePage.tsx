@@ -58,6 +58,10 @@ const CopyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-
 const UndoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>;
 const RedoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>;
 const SaveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 011-1h3.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V6a1 1 0 01-1 1h-1a1 1 0 01-1-1V4z" /></svg>;
+const ChevronDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>;
+const ChevronLeftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>;
+const ChevronRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>;
+const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 
 const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, classes, subjects, teachers, jointPeriods, adjustments, onSetClasses, schoolConfig, onUpdateSchoolConfig, selection, onSelectionChange, openConfirmation, hasActiveSession, onUndo, onRedo, onSave, canUndo, canRedo }) => {
   if (!hasActiveSession) {
@@ -73,6 +77,13 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
   const [isCommModalOpen, setIsCommModalOpen] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   
+  // Custom Dropdown State
+  const [isClassDropdownOpen, setIsClassDropdownOpen] = useState(false);
+  const [classSortBy, setClassSortBy] = useState<'serial' | 'room' | 'name'>('serial');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [classSearchQuery, setClassSearchQuery] = useState('');
+  const classDropdownRef = useRef<HTMLDivElement>(null);
+
   // Ref for detecting clicks outside
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -103,7 +114,59 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
       return () => document.removeEventListener('click', handleClickOutside);
   }, [moveSource, onSelectionChange]);
 
+  // Click outside for dropdown
+  useEffect(() => {
+      const handleClickOutsideDropdown = (event: MouseEvent) => {
+          if (classDropdownRef.current && !classDropdownRef.current.contains(event.target as Node)) {
+              setIsClassDropdownOpen(false);
+          }
+      };
+      document.addEventListener('mousedown', handleClickOutsideDropdown);
+      return () => document.removeEventListener('mousedown', handleClickOutsideDropdown);
+  }, []);
+
   const selectedClass = useMemo(() => classes.find(c => c.id === selectedClassId), [classes, selectedClassId]);
+
+  const sortedClasses = useMemo(() => {
+      let sorted = [...visibleClasses];
+      if (classSearchQuery) {
+          const q = classSearchQuery.toLowerCase();
+          sorted = sorted.filter(c => 
+              c.nameEn.toLowerCase().includes(q) || 
+              c.nameUr.includes(q) || 
+              (c.roomNumber && c.roomNumber.toLowerCase().includes(q))
+          );
+      }
+      
+      return sorted.sort((a, b) => {
+          let res = 0;
+          if (classSortBy === 'serial') {
+              res = (a.serialNumber ?? 99999) - (b.serialNumber ?? 99999);
+          } else if (classSortBy === 'room') {
+              res = (a.roomNumber || '').localeCompare(b.roomNumber || '', undefined, { numeric: true });
+          } else { // name
+              res = a.nameEn.localeCompare(b.nameEn);
+          }
+          return sortDirection === 'asc' ? res : -res;
+      });
+  }, [visibleClasses, classSortBy, classSearchQuery, sortDirection]);
+
+  const currentClassIndex = useMemo(() => {
+    if (!selectedClassId) return -1;
+    return sortedClasses.findIndex(c => c.id === selectedClassId);
+  }, [selectedClassId, sortedClasses]);
+
+  const handlePreviousClass = () => {
+    if (currentClassIndex > 0) {
+        onSelectionChange(prev => ({ ...prev, classId: sortedClasses[currentClassIndex - 1].id }));
+    }
+  };
+
+  const handleNextClass = () => {
+    if (currentClassIndex < sortedClasses.length - 1) {
+        onSelectionChange(prev => ({ ...prev, classId: sortedClasses[currentClassIndex + 1].id }));
+    }
+  };
 
   const getTeacherAvailability = useCallback((day: keyof TimetableGridData, periodIndex: number): Set<string> => {
       const busyTeacherIds = new Set<string>();
@@ -715,15 +778,130 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
       />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-wrap">
-          <label htmlFor="class-select" className="block text-sm font-medium text-[var(--text-secondary)]">{t.selectAClass}</label>
-          <select id="class-select" value={selectedClassId || ''} onChange={(e) => onSelectionChange(prev => ({ ...prev, classId: e.target.value }))} 
-            className="block w-full md:w-auto pl-3 pr-10 py-2 text-base bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-secondary)] focus:outline-none focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] sm:text-sm rounded-md shadow-sm">
-            {visibleClasses.map(c => (
-                <option key={c.id} value={c.id}>{c.nameEn} / {c.nameUr}</option>
-            ))}
-          </select>
+        <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t.selectAClass}</label>
+            <div className="flex items-center gap-2">
+                <button 
+                    onClick={handlePreviousClass} 
+                    disabled={currentClassIndex <= 0}
+                    className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] disabled:opacity-50 transition-colors"
+                >
+                    <ChevronLeftIcon />
+                </button>
+
+                <div className="relative" ref={classDropdownRef}>
+                    <button
+                        onClick={() => setIsClassDropdownOpen(!isClassDropdownOpen)}
+                        className="w-full md:w-[32rem] flex items-center justify-between px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-xl shadow-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all hover:border-[var(--accent-primary)] group"
+                    >
+                        {selectedClass ? (
+                            <div className="flex items-center gap-3 w-full overflow-hidden">
+                                <span className="font-mono text-xs opacity-50 bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] group-hover:bg-[var(--accent-secondary)] group-hover:text-[var(--accent-primary)] transition-colors min-w-[2rem] text-center">
+                                    #{selectedClass.serialNumber ?? '-'}
+                                </span>
+                                <span className="font-bold truncate flex-grow text-left text-lg">
+                                    {language === 'ur' ? selectedClass.nameUr : selectedClass.nameEn}
+                                </span>
+                                <span className="text-xs font-medium opacity-70 whitespace-nowrap bg-[var(--bg-tertiary)] px-2 py-1 rounded text-[var(--text-secondary)] flex-shrink-0 group-hover:bg-[var(--accent-secondary)] group-hover:text-[var(--accent-primary)] transition-colors">
+                                    {selectedClass.roomNumber ? `Rm: ${selectedClass.roomNumber}` : 'No Rm'}
+                                </span>
+                            </div>
+                        ) : (
+                            <span className="truncate text-left flex-grow">{t.selectAClass}</span>
+                        )}
+                        <div className="ml-2 flex-shrink-0 text-[var(--text-secondary)]">
+                            <ChevronDownIcon />
+                        </div>
+                    </button>
+
+                    {isClassDropdownOpen && (
+                        <div className="absolute top-full left-0 mt-2 w-full md:w-[32rem] bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-2xl shadow-2xl z-50 p-3 animate-scale-in origin-top-left">
+                            {/* Search */}
+                            <div className="relative mb-3">
+                                <div className="relative">
+                                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-placeholder)] pointer-events-none">
+                                        <SearchIcon />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Search classes..."
+                                        value={classSearchQuery}
+                                        onChange={(e) => setClassSearchQuery(e.target.value)}
+                                        className="w-full pl-10 pr-10 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-xl text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
+                                        autoFocus
+                                    />
+                                    {classSearchQuery && (
+                                        <button 
+                                            onClick={() => setClassSearchQuery('')}
+                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] hover:text-red-500 transition-colors p-1 rounded-full hover:bg-[var(--bg-secondary)]"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Sort Controls */}
+                            <div className="flex gap-1 mb-2 bg-[var(--bg-tertiary)] p-1 rounded-lg">
+                                {(['serial', 'room', 'name'] as const).map(key => (
+                                    <button
+                                        key={key}
+                                        onClick={() => {
+                                            if (classSortBy === key) {
+                                                setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                                            } else {
+                                                setClassSortBy(key);
+                                                setSortDirection('asc');
+                                            }
+                                        }}
+                                        className={`flex-1 text-[10px] font-bold uppercase py-1 rounded-md transition-colors flex items-center justify-center gap-1 ${classSortBy === key ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
+                                    >
+                                        {key === 'serial' ? '#' : key}
+                                        {classSortBy === key && (
+                                            <span className="text-[8px]">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* List */}
+                            <div className="max-h-60 overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                                {sortedClasses.length === 0 ? (
+                                    <div className="p-3 text-center text-xs text-[var(--text-secondary)] italic">No classes found</div>
+                                ) : (
+                                    sortedClasses.map(c => (
+                                        <button
+                                            key={c.id}
+                                            onClick={() => {
+                                                onSelectionChange(prev => ({ ...prev, classId: c.id }));
+                                                setIsClassDropdownOpen(false);
+                                            }}
+                                            className={`w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-3 transition-colors ${selectedClassId === c.id ? 'bg-[var(--accent-secondary)] text-[var(--accent-primary)] ring-1 ring-[var(--accent-primary)]' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]'}`}
+                                        >
+                                            <span className={`font-mono text-xs opacity-50 w-8 text-center flex-shrink-0 py-0.5 rounded ${selectedClassId === c.id ? 'bg-[var(--accent-primary)]/10' : 'bg-[var(--bg-primary)]'}`}>#{c.serialNumber ?? '-'}</span>
+                                            <span className="font-bold flex-grow text-base break-words text-left leading-tight">{language === 'ur' ? c.nameUr : c.nameEn}</span>
+                                            <span className={`text-xs opacity-70 whitespace-nowrap min-w-[60px] text-center px-2 py-0.5 rounded ${selectedClassId === c.id ? 'bg-[var(--accent-primary)]/10' : 'bg-[var(--bg-primary)]'}`}>{c.roomNumber ? `Rm: ${c.roomNumber}` : 'No Rm'}</span>
+                                            {selectedClassId === c.id && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] flex-shrink-0"></div>}
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <button 
+                    onClick={handleNextClass}
+                    disabled={currentClassIndex >= sortedClasses.length - 1}
+                    className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] disabled:opacity-50 transition-colors"
+                >
+                    <ChevronRightIcon />
+                </button>
+            </div>
         </div>
+
         <div className="flex items-center gap-3 flex-wrap">
             {onUndo && (
               <button onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" className="p-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><UndoIcon /></button>
@@ -738,7 +916,7 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
             <button onClick={() => setIsDownloadModalOpen(true)} disabled={visibleClasses.length === 0} title={t.download} className="p-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
             <button onClick={() => setIsCopyModalOpen(true)} disabled={!selectedClass} title={t.copyTimetable} className="p-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><CopyIcon /></button>
             <button onClick={() => setIsCommModalOpen(true)} disabled={!selectedClass} title={t.sendToInCharge} className="p-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg></button>
-            <button onClick={() => setIsPrintPreviewOpen(true)} disabled={!selectedClass} title={t.printViewAction} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--accent-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg></button>
+            <button onClick={() => setIsPrintPreviewOpen(true)} disabled={!selectedClass} title={t.printViewAction} className="p-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-text)] border border-[var(--accent-primary)] rounded-lg shadow-sm hover:bg-[var(--accent-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg></button>
             {selectedClass && (
               <button onClick={() => openConfirmation(t.clearTimetable, t.clearTimetableConfirm, () => {
                   const updatedClass = { ...selectedClass, timetable: { Monday: Array.from({length:8},()=>[]), Tuesday: Array.from({length:8},()=>[]), Wednesday: Array.from({length:8},()=>[]), Thursday: Array.from({length:8},()=>[]), Friday: Array.from({length:8},()=>[]), Saturday: Array.from({length:8},()=>[]) } };
