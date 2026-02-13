@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import type { DownloadLanguage, DownloadDesignConfig, FontFamily, CardStyle } from '../types';
+import type { DownloadLanguage, DownloadDesignConfig, FontFamily, CardStyle, TriangleCorner } from '../types';
 
 declare const html2canvas: any;
 declare const jspdf: any;
@@ -87,6 +87,13 @@ const cardStyleOptions: { label: string, value: CardStyle }[] = [
     { label: 'Gradient', value: 'gradient' },
     { label: 'Minimal Left', value: 'minimal-left' },
     { label: 'Tag Badge', value: 'badge' },
+];
+
+const triangleCornerOptions: { label: string, value: TriangleCorner }[] = [
+    { label: 'Top Left', value: 'top-left' },
+    { label: 'Top Right', value: 'top-right' },
+    { label: 'Bottom Left', value: 'bottom-left' },
+    { label: 'Bottom Right', value: 'bottom-right' },
 ];
 
 const SettingsPanel: React.FC<{
@@ -215,6 +222,10 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
   const [customFont, setCustomFont] = useState<{name: string, data: string} | null>(null);
   const colorDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const currentEntry = history[historyIndex];
+  const options = currentEntry?.options || designConfig;
+  const pages = currentEntry?.pages || [];
+
   const themeColors = useMemo(() => {
     if (typeof window === 'undefined') return { accent: '#6366f1' };
     const style = getComputedStyle(document.documentElement);
@@ -341,7 +352,6 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
 
   const setupClonedDocument = (clonedDoc: Document) => {
       const style = clonedDoc.createElement('style');
-      const importsLatin = `@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Gulzar&family=Noto+Nastaliq+Urdu:wght@400;700&family=Anton&family=Antonio:wght@400;700&family=Bebas+Neue&family=Bodoni+Moda:opsz,wght@6..96,400..900&family=Bungee+Spice&family=Fjalla+One&family=Instrument+Serif:ital@0;1&family=Lato:wght@400;700&family=Merriweather:wght@400;700;900&family=Monoton&family=Montserrat:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Anton&family=Instrument+Serif:ital@0;1&family=Playwrite+CU:wght@100..400&family=Roboto:wght@400;500;700&family=Rubik+Mono+One&display=swap');`;
       const URDU_FONT_STACK = "'Gulzar', 'Noto Nastaliq Urdu', serif";
       style.innerHTML = `
           * { 
@@ -350,7 +360,6 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
             text-rendering: auto !important; 
             font-variant-ligatures: none !important; 
           } 
-          ${importsLatin} 
           .print-container { 
             font-family: '${options.table.fontFamily}', sans-serif; 
             box-sizing: border-box; 
@@ -471,180 +480,156 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
           const jsPDF = jspdf.jsPDF; 
           const orientation = options.page?.orientation || 'landscape'; 
           const format = options.page?.size || 'a4'; 
-          const pdf = new jsPDF({ orientation, unit: 'mm', format }); 
-          const pdfWidth = pdf.internal.pageSize.getWidth(); 
-          const pdfHeight = pdf.internal.pageSize.getHeight(); 
+          const pdf = new jsPDF({ orientation, unit: 'mm', format });
           
-          let containerWidth = '1123px'; 
-          let containerHeight = '794px'; 
-          if (format === 'a4') { containerWidth = orientation === 'portrait' ? '794px' : '1123px'; containerHeight = orientation === 'portrait' ? '1123px' : '794px'; } 
-          else if (format === 'letter') { containerWidth = orientation === 'portrait' ? '816px' : '1056px'; containerHeight = orientation === 'portrait' ? '1056px' : '816px'; } 
-          else if (format === 'legal') { containerWidth = orientation === 'portrait' ? '816px' : '1344px'; containerHeight = orientation === 'portrait' ? '1344px' : '816px'; } 
-          
-          const tempContainer = document.createElement('div'); 
+          const widthPx = orientation === 'portrait' ? 794 : 1123;
+          const heightPx = orientation === 'portrait' ? 1123 : 794;
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+
+          const tempContainer = document.createElement('div');
           Object.assign(tempContainer.style, {
-            position: 'absolute',
-            left: '-9999px',
-            top: '0',
-            width: containerWidth,
-            height: containerHeight,
-            overflow: 'hidden',
-            backgroundColor: '#ffffff'
+              position: 'fixed',
+              left: '-9999px',
+              top: '0',
+              width: `${widthPx}px`,
+              height: `${heightPx}px`,
+              backgroundColor: '#ffffff',
+              overflow: 'hidden'
           });
-          if (options.colorMode === 'bw') { tempContainer.style.filter = 'grayscale(100%)'; } 
-          document.body.appendChild(tempContainer); 
-          
-          for (let i = 0; i < pages.length; i++) { 
-              tempContainer.innerHTML = pages[i]; 
-              const pageElement = tempContainer.children[0] as HTMLElement; 
-              if (!pageElement) continue; 
-              
-              Object.assign(pageElement.style, {
-                width: '100%',
-                height: '100%',
-                boxSizing: 'border-box',
-                margin: '0',
-                backgroundColor: '#ffffff'
-              });
+          document.body.appendChild(tempContainer);
 
-              window.scrollTo(0, 0); 
-              await document.fonts.ready;
-              await new Promise(r => setTimeout(r, 400));
-              
-              const canvas = await html2canvas(tempContainer, { 
-                  scale: 2, 
-                  useCORS: true, 
-                  backgroundColor: '#ffffff', 
-                  width: parseFloat(containerWidth), 
-                  height: parseFloat(containerHeight), 
-                  windowWidth: parseFloat(containerWidth), 
-                  windowHeight: parseFloat(containerHeight), 
-                  scrollX: 0, 
-                  scrollY: 0, 
-                  x: 0, 
-                  y: 0,
-                  onclone: setupClonedDocument
-              }); 
-              
-              const imgData = canvas.toDataURL('image/jpeg', 0.98); 
-              if (i > 0) pdf.addPage(format, orientation); 
-              const imgProps = pdf.getImageProperties(imgData); 
-              const ratio = imgProps.width / imgProps.height; 
-              let finalW = pdfWidth; 
-              let finalH = pdfWidth / ratio; 
-              if (finalH > pdfHeight) { finalH = pdfHeight; finalW = pdfHeight * ratio; } 
-              pdf.addImage(imgData, 'JPEG', 0, 0, finalW, finalH, undefined, 'FAST'); 
-          } 
-          document.body.removeChild(tempContainer); 
-          pdf.save(`${fileNameBase}_${lang}.pdf`); 
-      } catch (err) { 
-          console.error("PDF generation failed:", err); 
-          alert("Failed to generate PDF."); 
-      } finally { 
-          setIsGenerating(false); 
-      } 
+          try {
+              for (let i = 0; i < pages.length; i++) {
+                  tempContainer.innerHTML = pages[i];
+                  // Ensure layout
+                  const printContainer = tempContainer.querySelector('.print-container') as HTMLElement;
+                  if(printContainer) {
+                      printContainer.style.width = '100%';
+                      printContainer.style.height = '100%';
+                  }
+
+                  await document.fonts.ready;
+                  await new Promise(r => setTimeout(r, 100)); // Short delay for render
+
+                  const canvas = await html2canvas(tempContainer, {
+                      scale: 2, // Higher scale for better quality
+                      useCORS: true,
+                      backgroundColor: '#ffffff',
+                      windowWidth: widthPx,
+                      windowHeight: heightPx
+                  });
+
+                  const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                  if (i > 0) pdf.addPage(format, orientation);
+                  pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+              }
+              pdf.save(`${fileNameBase}.pdf`);
+          } finally {
+              document.body.removeChild(tempContainer);
+          }
+      } catch (err) {
+          console.error("PDF generation failed", err);
+          alert("Failed to generate PDF.");
+      } finally {
+          setIsGenerating(false);
+      }
   };
-  
-  const handleZoom = (amount: number) => { setZoomLevel(prev => Math.max(10, Math.min(200, prev + amount))); };
-  const resetToDefaults = () => { handleDesignUpdate(designConfig); };
-
-  const currentRenderState = history[historyIndex] || { options: designConfig, pages: [] };
-  const { options, pages } = currentRenderState;
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-[110] p-0 animate-scale-in no-print" onClick={onClose}>
-        <div className="bg-gray-800 rounded-lg shadow-2xl w-full h-full flex flex-col relative" onClick={e => e.stopPropagation()}>
-            {/* Unified Toolbar */}
-            <header className="flex-shrink-0 p-3 bg-gray-900 border-b border-gray-700 shadow-md flex flex-col sm:flex-row items-center justify-between gap-y-3 gap-x-4 text-white z-30">
-                <div className="flex-grow flex items-center gap-x-4 overflow-hidden w-full sm:w-auto">
-                    <h3 className="text-lg font-bold truncate text-gray-100">{title}</h3>
-                    <div className="hidden sm:flex items-center gap-2 flex-wrap">{children}</div>
+    <div className={`fixed inset-0 z-[105] bg-gray-100 flex flex-col transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        {/* Header Toolbar */}
+        <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between shadow-sm z-50">
+            <div className="flex items-center gap-4">
+                <h3 className="font-bold text-gray-800 text-lg truncate max-w-[200px] sm:max-w-md">{title}</h3>
+                <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1">
+                    <button onClick={() => handlePageChange(Math.max(0, currentPage - 1))} disabled={currentPage === 0} className="p-1 hover:bg-white rounded disabled:opacity-30 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
+                    <span className="px-3 text-sm font-mono">{currentPage + 1} / {history[historyIndex]?.pages.length || 1}</span>
+                    <button onClick={() => handlePageChange(Math.min((history[historyIndex]?.pages.length || 1) - 1, currentPage + 1))} disabled={currentPage >= (history[historyIndex]?.pages.length || 1) - 1} className="p-1 hover:bg-white rounded disabled:opacity-30 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
                 </div>
-                <div className="flex items-center justify-end gap-x-3 flex-wrap w-full sm:w-auto">
-                    <div className="flex items-center gap-1 p-1 rounded-lg bg-gray-800 border border-gray-700 shadow-inner">
-                        <button onClick={handleUndo} disabled={historyIndex <= 0} title="Undo" className="p-1.5 rounded hover:bg-gray-700 disabled:opacity-30 text-gray-300 hover:text-white transition"><UndoIcon /></button>
-                        <button onClick={handleRedo} disabled={historyIndex >= history.length - 1} title="Redo" className="p-1.5 rounded hover:bg-gray-700 disabled:opacity-30 text-gray-300 hover:text-white transition"><RedoIcon /></button>
-                    </div>
-                    <div className="w-px h-8 bg-gray-700 mx-1 hidden sm:block"></div>
-                    <div className="flex items-center gap-1 p-1 rounded-lg bg-gray-800 border border-gray-700 shadow-inner">
-                        <button onClick={() => applyFormat('bold')} title="Bold" className="p-1.5 rounded hover:bg-gray-700 text-gray-300 hover:text-white transition"><BoldIcon /></button>
-                        <button onClick={() => applyFormat('italic')} title="Italic" className="p-1.5 rounded hover:bg-gray-700 text-gray-300 hover:text-white transition"><ItalicIcon /></button>
-                        <div className="w-px h-5 bg-gray-700 mx-0.5"></div>
-                        <div className="relative group p-1.5 rounded hover:bg-gray-700 cursor-pointer flex items-center gap-1" title="Text Color">
-                            <TextColorIcon /><div className="w-3 h-3 rounded-full border border-gray-500 bg-white group-hover:border-white"></div><input type="color" onChange={(e) => handleColorChange('color', e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                        </div>
-                        <div className="relative group p-1.5 rounded hover:bg-gray-700 cursor-pointer flex items-center gap-1" title="Fill Color">
-                            <BgColorIcon /><div className="w-3 h-3 rounded-sm border border-gray-500 bg-gray-400 group-hover:border-white"></div><input type="color" onChange={(e) => handleColorChange('backgroundColor', e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                        </div>
-                        <div className="w-px h-5 bg-gray-700 mx-0.5"></div>
-                        <button onClick={() => applyFormat('justifyLeft')} className="p-1.5 rounded hover:bg-gray-700 text-gray-300 hover:text-white"><AlignLeftIcon /></button>
-                        <button onClick={() => applyFormat('justifyCenter')} className="p-1.5 rounded hover:bg-gray-700 text-gray-300 hover:text-white"><AlignCenterIcon /></button>
-                        <button onClick={() => applyFormat('justifyRight')} className="p-1.5 rounded hover:bg-gray-700 text-gray-300 hover:text-white"><AlignRightIcon /></button>
-                    </div>
-                    <div className="w-px h-8 bg-gray-700 mx-1 hidden sm:block"></div>
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-0.5 bg-gray-800 rounded-lg p-0.5 border border-gray-700">
-                            <button onClick={() => handleZoom(-10)} className="p-1.5 rounded hover:bg-gray-700 text-gray-300 hover:text-white"><ZoomOutIcon /></button>
-                            <span className="text-[10px] w-8 text-center font-mono text-gray-400">{zoomLevel}%</span>
-                            <button onClick={() => handleZoom(10)} className="p-1.5 rounded hover:bg-gray-700 text-gray-300 hover:text-white"><ZoomInIcon /></button>
-                        </div>
-                        <div className="flex bg-gray-800 rounded-lg p-0.5 border border-gray-700">
-                            {(['en', 'ur', 'both'] as const).map((l) => (
-                                <button key={l} onClick={() => { setLang(l); handleDesignUpdate(options, l); }} className={`px-2 py-1.5 text-[10px] font-bold uppercase rounded-md transition-all leading-none ${lang === l ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'}`}>{l === 'en' ? 'ENG' : l === 'ur' ? 'اردو' : 'ALL'}</button>
-                            ))}
-                        </div>
-                        <button onClick={() => setIsSettingsOpen(prev => !prev)} title="Toggle Settings" className={`p-2 rounded-lg transition-all border ${isSettingsOpen ? 'bg-teal-600 border-teal-500 text-white shadow-inner' : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white'}`}><SettingsIcon /></button>
-                    </div>
-                    <div className="w-px h-8 bg-gray-700 mx-1 hidden sm:block"></div>
-                    <div className="flex items-center gap-1">
-                        <button onClick={handlePrint} className="p-2 rounded-lg hover:bg-gray-700 text-gray-300 hover:text-white transition" title={t.print}><PrintIcon /></button>
-                        <button onClick={handleDownloadPdf} disabled={isGenerating} className="p-2 rounded-lg hover:bg-gray-700 text-gray-300 hover:text-white disabled:opacity-50 transition" title={t.downloadPdf}><PdfIcon /></button>
-                        <button onClick={handleSendAsPicture} disabled={isGenerating} className="p-2 rounded-lg hover:bg-gray-700 text-gray-300 hover:text-white disabled:opacity-50 transition flex items-center gap-2" title="Send as Picture">
-                            <ShareIcon />
-                            <span className="text-[10px] font-black uppercase hidden lg:inline tracking-widest">Send To</span>
-                        </button>
-                        {onGenerateExcel && (<button onClick={() => onGenerateExcel(lang, options)} className="p-2 rounded-lg hover:bg-gray-700 text-gray-300 hover:text-white transition" title={t.downloadExcel}><ExcelIcon /></button>)}
-                    </div>
-                    <div className="w-px h-8 bg-gray-700 mx-1 hidden sm:block"></div>
-                    <button onClick={onClose} title={t.close} className="p-2 rounded-lg bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-900/50 hover:border-red-500 transition-all"><CloseIcon /></button>
-                </div>
-                <div className="flex sm:hidden items-center gap-2 flex-wrap justify-center w-full pb-1">{children}</div>
-            </header>
-            <div className={`transition-all duration-300 ease-in-out flex-shrink-0 ${isSettingsOpen ? 'opacity-100' : 'max-h-0 opacity-0'} overflow-hidden bg-gray-50 border-b border-gray-200 shadow-inner`}>
-                {isSettingsOpen && <SettingsPanel options={options} onUpdate={handleDesignUpdate} onSaveDesign={onSaveDesign} resetToDefaults={resetToDefaults} />}
             </div>
-            <main ref={previewRef} className="flex-grow bg-gray-600 p-4 overflow-auto flex flex-col items-center custom-scrollbar">
-                {pages.length > 1 && (<div className="flex-shrink-0 flex items-center gap-4 mb-4 bg-white/80 backdrop-blur-sm p-1.5 rounded-full shadow-md sticky top-2 z-10"><button onClick={() => handlePageChange(Math.max(0, currentPage - 1))} disabled={currentPage === 0} className="px-4 py-1.5 rounded-full disabled:opacity-50 text-sm font-semibold text-gray-700 hover:bg-gray-200/50 transition">&lt;</button><span className="text-sm font-medium text-gray-800">Page {currentPage + 1} of {pages.length}</span><button onClick={() => handlePageChange(Math.min(pages.length - 1, currentPage + 1))} disabled={currentPage === pages.length - 1} className="px-4 py-1.5 rounded-full disabled:opacity-50 text-sm font-semibold text-gray-700 hover:bg-gray-200/50 transition">&gt;</button></div>)}
-                <div className="relative w-fit mx-auto transition-transform duration-150" style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'center top' }}>
+            <div className="flex items-center gap-2">
+                <div className="flex items-center bg-gray-100 rounded-lg p-1 mr-2">
+                    <button onClick={() => setZoomLevel(Math.max(25, zoomLevel - 25))} className="p-1.5 hover:bg-white rounded text-gray-600"><ZoomOutIcon /></button>
+                    <span className="px-2 text-xs font-bold w-12 text-center">{zoomLevel}%</span>
+                    <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 25))} className="p-1.5 hover:bg-white rounded text-gray-600"><ZoomInIcon /></button>
+                </div>
+                
+                {/* Editor Tools if element selected */}
+                {activeElement && (
+                    <div className="hidden md:flex items-center gap-1 bg-gray-800 text-white rounded-lg p-1 mr-2 animate-scale-in">
+                        <button onClick={() => applyFormat('bold')} className="p-1.5 hover:bg-gray-700 rounded"><BoldIcon /></button>
+                        <button onClick={() => applyFormat('italic')} className="p-1.5 hover:bg-gray-700 rounded"><ItalicIcon /></button>
+                        <div className="w-px h-4 bg-gray-600 mx-1"></div>
+                        <button onClick={() => applyFormat('justifyLeft')} className="p-1.5 hover:bg-gray-700 rounded"><AlignLeftIcon /></button>
+                        <button onClick={() => applyFormat('justifyCenter')} className="p-1.5 hover:bg-gray-700 rounded"><AlignCenterIcon /></button>
+                        <button onClick={() => applyFormat('justifyRight')} className="p-1.5 hover:bg-gray-700 rounded"><AlignRightIcon /></button>
+                        <div className="w-px h-4 bg-gray-600 mx-1"></div>
+                        <label className="p-1.5 hover:bg-gray-700 rounded cursor-pointer relative">
+                            <TextColorIcon />
+                            <input type="color" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleColorChange('color', e.target.value)} />
+                        </label>
+                        <label className="p-1.5 hover:bg-gray-700 rounded cursor-pointer relative">
+                            <BgColorIcon />
+                            <input type="color" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleColorChange('backgroundColor', e.target.value)} />
+                        </label>
+                    </div>
+                )}
+
+                <div className="h-6 w-px bg-gray-300 mx-1"></div>
+                <button onClick={handleUndo} disabled={historyIndex <= 0} className="p-2 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"><UndoIcon /></button>
+                <button onClick={handleRedo} disabled={historyIndex >= history.length - 1} className="p-2 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"><RedoIcon /></button>
+                <div className="h-6 w-px bg-gray-300 mx-1"></div>
+
+                <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-2 rounded transition-colors ${isSettingsOpen ? 'bg-teal-100 text-teal-700' : 'text-gray-600 hover:bg-gray-100'}`} title="Design Settings"><SettingsIcon /></button>
+                {onGenerateExcel && <button onClick={() => onGenerateExcel(lang, options)} className="p-2 text-green-600 hover:bg-green-50 rounded" title="Export Excel"><ExcelIcon /></button>}
+                <button onClick={handlePrint} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Print"><PrintIcon /></button>
+                <button onClick={handleDownloadPdf} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Download PDF"><PdfIcon /></button>
+                <button onClick={handleSendAsPicture} className="p-2 text-purple-600 hover:bg-purple-50 rounded" title="Share Image"><ShareIcon /></button>
+                
+                <div className="h-6 w-px bg-gray-300 mx-1"></div>
+                <button onClick={onClose} className="p-2 text-gray-500 hover:bg-gray-100 rounded hover:text-red-500"><CloseIcon /></button>
+            </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-grow flex relative overflow-hidden">
+            {/* Settings Sidebar - Floating/Absolute to not shift layout excessively, or flex */}
+            {isSettingsOpen && (
+                <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col z-40 shadow-xl absolute left-0 top-0 bottom-0 animate-slide-right">
+                    <SettingsPanel 
+                        options={options} 
+                        onUpdate={(newOpts) => handleDesignUpdate(newOpts)} 
+                        onSaveDesign={onSaveDesign}
+                        resetToDefaults={() => handleDesignUpdate(designConfig)}
+                    />
+                </div>
+            )}
+
+            {/* Preview Canvas */}
+            <div className="flex-grow bg-gray-100 overflow-auto flex items-start justify-center p-8 relative" onClick={() => { setActiveElement(null); }}>
+                {isGenerating && (
+                    <div className="absolute inset-0 bg-white/80 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-500 border-t-transparent mb-4"></div>
+                        <div className="text-teal-800 font-bold animate-pulse">Generating Output...</div>
+                    </div>
+                )}
+                
+                <div 
+                    ref={previewRef}
+                    className="origin-top transition-transform duration-200 ease-out shadow-2xl bg-white"
+                    style={{ transform: `scale(${zoomLevel / 100})`, marginBottom: '100px' }}
+                >
                     <div 
                         ref={contentRef}
+                        dangerouslySetInnerHTML={{ __html: pages[currentPage] || '' }}
                         onClick={handleContentClick}
-                        className="shadow-lg bg-white outline-none focus:ring-2 focus:ring-teal-500 cursor-text" 
-                        contentEditable={true}
-                        suppressContentEditableWarning={true}
-                        dangerouslySetInnerHTML={{ __html: pages[currentPage] || '' }} 
-                        style={{ filter: options.colorMode === 'bw' ? 'grayscale(100%)' : 'none' }}
+                        className="print-preview-content"
                     />
-
-                    {isGenerating && (
-                        <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-[100] flex items-center justify-center rounded-sm">
-                            <div className="bg-white p-4 rounded-xl shadow-2xl flex items-center gap-3">
-                                <svg className="animate-spin h-5 w-5 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                <span className="font-bold text-gray-700 uppercase tracking-widest text-xs">Generating Image...</span>
-                            </div>
-                        </div>
-                    )}
-
-                    <style>{`
-                        th, td, div, span, p { cursor: pointer; position: relative; box-sizing: border-box !important; }
-                        th:hover, td:hover, div.glossy-box:hover { background-color: rgba(0,0,0,0.03); }
-                        [data-selected-element="true"] { outline: 2px solid #ff9f43 !important; outline-offset: -2px; box-shadow: 0 0 8px rgba(255, 159, 67, 0.5) !important; z-index: 1000; position: relative; }
-                        td[data-selected-element="true"] > div[data-selected-element="true"] { outline: none !important; }
-                    `}</style>
                 </div>
-            </main>
+            </div>
         </div>
     </div>
   );

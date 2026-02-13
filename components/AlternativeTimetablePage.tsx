@@ -48,8 +48,6 @@ const ShareIcon = () => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
     </svg>
 );
-const RefreshIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
-const ChatBubbleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>;
 
 const SignatureModal: React.FC<{
     t: any;
@@ -817,7 +815,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             
             alert("Data imported successfully.");
             setIsImportExportOpen(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
             const errorMessage = error instanceof Error ? error.message : String(error);
             alert("Failed to import: " + errorMessage);
@@ -876,7 +874,8 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
 
       const isUrdu = messageLanguage === 'ur';
       const dir = isUrdu ? 'rtl' : 'ltr';
-      const fontFamily = isUrdu ? "'Noto Nastaliq Urdu', serif" : "'Roboto', sans-serif";
+      // Use global font stack for better performance and consistency
+      const fontFamily = isUrdu ? "'Gulzar', 'Noto Nastaliq Urdu', serif" : "'Roboto', sans-serif";
 
       const htmlContent = `
         <div style="width: 1200px; background: white; font-family: ${fontFamily}; border-radius: 0; overflow: hidden; direction: ${dir}; border: 4px solid #4f46e5;">
@@ -953,13 +952,9 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
       tempDiv.innerHTML = htmlContent;
       document.body.appendChild(tempDiv);
       
-      // Inject Google Font for Urdu if needed
-      if (isUrdu) {
-        const style = document.createElement('style');
-        style.innerHTML = `@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');`;
-        tempDiv.appendChild(style);
-        await document.fonts.ready;
-      }
+      // We rely on the app's loaded fonts, so we just wait a bit for layout
+      await document.fonts.ready;
+      await new Promise(r => setTimeout(r, 100));
 
       try {
           const canvas = await html2canvas(tempDiv, {
@@ -1189,7 +1184,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
               if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
                   try {
                       await (navigator as any).share({ files: [file], title: `Signed_Adjustments_${selectedDate}` });
-                  } catch (error) {
+                  } catch (error: any) {
                       // Silently handle cancellation or abort
                       const isAbort = error instanceof Error && error.name === 'AbortError';
                       if (!isAbort) {
