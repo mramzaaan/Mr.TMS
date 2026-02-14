@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import type { Language, SchoolClass, Subject, Teacher, Period, TimetableGridData, SchoolConfig, Adjustment, JointPeriod, DownloadDesignConfig, JointPeriodAssignment, LeaveDetails } from '../types';
+import type { Language, SchoolClass, Subject, Teacher, Period, TimetableGridData, SchoolConfig, Adjustment, JointPeriod, DownloadDesignConfig, JointPeriodAssignment, LeaveDetails, TimetableSession, TimetableChangeLog } from '../types';
 import { allDays, generateUniqueId } from '../types';
 import PeriodStack from './PeriodStack';
 import TeacherAvailabilitySummary from './TeacherAvailabilitySummary';
@@ -9,14 +9,25 @@ import { TeacherCommunicationModal } from './TeacherCommunicationModal';
 import DownloadModal from './DownloadModal';
 import { generateTeacherTimetableHtml, calculateWorkloadStats } from './reportUtils';
 import NoSessionPlaceholder from './NoSessionPlaceholder';
+import AddLessonForm from './AddLessonForm';
 
-// Icons
-const WhatsAppIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.905 6.03l-.419 1.533 1.519-.4zM15.53 17.53c-.07-.121-.267-.202-.56-.347-.297-.146-1.758-.868-2.031-.967-.272-.099-.47-.146-.669.146-.199.293-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.15-1.255-.463-2.39-1.475-1.134-1.012-1.31-1.36-1.899-2.258-.151-.231-.04-.355.043-.463.083-.107.185-.293.28-.439.095-.146.12-.245.18-.41.06-.164.03-.311-.015-.438-.046-.127-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.177-.008-.375-.01-1.04-.01h-.11c-.307.003-1.348-.043-1.348 1.438 0 1.482.791 2.906 1.439 3.82.648.913 2.51 3.96 6.12 5.368 3.61 1.408 3.61 1.054 4.258 1.034.648-.02 1.758-.715 2.006-1.413.248-.698.248-1.289.173-1.413z" />
-    </svg>
-);
+// Helper to create a log entry
+const createLog = (
+    type: TimetableChangeLog['type'], 
+    details: string, 
+    entityType: TimetableChangeLog['entityType'], 
+    entityId: string
+): TimetableChangeLog => ({
+    id: generateUniqueId(),
+    timestamp: new Date().toISOString(),
+    type,
+    details,
+    entityType,
+    entityId
+});
 
+// ... (Icons remain same)
+const WhatsAppIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.905 6.03l-.419 1.533 1.519-.4zM15.53 17.53c-.07-.121-.267-.202-.56-.347-.297-.146-1.758-.868-2.031-.967-.272-.099-.47-.146-.669.146-.199.293-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.15-1.255-.463-2.39-1.475-1.134-1.012-1.31-1.36-1.899-2.258-.151-.231-.04-.355.043-.463.083-.107.185-.293.28-.439.095-.146.12-.245.18-.41.06-.164.03-.311-.015-.438-.046-.127-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.177-.008-.375-.01-1.04-.01h-.11c-.307.003-1.348-.043-1.348 1.438 0 1.482.791 2.906 1.439 3.82.648.913 2.51 3.96 6.12 5.368 3.61 1.408 3.61 1.054 4.258 1.034.648-.02 1.758-.715 2.006-1.413.248-.698.248-1.289.173-1.413z" /></svg>);
 const PrintIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg>;
 const UndoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>;
 const RedoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>;
@@ -51,6 +62,11 @@ interface TeacherTimetablePageProps {
   onSave?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  openConfirmation: (title: string, message: React.ReactNode, onConfirm: () => void) => void;
+  onAddJointPeriod: (jp: JointPeriod) => void;
+  onUpdateJointPeriod: (jp: JointPeriod) => void;
+  onDeleteJointPeriod: (jpId: string) => void;
+  onUpdateTimetableSession: (updater: (session: TimetableSession) => TimetableSession) => void;
 }
 
 const cmykPalette = [
@@ -63,7 +79,7 @@ const cmykPalette = [
 type SortField = 'date' | 'period' | 'type' | 'class' | 'subject' | 'teacher';
 
 export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
-  t, language, classes, subjects, teachers, jointPeriods, adjustments, leaveDetails, onSetClasses, schoolConfig, onUpdateSchoolConfig, selectedTeacherId, onSelectedTeacherChange, hasActiveSession, onUndo, onRedo, onSave, canUndo, canRedo
+  t, language, classes, subjects, teachers, jointPeriods, adjustments, leaveDetails, onSetClasses, schoolConfig, onUpdateSchoolConfig, selectedTeacherId, onSelectedTeacherChange, hasActiveSession, onUndo, onRedo, onSave, canUndo, canRedo, openConfirmation, onAddJointPeriod, onUpdateJointPeriod, onDeleteJointPeriod, onUpdateTimetableSession
 }) => {
   if (!hasActiveSession) {
     return <NoSessionPlaceholder t={t} />;
@@ -490,141 +506,161 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
       }
 
       // Perform Update
-      let newClasses = [...classes];
-
-      const movePeriod = (periodId: string, classId: string, fromDay: keyof TimetableGridData, fromIdx: number, toDay: keyof TimetableGridData, toIdx: number) => {
-          const classIndex = newClasses.findIndex(c => c.id === classId);
-          if (classIndex !== -1) {
-              const updatedClass = { ...newClasses[classIndex] };
-              const updatedTimetable = { ...updatedClass.timetable };
-              
-              // Ensure day array exists and copy it for immutability
-              const sourceDayList = [...(updatedTimetable[fromDay] || [])];
-              const sourceSlot = sourceDayList[fromIdx] || [];
-              const pToMove = sourceSlot.find(p => p.id === periodId);
-              
-              if (pToMove) {
-                  sourceDayList[fromIdx] = sourceSlot.filter(p => p.id !== periodId);
-                  updatedTimetable[fromDay] = sourceDayList;
-                  
-                  if(!updatedTimetable[toDay]) updatedTimetable[toDay] = [];
-                  // If moving within same day, reuse the modified list
-                  const targetDayList = (fromDay === toDay) ? sourceDayList : [...updatedTimetable[toDay]];
-                  const targetSlot = targetDayList[toIdx] || [];
-                  targetDayList[toIdx] = [...targetSlot, pToMove];
-                  updatedTimetable[toDay] = targetDayList;
-                  
-                  updatedClass.timetable = updatedTimetable;
-                  newClasses[classIndex] = updatedClass;
-              }
-          }
-      };
-
-      const processMove = (p: Period, fromDay: keyof TimetableGridData | undefined, fromIdx: number | undefined, toDay: keyof TimetableGridData, toIdx: number) => {
-          if (fromDay && fromIdx !== undefined) {
-              // Moving existing
-              movePeriod(p.id, p.classId, fromDay, fromIdx, toDay, toIdx);
-          } else {
-              // Creating new from sidebar
-              const classIndex = newClasses.findIndex(c => c.id === p.classId);
+      onUpdateTimetableSession((session) => {
+          let newClasses = session.classes.map(c => ({...c, timetable: {...c.timetable}}));
+          let currentLogs = session.changeLogs || [];
+          const logDetails: string[] = [];
+          
+          const movePeriod = (periodId: string, classId: string, fromDay: keyof TimetableGridData, fromIdx: number, toDay: keyof TimetableGridData, toIdx: number) => {
+              const classIndex = newClasses.findIndex(c => c.id === classId);
               if (classIndex !== -1) {
                   const updatedClass = { ...newClasses[classIndex] };
                   const updatedTimetable = { ...updatedClass.timetable };
-                  if (!updatedTimetable[toDay]) updatedTimetable[toDay] = [];
                   
-                  const targetDayList = [...updatedTimetable[toDay]];
-                  const targetSlot = targetDayList[toIdx] || [];
+                  // Ensure day array exists and copy it for immutability
+                  const sourceDayList = [...(updatedTimetable[fromDay] || [])];
+                  const sourceSlot = sourceDayList[fromIdx] || [];
+                  const pToMove = sourceSlot.find(p => p.id === periodId);
                   
-                  const newPeriod: Period = {
-                      id: generateUniqueId(),
-                      classId: p.classId,
-                      subjectId: p.subjectId,
-                      teacherId: p.teacherId,
-                      jointPeriodId: p.jointPeriodId
-                  };
-                  
-                  targetDayList[toIdx] = [...targetSlot, newPeriod];
-                  updatedTimetable[toDay] = targetDayList;
-                  updatedClass.timetable = updatedTimetable;
-                  newClasses[classIndex] = updatedClass;
-              }
-          }
-      };
-
-      // 1. Move Dragged/Selected Periods
-      const processedJointIds = new Set<string>();
-      
-      periods.forEach(p => {
-          if (p.jointPeriodId) {
-              if (processedJointIds.has(p.jointPeriodId)) return;
-              processedJointIds.add(p.jointPeriodId);
-              
-              if (sourceDay && sourcePeriodIndex !== undefined) {
-                  // Moving existing: Find all instances in the source slot across ALL classes
-                  const jointPeriodParts: Period[] = [];
-                  newClasses.forEach(c => {
-                      const slot = c.timetable[sourceDay]?.[sourcePeriodIndex];
-                      if (Array.isArray(slot)) {
-                          slot.forEach(existingP => {
-                              if (existingP.jointPeriodId === p.jointPeriodId) {
-                                  jointPeriodParts.push(existingP);
-                              }
-                          });
-                      }
-                  });
-                  
-                  jointPeriodParts.forEach(part => {
-                      movePeriod(part.id, part.classId, sourceDay, sourcePeriodIndex, targetDay, targetPeriodIndex);
-                  });
-              } else {
-                  // Moving from sidebar
-                  const jpDef = jointPeriods.find(j => j.id === p.jointPeriodId);
-                  if (jpDef) {
-                      jpDef.assignments.forEach(assign => {
-                          const tempP: Period = {
-                              id: '', 
-                              classId: assign.classId,
-                              subjectId: assign.subjectId,
-                              teacherId: jpDef.teacherId,
-                              jointPeriodId: jpDef.id
-                          };
-                          processMove(tempP, undefined, undefined, targetDay, targetPeriodIndex);
-                      });
+                  if (pToMove) {
+                      sourceDayList[fromIdx] = sourceSlot.filter(p => p.id !== periodId);
+                      updatedTimetable[fromDay] = sourceDayList;
+                      
+                      if(!updatedTimetable[toDay]) updatedTimetable[toDay] = [];
+                      // If moving within same day, reuse the modified list
+                      const targetDayList = (fromDay === toDay) ? sourceDayList : [...updatedTimetable[toDay]];
+                      const targetSlot = targetDayList[toIdx] || [];
+                      targetDayList[toIdx] = [...targetSlot, pToMove];
+                      updatedTimetable[toDay] = targetDayList;
+                      
+                      updatedClass.timetable = updatedTimetable;
+                      newClasses[classIndex] = updatedClass;
                   }
               }
-          } else {
-              processMove(p, sourceDay, sourcePeriodIndex, targetDay, targetPeriodIndex);
-          }
-      });
+          };
 
-      if (isSwap && sourceDay && sourcePeriodIndex !== undefined) {
-          const processedTargetJointIds = new Set<string>();
-          targetPeriods.forEach(p => {
-              if (p.jointPeriodId) {
-                  if (processedTargetJointIds.has(p.jointPeriodId)) return;
-                  processedTargetJointIds.add(p.jointPeriodId);
-                  
-                  const jointPeriodParts: Period[] = [];
-                  newClasses.forEach(c => {
-                      const slot = c.timetable[targetDay]?.[targetPeriodIndex];
-                      if (Array.isArray(slot)) {
-                          slot.forEach(existingP => {
-                              if (existingP.jointPeriodId === p.jointPeriodId) {
-                                  jointPeriodParts.push(existingP);
-                              }
-                          });
-                      }
-                  });
-                  jointPeriodParts.forEach(part => {
-                      movePeriod(part.id, part.classId, targetDay, targetPeriodIndex, sourceDay, sourcePeriodIndex);
-                  });
+          const processMove = (p: Period, fromDay: keyof TimetableGridData | undefined, fromIdx: number | undefined, toDay: keyof TimetableGridData, toIdx: number) => {
+              const sub = subjects.find(s => s.id === p.subjectId);
+              const cls = classes.find(c => c.id === p.classId);
+              
+              if (fromDay && fromIdx !== undefined) {
+                  // Moving existing
+                  movePeriod(p.id, p.classId, fromDay, fromIdx, toDay, toIdx);
+                  logDetails.push(`Moved ${sub?.nameEn || '?'} (${cls?.nameEn || '?'}) from ${fromDay} P${fromIdx+1} to ${toDay} P${toIdx+1}`);
               } else {
-                  movePeriod(p.id, p.classId, targetDay, targetPeriodIndex, sourceDay, sourcePeriodIndex);
+                  // Creating new from sidebar
+                  const classIndex = newClasses.findIndex(c => c.id === p.classId);
+                  if (classIndex !== -1) {
+                      const updatedClass = { ...newClasses[classIndex] };
+                      const updatedTimetable = { ...updatedClass.timetable };
+                      if (!updatedTimetable[toDay]) updatedTimetable[toDay] = [];
+                      
+                      const targetDayList = [...updatedTimetable[toDay]];
+                      const targetSlot = targetDayList[toIdx] || [];
+                      
+                      const newPeriod: Period = {
+                          id: generateUniqueId(),
+                          classId: p.classId,
+                          subjectId: p.subjectId,
+                          teacherId: p.teacherId,
+                          jointPeriodId: p.jointPeriodId
+                      };
+                      
+                      targetDayList[toIdx] = [...targetSlot, newPeriod];
+                      updatedTimetable[toDay] = targetDayList;
+                      updatedClass.timetable = updatedTimetable;
+                      newClasses[classIndex] = updatedClass;
+                      logDetails.push(`Scheduled ${sub?.nameEn || '?'} (${cls?.nameEn || '?'}) to ${toDay} P${toIdx+1}`);
+                  }
+              }
+          };
+
+          // 1. Move Dragged/Selected Periods
+          const processedJointIds = new Set<string>();
+          
+          periods.forEach(p => {
+              if (p.jointPeriodId) {
+                  if (processedJointIds.has(p.jointPeriodId)) return;
+                  processedJointIds.add(p.jointPeriodId);
+                  
+                  if (sourceDay && sourcePeriodIndex !== undefined) {
+                      // Moving existing: Find all instances in the source slot across ALL classes
+                      const jointPeriodParts: Period[] = [];
+                      newClasses.forEach(c => {
+                          const slot = c.timetable[sourceDay]?.[sourcePeriodIndex];
+                          if (Array.isArray(slot)) {
+                              slot.forEach(existingP => {
+                                  if (existingP.jointPeriodId === p.jointPeriodId) {
+                                      jointPeriodParts.push(existingP);
+                                  }
+                              });
+                          }
+                      });
+                      
+                      jointPeriodParts.forEach(part => {
+                          movePeriod(part.id, part.classId, sourceDay, sourcePeriodIndex, targetDay, targetPeriodIndex);
+                      });
+                      
+                      const jp = jointPeriods.find(j => j.id === p.jointPeriodId);
+                      logDetails.push(`Moved Joint Period ${jp?.name || ''} to ${targetDay} P${targetPeriodIndex+1}`);
+                  } else {
+                      // Moving from sidebar
+                      const jpDef = jointPeriods.find(j => j.id === p.jointPeriodId);
+                      if (jpDef) {
+                          jpDef.assignments.forEach(assign => {
+                              const tempP: Period = {
+                                  id: '', 
+                                  classId: assign.classId,
+                                  subjectId: assign.subjectId,
+                                  teacherId: jpDef.teacherId,
+                                  jointPeriodId: jpDef.id
+                              };
+                              processMove(tempP, undefined, undefined, targetDay, targetPeriodIndex);
+                          });
+                          logDetails.push(`Scheduled Joint Period ${jpDef.name} to ${targetDay} P${targetPeriodIndex+1}`);
+                      }
+                  }
+              } else {
+                  processMove(p, sourceDay, sourcePeriodIndex, targetDay, targetPeriodIndex);
               }
           });
-      }
 
-      onSetClasses(newClasses);
+          if (isSwap && sourceDay && sourcePeriodIndex !== undefined) {
+              const processedTargetJointIds = new Set<string>();
+              targetPeriods.forEach(p => {
+                  if (p.jointPeriodId) {
+                      if (processedTargetJointIds.has(p.jointPeriodId)) return;
+                      processedTargetJointIds.add(p.jointPeriodId);
+                      
+                      const jointPeriodParts: Period[] = [];
+                      newClasses.forEach(c => {
+                          const slot = c.timetable[targetDay]?.[targetPeriodIndex];
+                          if (Array.isArray(slot)) {
+                              slot.forEach(existingP => {
+                                  if (existingP.jointPeriodId === p.jointPeriodId) {
+                                      jointPeriodParts.push(existingP);
+                                  }
+                              });
+                          }
+                      });
+                      jointPeriodParts.forEach(part => {
+                          movePeriod(part.id, part.classId, targetDay, targetPeriodIndex, sourceDay, sourcePeriodIndex);
+                      });
+                      
+                      const jp = jointPeriods.find(j => j.id === p.jointPeriodId);
+                      logDetails.push(`Swapped Joint Period ${jp?.name || ''} back to ${sourceDay} P${sourcePeriodIndex+1}`);
+                  } else {
+                      movePeriod(p.id, p.classId, targetDay, targetPeriodIndex, sourceDay, sourcePeriodIndex);
+                      const sub = subjects.find(s => s.id === p.subjectId);
+                      logDetails.push(`Swapped ${sub?.nameEn || '?'} back to ${sourceDay} P${sourcePeriodIndex+1}`);
+                  }
+              });
+          }
+
+          logDetails.forEach(d => currentLogs.push(createLog('move', d, 'teacher', selectedTeacherId!)));
+          return { ...session, classes: newClasses, changeLogs: currentLogs };
+      });
+
       setDraggedData(null);
       setMoveSource(null);
   };
@@ -636,49 +672,59 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
       const { periods, sourceDay, sourcePeriodIndex } = source;
       
       if (sourceDay && sourcePeriodIndex !== undefined) {
-          let newClasses = [...classes];
-          const processedJointIds = new Set<string>();
-          
-          periods.forEach(p => {
-              if (p.jointPeriodId) {
-                  if (processedJointIds.has(p.jointPeriodId)) return;
-                  processedJointIds.add(p.jointPeriodId);
-                  
-                  // Update ALL linked classes for this Joint Period
-                  newClasses = newClasses.map(c => {
-                      // Check if class has data for this day/slot
-                      if (c.timetable[sourceDay] && c.timetable[sourceDay][sourcePeriodIndex]) {
-                          // Check if it contains the joint period
-                          const slot = c.timetable[sourceDay][sourcePeriodIndex];
-                          if (slot.some(sp => sp.jointPeriodId === p.jointPeriodId)) {
-                              const updatedC = { ...c, timetable: { ...c.timetable } };
-                              const dayPeriods = [...updatedC.timetable[sourceDay]]; // Copy day array
-                              dayPeriods[sourcePeriodIndex] = slot.filter(sp => sp.jointPeriodId !== p.jointPeriodId);
-                              updatedC.timetable[sourceDay] = dayPeriods;
-                              return updatedC;
+          onUpdateTimetableSession(session => {
+              let newClasses = session.classes.map(c => ({...c, timetable: {...c.timetable}}));
+              let currentLogs = session.changeLogs || [];
+              const processedJointIds = new Set<string>();
+
+              periods.forEach(p => {
+                  if (p.jointPeriodId) {
+                      if (processedJointIds.has(p.jointPeriodId)) return;
+                      processedJointIds.add(p.jointPeriodId);
+                      
+                      // Update ALL linked classes for this Joint Period
+                      const jp = jointPeriods.find(j => j.id === p.jointPeriodId);
+                      newClasses = newClasses.map(c => {
+                          // Check if class has data for this day/slot
+                          if (c.timetable[sourceDay] && c.timetable[sourceDay][sourcePeriodIndex]) {
+                              // Check if it contains the joint period
+                              const slot = c.timetable[sourceDay][sourcePeriodIndex];
+                              if (slot.some(sp => sp.jointPeriodId === p.jointPeriodId)) {
+                                  const updatedC = { ...c, timetable: { ...c.timetable } };
+                                  const dayPeriods = [...updatedC.timetable[sourceDay]]; // Copy day array
+                                  dayPeriods[sourcePeriodIndex] = slot.filter(sp => sp.jointPeriodId !== p.jointPeriodId);
+                                  updatedC.timetable[sourceDay] = dayPeriods;
+                                  return updatedC;
+                              }
+                          }
+                          return c;
+                      });
+                      
+                      currentLogs.push(createLog('move', `Unscheduled Joint Period ${jp?.name || ''} from ${sourceDay} P${sourcePeriodIndex+1}`, 'teacher', selectedTeacherId!));
+
+                  } else {
+                      const classIndex = newClasses.findIndex(c => c.id === p.classId);
+                      if (classIndex !== -1) {
+                          const updatedClass = { ...newClasses[classIndex] };
+                          const updatedTimetable = { ...updatedClass.timetable };
+                          
+                          const dayPeriods = [...(updatedTimetable[sourceDay] || [])];
+                          const slot = dayPeriods[sourcePeriodIndex] || [];
+                          
+                          if (slot.some(sp => sp.id === p.id)) {
+                              dayPeriods[sourcePeriodIndex] = slot.filter(sp => sp.id !== p.id);
+                              updatedTimetable[sourceDay] = dayPeriods;
+                              updatedClass.timetable = updatedTimetable;
+                              newClasses[classIndex] = updatedClass;
+                              
+                              const sub = subjects.find(s => s.id === p.subjectId);
+                              currentLogs.push(createLog('move', `Unscheduled ${sub?.nameEn || ''} from ${sourceDay} P${sourcePeriodIndex+1}`, 'teacher', selectedTeacherId!));
                           }
                       }
-                      return c;
-                  });
-              } else {
-                  const classIndex = newClasses.findIndex(c => c.id === p.classId);
-                  if (classIndex !== -1) {
-                      const updatedClass = { ...newClasses[classIndex] };
-                      const updatedTimetable = { ...updatedClass.timetable };
-                      
-                      const dayPeriods = [...(updatedTimetable[sourceDay] || [])];
-                      const slot = dayPeriods[sourcePeriodIndex] || [];
-                      
-                      if (slot.some(sp => sp.id === p.id)) {
-                          dayPeriods[sourcePeriodIndex] = slot.filter(sp => sp.id !== p.id);
-                          updatedTimetable[sourceDay] = dayPeriods;
-                          updatedClass.timetable = updatedTimetable;
-                          newClasses[classIndex] = updatedClass;
-                      }
                   }
-              }
+              });
+              return { ...session, classes: newClasses, changeLogs: currentLogs };
           });
-          onSetClasses(newClasses);
       }
       setDraggedData(null);
       setMoveSource(null);
@@ -699,42 +745,52 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
   };
 
   const handlePeriodDelete = (periodId: string, classId: string, day: keyof TimetableGridData, periodIndex: number, jointPeriodId?: string) => {
-      let newClasses = [...classes];
-      
-      if (jointPeriodId) {
-          // Remove from ALL linked classes
-          newClasses = newClasses.map(c => {
-              // Copy structure only if modification is needed
-              const daySlots = c.timetable[day];
-              // Safety checks added to prevent crash on 'some' of undefined
-              if (daySlots && Array.isArray(daySlots[periodIndex]) && daySlots[periodIndex].some(p => p.jointPeriodId === jointPeriodId)) {
-                  const updatedC = { ...c, timetable: { ...c.timetable } };
-                  const dayPeriods = [...daySlots]; // Copy day array
-                  dayPeriods[periodIndex] = daySlots[periodIndex].filter(p => p.jointPeriodId !== jointPeriodId);
-                  updatedC.timetable[day] = dayPeriods;
-                  return updatedC;
-              }
-              return c;
-          });
-      } else {
-          // Single period
-          const classIndex = newClasses.findIndex(c => c.id === classId);
-          if (classIndex !== -1) {
-              const updatedClass = { ...newClasses[classIndex] };
-              const updatedTimetable = { ...updatedClass.timetable };
-              const dayPeriods = [...(updatedTimetable[day] || [])];
-              const slot = dayPeriods[periodIndex] || [];
-              
-              dayPeriods[periodIndex] = slot.filter(sp => sp.id !== periodId);
-              updatedTimetable[day] = dayPeriods;
-              updatedClass.timetable = updatedTimetable;
-              newClasses[classIndex] = updatedClass;
-          }
-      }
-      
-      onSetClasses(newClasses);
-  };
+      onUpdateTimetableSession(session => {
+          let newClasses = session.classes.map(c => ({...c, timetable: {...c.timetable}}));
+          let currentLogs = session.changeLogs || [];
+          
+          if (jointPeriodId) {
+              const jp = jointPeriods.find(j => j.id === jointPeriodId);
+              // Remove from ALL linked classes
+              newClasses = newClasses.map(c => {
+                  const daySlots = c.timetable[day];
+                  // Safety checks added to prevent crash on 'some' of undefined
+                  if (daySlots && Array.isArray(daySlots[periodIndex]) && daySlots[periodIndex].some(p => p.jointPeriodId === jointPeriodId)) {
+                      const updatedC = { ...c, timetable: { ...c.timetable } };
+                      const dayPeriods = [...daySlots]; // Copy day array
+                      dayPeriods[periodIndex] = daySlots[periodIndex].filter(p => p.jointPeriodId !== jointPeriodId);
+                      updatedC.timetable[day] = dayPeriods;
+                      return updatedC;
+                  }
+                  return c;
+              });
+              currentLogs.push(createLog('delete', `Deleted Joint Period ${jp?.name || ''} from ${day} P${periodIndex+1}`, 'teacher', selectedTeacherId!));
 
+          } else {
+              // Single period
+              const classIndex = newClasses.findIndex(c => c.id === classId);
+              if (classIndex !== -1) {
+                  const updatedClass = { ...newClasses[classIndex] };
+                  const updatedTimetable = { ...updatedClass.timetable };
+                  const dayPeriods = [...(updatedTimetable[day] || [])];
+                  const slot = dayPeriods[periodIndex] || [];
+                  
+                  const pToDelete = slot.find(p => p.id === periodId);
+                  const sub = subjects.find(s => s.id === pToDelete?.subjectId);
+                  
+                  dayPeriods[periodIndex] = slot.filter(sp => sp.id !== periodId);
+                  updatedTimetable[day] = dayPeriods;
+                  updatedClass.timetable = updatedTimetable;
+                  newClasses[classIndex] = updatedClass;
+                  
+                  currentLogs.push(createLog('delete', `Deleted ${sub?.nameEn || ''} from ${day} P${periodIndex+1}`, 'teacher', selectedTeacherId!));
+              }
+          }
+          
+          return { ...session, classes: newClasses, changeLogs: currentLogs };
+      });
+  };
+  
   const unscheduledPeriods = useMemo((): Period[] => {
       if (!selectedTeacherId) return [];
       
@@ -849,6 +905,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+      {/* ... (Existing modals/components) */}
       {selectedTeacher && (
         <>
             <PrintPreview 
@@ -888,6 +945,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
       />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        {/* ... (Dropdown and navigation UI remains mostly same) */}
         <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t.selectATeacher}</label>
             <div className="flex items-center gap-2">
@@ -912,7 +970,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
                                 <span className="font-bold truncate flex-grow text-left text-lg break-words leading-tight">
                                     {language === 'ur' ? selectedTeacher.nameUr : selectedTeacher.nameEn}
                                 </span>
-                                <span className="text-xs font-medium opacity-70 whitespace-nowrap bg-[var(--bg-tertiary)] px-2 py-1 rounded text-[var(--text-secondary)] flex-shrink-0 group-hover:bg-[var(--accent-secondary)] group-hover:text-[var(--accent-primary)] transition-colors">
+                                <span className="text-xs font-medium opacity-70 whitespace-nowrap min-w-[60px] text-center px-2 py-0.5 rounded text-[var(--text-secondary)] flex-shrink-0 group-hover:bg-[var(--accent-secondary)] group-hover:text-[var(--accent-primary)] transition-colors">
                                     {teacherPeriodCounts.get(selectedTeacher.id) || 0} Periods
                                 </span>
                             </div>
@@ -1165,145 +1223,169 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
               </table>
             </div>
             
-            {/* History Section */}
-            <div className="mt-8 bg-[var(--bg-secondary)] rounded-lg shadow-md border border-[var(--border-primary)] overflow-hidden">
-                <div className="w-full flex items-center justify-between p-4 bg-[var(--bg-tertiary)]/50 hover:bg-[var(--bg-tertiary)] transition-colors border-b border-[var(--border-primary)]">
-                    <button 
-                        onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
-                        className="flex items-center gap-2 focus:outline-none flex-grow text-left"
-                    >
-                        <HistoryIcon />
-                        <h3 className="text-lg font-bold text-[var(--text-primary)]">History / Logs</h3>
-                        <div className={`text-[var(--text-secondary)] transform transition-transform duration-200 ${isHistoryExpanded ? 'rotate-180' : ''}`}>
-                           <ChevronDownIcon /> 
-                        </div>
-                    </button>
-                    {isHistoryExpanded && (
-                        <button 
-                            onClick={resetHistorySort}
-                            className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors flex items-center gap-1 text-xs font-bold uppercase tracking-wider border border-transparent hover:border-[var(--border-secondary)]"
-                            title="Reset Sort to Date"
-                        >
-                            <SortIcon />
-                            Reset Sort
-                        </button>
-                    )}
-                </div>
-                
-                {isHistoryExpanded && (
-                    <div className="p-4 bg-[var(--bg-secondary)]">
-                        {(sortedHistory.leaves.length === 0 && sortedHistory.substitutions.length === 0) ? (
-                            <p className="text-sm text-[var(--text-secondary)] italic text-center py-4">No history records found.</p>
-                        ) : (
-                            <div className="space-y-8">
-                                {sortedHistory.leaves.length > 0 && (
-                                    <div>
-                                        <h4 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-3 border-b-2 border-red-200 pb-1 flex items-center gap-2 text-red-600">
-                                            {t.leavesTaken || 'Leaves'} ({sortedHistory.leaves.length})
-                                        </h4>
-                                        <div className="overflow-x-auto rounded-lg border border-[var(--border-secondary)]">
-                                            <table className="w-full text-sm text-left">
-                                                <thead className="text-xs text-[var(--text-secondary)] uppercase bg-[var(--bg-tertiary)] border-b border-[var(--border-secondary)]">
-                                                    <tr>
-                                                        <th className="px-4 py-3 font-bold w-32 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors" onClick={() => handleSort('date')}>Date {historySortField === 'date' && (historySortOrder === 'asc' ? '↑' : '↓')}</th>
-                                                        <th className="px-4 py-3 font-bold w-24">Day</th>
-                                                        <th className="px-4 py-3 font-bold w-24 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors" onClick={() => handleSort('type')}>Type {historySortField === 'type' && (historySortOrder === 'asc' ? '↑' : '↓')}</th>
-                                                        <th className="px-4 py-3 font-bold">Details / Reason</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-[var(--border-secondary)]">
-                                                    {sortedHistory.leaves.map((item, idx) => (
-                                                        <tr key={`l-${idx}`} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
-                                                            <td className="px-4 py-3 font-mono font-medium text-[var(--text-primary)]">
-                                                                {new Date(item.date).toLocaleDateString()}
-                                                            </td>
-                                                            <td className="px-4 py-3 text-[var(--text-secondary)]">{item.dayName}</td>
-                                                            <td className="px-4 py-3">
-                                                                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${item.leaveType === 'full' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
-                                                                    {item.leaveType === 'full' ? 'Full Day' : 'Half Day'}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-[var(--text-primary)]">
-                                                                {item.leaveType === 'half' && <span className="font-bold text-[var(--text-secondary)] mr-2">From P{item.startPeriod}:</span>}
-                                                                {item.reason}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                )}
+            {/* History Section REMOVED FROM HERE */}
+          </div>
+        </div>
+      )}
+      
+      {/* Lesson Manager Section */}
+      {selectedTeacher && hasActiveSession && (
+        <div className="mt-8">
+            <AddLessonForm 
+                t={t}
+                teachers={teachers}
+                classes={classes}
+                subjects={subjects}
+                jointPeriods={jointPeriods}
+                onSetClasses={onSetClasses}
+                onAddJointPeriod={onAddJointPeriod}
+                onUpdateJointPeriod={onUpdateJointPeriod}
+                onDeleteJointPeriod={onDeleteJointPeriod}
+                onUpdateTimetableSession={onUpdateTimetableSession}
+                openConfirmation={openConfirmation}
+                limitToTeacherId={selectedTeacher.id}
+            />
+        </div>
+      )}
 
-                                {sortedHistory.substitutions.length > 0 && (
-                                    <div className="border-2 border-red-200 rounded-xl overflow-hidden shadow-sm">
-                                        <h4 className="text-sm font-bold text-red-700 uppercase tracking-wider px-4 py-2 bg-red-50 border-b border-red-100 flex items-center gap-2">
-                                            {t.substitution || 'Substitutions'} ({sortedHistory.substitutions.length})
-                                        </h4>
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-sm text-left">
-                                                <thead className="text-xs text-[var(--text-secondary)] uppercase bg-[var(--bg-tertiary)] border-b border-[var(--border-secondary)]">
-                                                    <tr>
-                                                        <th className="px-4 py-3 font-bold w-32 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('date')}>
-                                                            Date {historySortField === 'date' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                        </th>
-                                                        <th className="px-4 py-3 font-bold w-16 text-center cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('period')}>
-                                                            Pd {historySortField === 'period' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                        </th>
-                                                        <th className="px-4 py-3 font-bold w-24 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('type')}>
-                                                            Type {historySortField === 'type' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                        </th>
-                                                        <th className="px-4 py-3 font-bold cursor-default">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="cursor-pointer hover:text-[var(--accent-primary)] flex items-center gap-1 select-none" onClick={() => handleSort('class')}>
-                                                                    Class {historySortField === 'class' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                                </span>
-                                                                <span className="text-[var(--text-secondary)]">/</span>
-                                                                <span className="cursor-pointer hover:text-[var(--accent-primary)] flex items-center gap-1 select-none" onClick={() => handleSort('subject')}>
-                                                                    Subject {historySortField === 'subject' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                                </span>
-                                                            </div>
-                                                        </th>
-                                                        <th className="px-4 py-3 font-bold cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('teacher')}>
-                                                            Teacher {historySortField === 'teacher' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-[var(--border-secondary)]">
-                                                    {sortedHistory.substitutions.map((item, idx) => (
-                                                        <tr key={`s-${idx}`} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
-                                                            <td className="px-4 py-3 font-mono font-medium text-[var(--text-primary)]">
-                                                                {new Date(item.date).toLocaleDateString()}
-                                                                <div className="text-[10px] text-[var(--text-secondary)] uppercase font-bold">{item.dayName}</div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center font-bold text-[var(--text-primary)] bg-[var(--bg-tertiary)]/30">{item.period}</td>
-                                                            <td className="px-4 py-3">
-                                                                {item.type === 'sub_given' ? (
-                                                                    <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-orange-100 text-orange-700 border border-orange-200 whitespace-nowrap">Given ➔</span>
-                                                                ) : (
-                                                                    <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700 border border-green-200 whitespace-nowrap">Taken ⬅️</span>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-4 py-3">
-                                                                <div className="font-bold text-[var(--text-primary)]">{item.className}</div>
-                                                                <div className="text-xs text-[var(--text-secondary)]">{item.subjectName}</div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-[var(--text-primary)] font-medium">
-                                                                {item.teacherName}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+      {/* History Section (Moved Here) */}
+      {selectedTeacher && hasActiveSession && (
+        <div className="mt-8 bg-[var(--bg-secondary)] rounded-lg shadow-md border border-[var(--border-primary)] overflow-hidden">
+            <div className="w-full flex items-center justify-between p-4 bg-[var(--bg-tertiary)]/50 hover:bg-[var(--bg-tertiary)] transition-colors border-b border-[var(--border-primary)]">
+                <button 
+                    onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                    className="flex items-center gap-2 focus:outline-none flex-grow text-left"
+                >
+                    <HistoryIcon />
+                    <h3 className="text-lg font-bold text-[var(--text-primary)]">History / Logs</h3>
+                    <div className={`text-[var(--text-secondary)] transform transition-transform duration-200 ${isHistoryExpanded ? 'rotate-180' : ''}`}>
+                       <ChevronDownIcon /> 
                     </div>
+                </button>
+                {isHistoryExpanded && (
+                    <button 
+                        onClick={resetHistorySort}
+                        className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors flex items-center gap-1 text-xs font-bold uppercase tracking-wider border border-transparent hover:border-[var(--border-secondary)]"
+                        title="Reset Sort to Date"
+                    >
+                        <SortIcon />
+                        Reset Sort
+                    </button>
                 )}
             </div>
-          </div>
+            
+            {isHistoryExpanded && (
+                <div className="p-4 bg-[var(--bg-secondary)]">
+                    {(sortedHistory.leaves.length === 0 && sortedHistory.substitutions.length === 0) ? (
+                        <p className="text-sm text-[var(--text-secondary)] italic text-center py-4">No history records found.</p>
+                    ) : (
+                        <div className="space-y-8">
+                            {sortedHistory.leaves.length > 0 && (
+                                <div>
+                                    <h4 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-3 border-b-2 border-red-200 pb-1 flex items-center gap-2 text-red-600">
+                                        {t.leavesTaken || 'Leaves'} ({sortedHistory.leaves.length})
+                                    </h4>
+                                    <div className="overflow-x-auto rounded-lg border border-[var(--border-secondary)]">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="text-xs text-[var(--text-secondary)] uppercase bg-[var(--bg-tertiary)] border-b border-[var(--border-secondary)]">
+                                                <tr>
+                                                    <th className="px-4 py-3 font-bold w-32 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors" onClick={() => handleSort('date')}>Date {historySortField === 'date' && (historySortOrder === 'asc' ? '↑' : '↓')}</th>
+                                                    <th className="px-4 py-3 font-bold w-24">Day</th>
+                                                    <th className="px-4 py-3 font-bold w-24 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors" onClick={() => handleSort('type')}>Type {historySortField === 'type' && (historySortOrder === 'asc' ? '↑' : '↓')}</th>
+                                                    <th className="px-4 py-3 font-bold">Details / Reason</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-[var(--border-secondary)]">
+                                                {sortedHistory.leaves.map((item, idx) => (
+                                                    <tr key={`l-${idx}`} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
+                                                        <td className="px-4 py-3 font-mono font-medium text-[var(--text-primary)]">
+                                                            {new Date(item.date).toLocaleDateString()}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-[var(--text-secondary)]">{item.dayName}</td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${item.leaveType === 'full' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
+                                                                {item.leaveType === 'full' ? 'Full Day' : 'Half Day'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-[var(--text-primary)]">
+                                                            {item.leaveType === 'half' && <span className="font-bold text-[var(--text-secondary)] mr-2">From P{item.startPeriod}:</span>}
+                                                            {item.reason}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {sortedHistory.substitutions.length > 0 && (
+                                <div className="border-2 border-red-200 rounded-xl overflow-hidden shadow-sm">
+                                    <h4 className="text-sm font-bold text-red-700 uppercase tracking-wider px-4 py-2 bg-red-50 border-b border-red-100 flex items-center gap-2">
+                                        {t.substitution || 'Substitutions'} ({sortedHistory.substitutions.length})
+                                    </h4>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="text-xs text-[var(--text-secondary)] uppercase bg-[var(--bg-tertiary)] border-b border-[var(--border-secondary)]">
+                                                <tr>
+                                                    <th className="px-4 py-3 font-bold w-32 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('date')}>
+                                                        Date {historySortField === 'date' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                    </th>
+                                                    <th className="px-4 py-3 font-bold w-16 text-center cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('period')}>
+                                                        Pd {historySortField === 'period' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                    </th>
+                                                    <th className="px-4 py-3 font-bold w-24 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('type')}>
+                                                        Type {historySortField === 'type' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                    </th>
+                                                    <th className="px-4 py-3 font-bold cursor-default">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="cursor-pointer hover:text-[var(--accent-primary)] flex items-center gap-1 select-none" onClick={() => handleSort('class')}>
+                                                                Class {historySortField === 'class' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                            </span>
+                                                            <span className="text-[var(--text-secondary)]">/</span>
+                                                            <span className="cursor-pointer hover:text-[var(--accent-primary)] flex items-center gap-1 select-none" onClick={() => handleSort('subject')}>
+                                                                Subject {historySortField === 'subject' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                            </span>
+                                                        </div>
+                                                    </th>
+                                                    <th className="px-4 py-3 font-bold cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('teacher')}>
+                                                        Teacher {historySortField === 'teacher' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-[var(--border-secondary)]">
+                                                {sortedHistory.substitutions.map((item, idx) => (
+                                                    <tr key={`s-${idx}`} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
+                                                        <td className="px-4 py-3 font-mono font-medium text-[var(--text-primary)]">
+                                                            {new Date(item.date).toLocaleDateString()}
+                                                            <div className="text-[10px] text-[var(--text-secondary)] uppercase font-bold">{item.dayName}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center font-bold text-[var(--text-primary)] bg-[var(--bg-tertiary)]/30">{item.period}</td>
+                                                        <td className="px-4 py-3">
+                                                            {item.type === 'sub_given' ? (
+                                                                <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-orange-100 text-orange-700 border border-orange-200 whitespace-nowrap">Given ➔</span>
+                                                            ) : (
+                                                                <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700 border border-green-200 whitespace-nowrap">Taken ⬅️</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="font-bold text-[var(--text-primary)]">{item.className}</div>
+                                                            <div className="text-xs text-[var(--text-secondary)]">{item.subjectName}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-[var(--text-primary)] font-medium">
+                                                            {item.teacherName}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
       )}
     </div>

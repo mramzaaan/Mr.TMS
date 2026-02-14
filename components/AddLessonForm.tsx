@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Teacher, SchoolClass, Subject, JointPeriod, TimetableSession, GroupSet } from '../types';
 import { generateUniqueId } from '../types';
 
@@ -15,13 +15,16 @@ interface AddLessonFormProps {
   onDeleteJointPeriod: (jpId: string) => void;
   onUpdateTimetableSession: (updater: (session: TimetableSession) => TimetableSession) => void;
   openConfirmation: (title: string, message: React.ReactNode, onConfirm: () => void) => void;
+  limitToClassId?: string;
+  limitToTeacherId?: string;
 }
 
 const NON_TEACHING_CLASS_ID = 'non-teaching-duties';
 
 const AddLessonForm: React.FC<AddLessonFormProps> = ({ 
     t, teachers, classes, subjects, jointPeriods, 
-    onSetClasses, onUpdateTimetableSession, openConfirmation
+    onSetClasses, onUpdateTimetableSession, openConfirmation,
+    limitToClassId, limitToTeacherId
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
@@ -50,11 +53,21 @@ const AddLessonForm: React.FC<AddLessonFormProps> = ({
       originalJointPeriodId?: string;
   } | null>(null);
 
+  useEffect(() => {
+      if (limitToClassId) {
+          setExpandedId(limitToClassId);
+          setSelectedClassIds([limitToClassId]);
+      }
+      if (limitToTeacherId) {
+          setTeacherId(limitToTeacherId);
+      }
+  }, [limitToClassId, limitToTeacherId]);
+
   const resetForm = () => {
-    setTeacherId('');
+    setTeacherId(limitToTeacherId || '');
     setSubjectId('');
     setPeriodsCount(1);
-    setSelectedClassIds([]);
+    setSelectedClassIds(limitToClassId ? [limitToClassId] : []);
     setIsGroupLesson(false);
     setCustomGroupName('');
     setCustomGroupSetName('Subject Groups');
@@ -337,6 +350,100 @@ const AddLessonForm: React.FC<AddLessonFormProps> = ({
   };
 
   const sortedList = useMemo(() => {
+      // 1. LIMIT TO CLASS View
+      if (limitToClassId) {
+          const c = classes.find(cls => cls.id === limitToClassId);
+          if (!c) return [];
+          
+          const standard = c.subjects.map((s, idx) => ({
+              type: 'single',
+              key: `single-${c.id}-${idx}`,
+              classId: c.id,
+              subjectIndex: idx,
+              subject: s,
+              displaySubject: subjects.find(sub => sub.id === s.subjectId),
+              displayTeacher: teachers.find(t => t.id === s.teacherId),
+              groupName: s.groupId ? c.groupSets?.find(gs => gs.id === s.groupSetId)?.groups.find(g => g.id === s.groupId)?.name : undefined
+          }));
+
+          const joints = jointPeriods.filter(jp => jp.assignments?.some(a => a.classId === c.id)).map(jp => {
+              const firstAssign = jp.assignments.find(a => a.classId === c.id);
+              let groupName = undefined;
+              if (firstAssign?.groupId) {
+                  groupName = c.groupSets?.find(gs => gs.id === firstAssign.groupSetId)?.groups.find(g => g.id === firstAssign.groupId)?.name;
+              }
+
+              return {
+                type: 'joint',
+                key: `joint-${jp.id}`,
+                jointPeriod: jp,
+                displaySubject: subjects.find(sub => sub.id === firstAssign?.subjectId),
+                displayTeacher: teachers.find(t => t.id === jp.teacherId),
+                jointClassNames: jp.assignments?.map(a => classes.find(c => c.id === a.classId)?.nameEn).filter(Boolean).join(', '),
+                groupName
+              };
+          });
+
+          const combinedItems = [...standard, ...joints].sort((a, b) => {
+              const nameA = a.displaySubject?.nameEn || '';
+              const nameB = b.displaySubject?.nameEn || '';
+              return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+          });
+
+          return [{ id: c.id, label: c.nameEn, subLabel: c.nameUr, items: combinedItems }];
+      }
+
+      // 2. LIMIT TO TEACHER View
+      if (limitToTeacherId) {
+          const list = classes.filter(c => c.id !== NON_TEACHING_CLASS_ID).map(c => {
+               // A. Find Single Subjects taught by this teacher in this class
+               const standard = c.subjects
+                .map((s, idx) => ({ s, idx }))
+                .filter(({ s }) => s.teacherId === limitToTeacherId)
+                .map(({ s, idx }) => ({
+                  type: 'single',
+                  key: `single-${c.id}-${idx}`,
+                  classId: c.id,
+                  subjectIndex: idx,
+                  subject: s,
+                  displaySubject: subjects.find(sub => sub.id === s.subjectId),
+                  displayTeacher: teachers.find(t => t.id === s.teacherId),
+                  groupName: s.groupId ? c.groupSets?.find(gs => gs.id === s.groupSetId)?.groups.find(g => g.id === s.groupId)?.name : undefined
+               }));
+
+               // B. Find Joint Periods taught by this teacher involving this class
+               const joints = jointPeriods
+                .filter(jp => jp.teacherId === limitToTeacherId && jp.assignments.some(a => a.classId === c.id))
+                .map(jp => {
+                    const firstAssign = jp.assignments.find(a => a.classId === c.id);
+                    let groupName = undefined;
+                    if (firstAssign?.groupId) {
+                        groupName = c.groupSets?.find(gs => gs.id === firstAssign.groupSetId)?.groups.find(g => g.id === firstAssign.groupId)?.name;
+                    }
+                    return {
+                        type: 'joint',
+                        key: `joint-${jp.id}`,
+                        jointPeriod: jp,
+                        displaySubject: subjects.find(sub => sub.id === firstAssign?.subjectId),
+                        displayTeacher: teachers.find(t => t.id === jp.teacherId),
+                        jointClassNames: jp.assignments?.map(a => classes.find(cls => cls.id === a.classId)?.nameEn).filter(Boolean).join(', '),
+                        groupName
+                    };
+                });
+                
+               const combinedItems = [...standard, ...joints].sort((a, b) => {
+                   const nameA = a.displaySubject?.nameEn || '';
+                   const nameB = b.displaySubject?.nameEn || '';
+                   return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+               });
+               
+               return { id: c.id, label: c.nameEn, subLabel: c.nameUr, items: combinedItems };
+          }).filter(group => group.items.length > 0);
+          
+          return list;
+      }
+
+      // 3. GLOBAL View (grouped by Class)
       if (sortBy === 'class') {
           const list: any[] = classes.filter(c => c.id !== NON_TEACHING_CLASS_ID).map(c => {
               const standard = c.subjects.map((s, idx) => ({
@@ -379,6 +486,7 @@ const AddLessonForm: React.FC<AddLessonFormProps> = ({
           return list;
 
       } else {
+          // 4. GLOBAL View (grouped by Teacher)
           const list: any[] = teachers.map(t => {
               const standard: any[] = [];
               classes.filter(c => c.id !== NON_TEACHING_CLASS_ID).forEach(c => {
@@ -451,7 +559,7 @@ const AddLessonForm: React.FC<AddLessonFormProps> = ({
           }
           return list;
       }
-  }, [classes, teachers, subjects, jointPeriods, sortBy]);
+  }, [classes, teachers, subjects, jointPeriods, sortBy, limitToClassId, limitToTeacherId]);
 
   const inputStyleClasses = "mt-1 block w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-md shadow-sm text-[var(--text-primary)] focus:outline-none focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] sm:text-sm";
 
@@ -469,10 +577,13 @@ const AddLessonForm: React.FC<AddLessonFormProps> = ({
       <div className="bg-[var(--bg-secondary)] rounded-xl shadow-md border border-[var(--border-primary)] overflow-hidden">
           <div className="p-4 border-b border-[var(--border-primary)] bg-[var(--bg-tertiary)] flex justify-between items-center flex-wrap gap-4">
               <h3 className="text-lg font-bold text-[var(--text-primary)]">{t.lessonList}</h3>
-              <div className="flex bg-[var(--bg-secondary)] rounded-lg p-1 border border-[var(--border-secondary)]">
-                  <button onClick={() => setSortBy('class')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${sortBy === 'class' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>{t.sortByClass}</button>
-                  <button onClick={() => setSortBy('teacher')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${sortBy === 'teacher' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>{t.sortByTeacher}</button>
-              </div>
+              {/* Hide sort options if list is limited to one class or teacher */}
+              {!limitToClassId && !limitToTeacherId && (
+                  <div className="flex bg-[var(--bg-secondary)] rounded-lg p-1 border border-[var(--border-secondary)]">
+                      <button onClick={() => setSortBy('class')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${sortBy === 'class' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>{t.sortByClass}</button>
+                      <button onClick={() => setSortBy('teacher')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${sortBy === 'teacher' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>{t.sortByTeacher}</button>
+                  </div>
+              )}
           </div>
           
           <div className="divide-y divide-[var(--border-primary)]">
@@ -558,7 +669,7 @@ const AddLessonForm: React.FC<AddLessonFormProps> = ({
                     {/* Teacher */}
                     <div>
                         <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">{t.teacher}</label>
-                        <select value={teacherId} onChange={(e) => setTeacherId(e.target.value)} className={inputStyleClasses}>
+                        <select value={teacherId} onChange={(e) => setTeacherId(e.target.value)} className={inputStyleClasses} disabled={!!limitToTeacherId}>
                             <option value="">{t.withoutTeacher}</option>
                             {teachers.map(t => <option key={t.id} value={t.id}>{t.nameEn}</option>)}
                         </select>

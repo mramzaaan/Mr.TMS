@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import type { Language, SchoolClass, Subject, Teacher, Period, TimetableGridData, SchoolConfig, Adjustment, JointPeriod, ClassSubject, DownloadDesignConfig } from '../types';
+import type { Language, SchoolClass, Subject, Teacher, Period, TimetableGridData, SchoolConfig, Adjustment, JointPeriod, ClassSubject, DownloadDesignConfig, TimetableSession } from '../types';
 import { allDays } from '../types';
 import PeriodCard from './PeriodCard';
 import PeriodStack from './PeriodStack';
@@ -8,11 +8,11 @@ import CopyTimetableModal from './CopyTimetableModal';
 import PrintPreview from './PrintPreview';
 import { generateUniqueId } from '../types';
 import { translations } from '../i18n';
-/* FIX: Changed default import to named import to fix Error 1 */
 import { ClassCommunicationModal } from './ClassCommunicationModal';
 import DownloadModal from './DownloadModal';
 import { generateClassTimetableHtml } from './reportUtils';
 import NoSessionPlaceholder from './NoSessionPlaceholder';
+import AddLessonForm from './AddLessonForm'; // Import AddLessonForm
 
 interface ClassTimetablePageProps {
   t: any;
@@ -29,12 +29,16 @@ interface ClassTimetablePageProps {
   onSelectionChange: React.Dispatch<React.SetStateAction<{ classId: string | null; highlightedTeacherId: string; }>>;
   openConfirmation: (title: string, message: React.ReactNode, onConfirm: () => void) => void;
   hasActiveSession: boolean;
-  // History Props
   onUndo?: () => void;
   onRedo?: () => void;
   onSave?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  // New props for AddLessonForm
+  onAddJointPeriod: (jp: JointPeriod) => void;
+  onUpdateJointPeriod: (jp: JointPeriod) => void;
+  onDeleteJointPeriod: (jpId: string) => void;
+  onUpdateTimetableSession: (updater: (session: TimetableSession) => TimetableSession) => void;
 }
 
 type SlotAvailability = { status: 'available' | 'conflict'; reason?: string };
@@ -63,7 +67,7 @@ const ChevronLeftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className=
 const ChevronRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>;
 const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
 
-const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, classes, subjects, teachers, jointPeriods, adjustments, onSetClasses, schoolConfig, onUpdateSchoolConfig, selection, onSelectionChange, openConfirmation, hasActiveSession, onUndo, onRedo, onSave, canUndo, canRedo }) => {
+const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, classes, subjects, teachers, jointPeriods, adjustments, onSetClasses, schoolConfig, onUpdateSchoolConfig, selection, onSelectionChange, openConfirmation, hasActiveSession, onUndo, onRedo, onSave, canUndo, canRedo, onAddJointPeriod, onUpdateJointPeriod, onDeleteJointPeriod, onUpdateTimetableSession }) => {
   if (!hasActiveSession) {
     return <NoSessionPlaceholder t={t} />;
   }
@@ -143,7 +147,17 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
           if (classSortBy === 'serial') {
               res = (a.serialNumber ?? 99999) - (b.serialNumber ?? 99999);
           } else if (classSortBy === 'room') {
-              res = (a.roomNumber || '').localeCompare(b.roomNumber || '', undefined, { numeric: true });
+              const rA = a.roomNumber || '';
+              const rB = b.roomNumber || '';
+              // Push empty/missing rooms to the bottom regardless of sort direction if desired, 
+              // or let standard sort handle it (empty string usually comes first in asc).
+              // Here we push empty strings to the bottom in Ascending order for better UX.
+              if (rA === '' && rB !== '') return 1;
+              if (rA !== '' && rB === '') return -1;
+              
+              // Use numeric sort for room numbers (e.g. "2" comes before "10")
+              const dir = sortDirection === 'asc' ? 1 : -1;
+              return rA.localeCompare(rB, undefined, { numeric: true }) * dir;
           } else { // name
               res = a.nameEn.localeCompare(b.nameEn);
           }
@@ -845,7 +859,7 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
 
                             {/* Sort Controls */}
                             <div className="flex gap-1 mb-2 bg-[var(--bg-tertiary)] p-1 rounded-lg">
-                                {(['serial', 'room', 'name'] as const).map(key => (
+                                {(['serial', 'name', 'room'] as const).map(key => (
                                     <button
                                         key={key}
                                         onClick={() => {
@@ -1147,6 +1161,26 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
               </table>
             </div>
           </div>
+        </div>
+      )}
+      
+      {/* Lesson Manager Section */}
+      {selectedClassId && hasActiveSession && (
+        <div className="mt-8">
+            <AddLessonForm 
+                t={t}
+                teachers={teachers}
+                classes={classes}
+                subjects={subjects}
+                jointPeriods={jointPeriods}
+                onSetClasses={onSetClasses}
+                onAddJointPeriod={onAddJointPeriod}
+                onUpdateJointPeriod={onUpdateJointPeriod}
+                onDeleteJointPeriod={onDeleteJointPeriod}
+                onUpdateTimetableSession={onUpdateTimetableSession}
+                openConfirmation={openConfirmation}
+                limitToClassId={selectedClassId}
+            />
         </div>
       )}
     </div>

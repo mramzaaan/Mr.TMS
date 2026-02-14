@@ -5,7 +5,6 @@ import AddSubjectForm from './AddSubjectForm';
 import AddTeacherForm from './AddTeacherForm';
 import AddClassForm from './AddClassForm';
 import TimetableStructureForm from './TimetableStructureForm';
-import AddLessonForm from './AddLessonForm';
 import NoSessionPlaceholder from './NoSessionPlaceholder';
 import CsvManagementModal from './CsvManagementModal';
 
@@ -40,7 +39,6 @@ interface DataEntryPageProps {
 const TeacherIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
 const SubjectIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v11.494m-9-5.747h18" /></svg>;
 const ClassIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>;
-const LessonIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
 const StructureIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
 const SchoolIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M12 14l9-5-9-5-9 5 9 5z" /><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>;
 const TransferIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>;
@@ -49,11 +47,10 @@ const TAB_ICONS: Record<DataEntryTab, React.ReactNode> = {
     teacher: <TeacherIcon />,
     subject: <SubjectIcon />,
     class: <ClassIcon />,
-    lesson: <LessonIcon />,
     structure: <StructureIcon />,
     school: <SchoolIcon />,
     importExport: <TransferIcon />,
-    jointPeriods: <LessonIcon /> // Fallback or similar
+    jointPeriods: <ClassIcon /> // Fallback or similar
 };
 
 const DataEntryPage: React.FC<DataEntryPageProps> = ({ 
@@ -94,20 +91,6 @@ const DataEntryPage: React.FC<DataEntryPageProps> = ({
             onUpdateSchoolConfig={onUpdateSchoolConfig}
             currentTimetableSession={currentTimetableSession}
             onUpdateTimetableSession={onUpdateTimetableSession}
-        />;
-      case 'lesson':
-        return <AddLessonForm 
-            t={t} 
-            teachers={teachers} 
-            classes={classes} 
-            subjects={subjects} 
-            jointPeriods={jointPeriods}
-            onSetClasses={onSetClasses}
-            onAddJointPeriod={onAddJointPeriod}
-            onUpdateJointPeriod={onUpdateJointPeriod}
-            onDeleteJointPeriod={onDeleteJointPeriod}
-            onUpdateTimetableSession={onUpdateTimetableSession}
-            openConfirmation={openConfirmation}
         />;
       case 'importExport':
         return (
@@ -185,7 +168,6 @@ const DataEntryPage: React.FC<DataEntryPageProps> = ({
                 <TabButton tabName="teacher" label={t.teacher} />
                 <TabButton tabName="subject" label={t.subject} />
                 <TabButton tabName="class" label={t.class} />
-                <TabButton tabName="lesson" label={t.lesson} />
                 <TabButton tabName="structure" label={t.timetableStructure} />
             </div>
         </div>

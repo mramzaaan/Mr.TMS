@@ -1,7 +1,7 @@
 
 export type Language = 'en' | 'ur';
 export type Page = 'home' | 'classTimetable' | 'teacherTimetable' | 'alternativeTimetable' | 'attendance' | 'dataEntry' | 'settings';
-export type DataEntryTab = 'class' | 'teacher' | 'subject' | 'jointPeriods' | 'structure' | 'lesson' | 'importExport' | 'school';
+export type DataEntryTab = 'class' | 'teacher' | 'subject' | 'jointPeriods' | 'structure' | 'importExport' | 'school';
 
 export type NavPosition = 'top' | 'bottom';
 export type NavDesign = 'modern' | 'classic' | 'minimal' | '3d' | 'gradient' | 'outline' | 'crystal' | 'soft' | 'transparent';
@@ -136,6 +136,15 @@ export interface AttendanceData {
     submittedBy?: string; // Added field to track who submitted the attendance
 }
 
+export interface TimetableChangeLog {
+    id: string;
+    timestamp: string;
+    type: 'move' | 'delete' | 'add';
+    details: string;
+    entityType: 'teacher' | 'class';
+    entityId: string;
+}
+
 export interface TimetableSession {
   id: string;
   name: string;
@@ -163,6 +172,7 @@ export interface TimetableSession {
       friday: PeriodTime | null;
   };
   vacations?: Vacation[];
+  changeLogs?: TimetableChangeLog[];
 }
 
 export interface LeaveDetails {

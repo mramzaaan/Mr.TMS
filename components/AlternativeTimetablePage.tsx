@@ -791,9 +791,10 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
   const handleImportJson = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    file.text().then((result: string) => {
+    file.text().then((result) => {
         try {
-            const imported: any[] = JSON.parse(result);
+            const jsonStr = typeof result === 'string' ? result : String(result);
+            const imported: any[] = JSON.parse(jsonStr);
             if (!Array.isArray(imported)) throw new Error("Invalid format: expected array");
 
             onUpdateSession((session) => {
@@ -817,12 +818,12 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             
             alert("Data imported successfully.");
             setIsImportExportOpen(false);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
             const errorMessage = error instanceof Error ? error.message : String(error);
             alert("Failed to import: " + errorMessage);
         }
-    }).catch((err: any) => { 
+    }).catch((err: unknown) => { 
         console.error("File read error:", err);
         const msg = err instanceof Error ? err.message : String(err);
         alert("Failed to read file: " + msg);
@@ -1189,9 +1190,9 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
               if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
                   try {
                       await (navigator as any).share({ files: [file], title: `Signed_Adjustments_${selectedDate}` });
-                  } catch (error: any) {
+                  } catch (error: unknown) {
                       // Silently handle cancellation or abort
-                      const isAbort = error?.name === 'AbortError';
+                      const isAbort = (error as any)?.name === 'AbortError';
                       if (!isAbort) {
                           console.error("Share failed", error);
                           const msg = error instanceof Error ? error.message : String(error);
