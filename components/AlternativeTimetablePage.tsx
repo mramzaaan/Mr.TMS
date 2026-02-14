@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { Language, SchoolClass, Subject, Teacher, TimetableGridData, Adjustment, SchoolConfig, Period, LeaveDetails, DownloadDesignConfig, TimetableSession } from '../types';
 import PrintPreview from './PrintPreview';
@@ -129,7 +128,7 @@ const SignatureModal: React.FC<{
             try {
                 await onFinalSave(canvas.toDataURL());
                 onClose();
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Submission failed", err);
             } finally {
                 setIsSubmitting(false);
@@ -177,7 +176,7 @@ const SignatureModal: React.FC<{
                         {isSubmitting ? (
                             <div className="flex items-center gap-3">
                                 <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                <span>Generating Sheet...</span>
+                                <span>SIGN & SHARE IMAGE</span>
                             </div>
                         ) : (
                             <span>SIGN & SHARE IMAGE</span>
@@ -243,12 +242,27 @@ interface SubstitutePickerProps {
     onChange: (id: string) => void;
     language: Language;
     historyStats: { stats: Record<string, number[]>; labels: string[] }; // Updated Prop
+    onToggle?: (isOpen: boolean) => void; // New prop for managing z-index in parent
 }
 
-const SubstitutePicker: React.FC<SubstitutePickerProps> = ({ teachersWithStatus, selectedId, onChange, language, historyStats }) => {
+const SubstitutePicker: React.FC<SubstitutePickerProps> = ({ teachersWithStatus, selectedId, onChange, language, historyStats, onToggle }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const selectedTeacher = teachersWithStatus.find(t => t.teacher.id === selectedId);
+    const selectedTeacherObj = teachersWithStatus.find(t => t.teacher.id === selectedId);
+
+    // Determine status text for selected teacher
+    let selectedStatusText = "";
+    if (selectedTeacherObj) {
+        if (selectedTeacherObj.status.type === 'AVAILABLE') selectedStatusText = "(Free)";
+        else if (selectedTeacherObj.status.type === 'IN_CHARGE') selectedStatusText = "(In Charge)";
+        else if (selectedTeacherObj.status.type === 'TEACHES_CLASS') selectedStatusText = "(Teaches)";
+        else if (selectedTeacherObj.status.type === 'UNAVAILABLE') selectedStatusText = "(Busy)";
+    }
+
+    // Effect to notify parent about open state changes
+    useEffect(() => {
+        if (onToggle) onToggle(isOpen);
+    }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -268,31 +282,24 @@ const SubstitutePicker: React.FC<SubstitutePickerProps> = ({ teachersWithStatus,
         <div className="relative w-full" ref={dropdownRef}>
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full text-left bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-lg px-3 py-2 text-sm font-bold text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--accent-primary)] focus:outline-none flex justify-between items-center"
+                className={`w-full text-left rounded-xl px-4 py-3 text-sm font-bold flex justify-between items-center transition-all outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+                    selectedId 
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' 
+                    : 'bg-white dark:bg-gray-800 border border-[var(--border-secondary)] text-[var(--text-primary)] hover:border-[var(--accent-primary)] shadow-sm'
+                }`}
             >
-                <span className="truncate">
-                    {selectedTeacher 
-                        ? (language === 'ur' ? selectedTeacher.teacher.nameUr : selectedTeacher.teacher.nameEn)
+                <span className="truncate flex-grow">
+                    {selectedTeacherObj 
+                        ? `${language === 'ur' ? selectedTeacherObj.teacher.nameUr : selectedTeacherObj.teacher.nameEn} ${selectedStatusText}`
                         : "Select Substitute..."}
                 </span>
-                <div className="flex items-center gap-2">
-                    {selectedId && (
-                        <div 
-                            onClick={(e) => { e.stopPropagation(); onChange(''); }}
-                            className="p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition-colors cursor-pointer"
-                            title="Cancel Substitution"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                        </div>
-                    )}
+                <div className="flex items-center gap-2 ml-2">
                     <ChevronDown />
                 </div>
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-xl max-h-80 overflow-y-auto custom-scrollbar animate-scale-in">
+                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-[var(--border-secondary)] rounded-lg shadow-xl max-h-80 overflow-y-auto custom-scrollbar animate-scale-in">
                     {teachersWithStatus.map(({ teacher, status }) => {
                         const name = language === 'ur' ? teacher.nameUr : teacher.nameEn;
                         const teacherStats = allStats[teacher.id] || [0,0,0,0,0,0,0];
@@ -375,6 +382,9 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
   const [exportEndDate, setExportEndDate] = useState(selectedDate);
   
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
+  // New state to track which card has an open dropdown
+  const [activeDropdownCardId, setActiveDropdownCardId] = useState<string | null>(null);
 
   // Modal State
   const [modalState, setModalState] = useState<{
@@ -821,12 +831,12 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
         } catch (error: unknown) {
             console.error(error);
             const errorMessage = error instanceof Error ? error.message : String(error);
-            alert("Failed to import: " + errorMessage);
+            alert(`Failed to import: ${errorMessage}`);
         }
     }).catch((err: unknown) => { 
         console.error("File read error:", err);
         const msg = err instanceof Error ? err.message : String(err);
-        alert("Failed to read file: " + msg);
+        alert(`Failed to read file: ${msg}`);
     });
     event.target.value = '';
   };
@@ -970,7 +980,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           });
           document.body.removeChild(tempDiv);
           return await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-      } catch (e: any) {
+      } catch (e: unknown) {
           console.error("Slip generation failed", e);
           if (document.body.contains(tempDiv)) document.body.removeChild(tempDiv);
           return null;
@@ -1032,7 +1042,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
               } else {
                   throw new Error("Clipboard API unavailable");
               }
-          } catch (e: any) {
+          } catch (e: unknown) {
               console.warn("Clipboard failed, attempting download as fallback", e);
               // Fallback: Download Image
               const url = URL.createObjectURL(blob);
@@ -1190,13 +1200,13 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
               if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
                   try {
                       await (navigator as any).share({ files: [file], title: `Signed_Adjustments_${selectedDate}` });
-                  } catch (error: unknown) {
+                  } catch (error: unknown) { 
                       // Silently handle cancellation or abort
-                      const isAbort = (error as any)?.name === 'AbortError';
+                      const isAbort = error instanceof Error && error.name === 'AbortError';
                       if (!isAbort) {
                           console.error("Share failed", error);
-                          const msg = error instanceof Error ? error.message : String(error);
-                          alert("Share failed: " + msg);
+                          const msg = (error instanceof Error) ? error.message : String(error);
+                          alert(`Share failed: ${msg}`);
                       }
                   }
               } else {
@@ -1207,9 +1217,9 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                   link.click();
               }
           }
-      } catch (err: any) {
+      } catch (err: unknown) { 
           console.error("Image generation failed", err);
-          const errMsg = err instanceof Error ? err.message : String(err);
+          const errMsg = (err instanceof Error) ? err.message : String(err);
           alert(errMsg);
       } finally {
           setIsGeneratingImage(false);
@@ -1554,53 +1564,73 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                                         const assignedAdj = dailyAdjustments.find(a => a.periodIndex === group.periodIndex && a.originalTeacherId === group.absentTeacher.id);
                                         const currentSubstituteId = assignedAdj?.substituteTeacherId || '';
                                         const availableTeachersList = findAvailableTeachers(group.periodIndex, group.period);
+                                        const cardId = `${tid}-${group.periodIndex}-${gIdx}`;
                                         
                                         return (
-                                            <div key={`${tid}-${group.periodIndex}-${gIdx}`} className={`relative p-5 rounded-3xl border-2 transition-all flex flex-col justify-between min-h-[220px] ${currentSubstituteId ? 'bg-[var(--bg-secondary)] border-emerald-100 dark:border-emerald-900/40 shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--border-primary)] shadow-md'}`}>
-                                                <div className="text-center mb-4">
-                                                    <span className="text-[10px] font-black text-[var(--text-placeholder)] uppercase tracking-widest block mb-1">Period</span>
-                                                    <span className="text-3xl font-black text-[var(--text-primary)] leading-none">{group.periodIndex + 1}</span>
+                                            <div key={cardId} className={`relative p-4 rounded-3xl border-4 transition-all flex flex-col gap-2 group ${currentSubstituteId ? 'border-emerald-100 bg-white dark:bg-[#1e293b] shadow-lg' : 'border-gray-100 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700'} ${activeDropdownCardId === cardId ? 'z-30' : 'z-0'}`}>
+                                                
+                                                {/* Period Indicator - Centered Top */}
+                                                <div className="absolute top-2 left-0 right-0 flex flex-col items-center pointer-events-none opacity-20 group-hover:opacity-100 transition-opacity">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">Period</span>
+                                                    <span className={`text-4xl font-black leading-none ${currentSubstituteId ? 'text-emerald-500' : 'text-red-500'}`}>{group.periodIndex + 1}</span>
                                                 </div>
 
-                                                <div className="mb-4">
-                                                    <div className="text-lg font-black text-[var(--text-primary)] leading-tight">
+                                                {/* Class & Subject Info */}
+                                                <div className="relative z-10 mt-1">
+                                                    <h4 className="text-xl font-black text-[var(--text-primary)] leading-none">
                                                         {language === 'ur' ? <span className="font-urdu">{group.combinedClassNames.ur}</span> : group.combinedClassNames.en}
-                                                    </div>
-                                                    <div className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mt-1 opacity-70">
+                                                    </h4>
+                                                    <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mt-1 opacity-70">
                                                         {language === 'ur' ? <span className="font-urdu">{group.subjectInfo.ur}</span> : group.subjectInfo.en}
+                                                    </p>
+                                                </div>
+
+                                                {/* Controls Area */}
+                                                <div className="relative z-10">
+                                                    <div className="text-[9px] font-black text-[var(--text-placeholder)] uppercase mb-1.5 ml-1">
+                                                        Original: {absentTeacher.nameEn.split(' ')[0]}
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-2 h-12">
+                                                        <div className="flex-grow h-full">
+                                                            <SubstitutePicker 
+                                                                teachersWithStatus={availableTeachersList}
+                                                                selectedId={currentSubstituteId}
+                                                                onChange={(id) => handleSubstituteChange(group, id)}
+                                                                language={language}
+                                                                historyStats={historyStats}
+                                                                onToggle={(isOpen) => setActiveDropdownCardId(isOpen ? cardId : null)}
+                                                            />
+                                                        </div>
+                                                        
+                                                        {currentSubstituteId && (
+                                                            <>
+                                                                <button 
+                                                                    onClick={() => handleWhatsAppNotify(assignedAdj!)} 
+                                                                    className="h-full aspect-square flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-200 transition-colors shadow-sm"
+                                                                    title={t.notifySubstitute}
+                                                                >
+                                                                    <WhatsAppIcon />
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleSubstituteChange(group, '')} // Clear assignment
+                                                                    className="h-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400 rounded-xl hover:bg-red-100 hover:text-red-500 transition-colors shadow-sm"
+                                                                    title="Clear"
+                                                                >
+                                                                    <TrashIcon />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
-
-                                                <div className="bg-[var(--bg-tertiary)] p-3 rounded-2xl border border-[var(--border-secondary)] mb-4">
-                                                    <div className="text-[9px] font-black text-[var(--text-placeholder)] uppercase mb-2">Original: {absentTeacher.nameEn.split(' ')[0]}</div>
-                                                    
-                                                    <SubstitutePicker 
-                                                        teachersWithStatus={availableTeachersList}
-                                                        selectedId={currentSubstituteId}
-                                                        onChange={(id) => handleSubstituteChange(group, id)}
-                                                        language={language}
-                                                        historyStats={historyStats}
-                                                    />
-                                                </div>
-
+                                                
+                                                {/* Conflict Warning if any */}
                                                 {assignedAdj?.conflictDetails && (
-                                                    <div className="mb-4 flex items-center gap-1.5 px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/40 text-[10px] text-red-600 font-bold">
+                                                    <div className="mt-3 flex items-center gap-1.5 px-3 py-2 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/40 text-[10px] text-red-600 font-bold animate-pulse">
                                                         <DoubleBookedWarningIcon />
                                                         <span>{t.doubleBook}: {language === 'ur' ? assignedAdj.conflictDetails.classNameUr : assignedAdj.conflictDetails.classNameEn}</span>
                                                     </div>
                                                 )}
-
-                                                <div className="flex justify-end mt-auto pt-2 border-t border-[var(--border-primary)]/10">
-                                                    {currentSubstituteId && (
-                                                        <button 
-                                                            onClick={() => handleWhatsAppNotify(assignedAdj!)} 
-                                                            className="w-10 h-10 flex items-center justify-center bg-emerald-100 text-emerald-700 rounded-full hover:bg-emerald-200 transition-all hover:scale-110 active:scale-95 shadow-sm"
-                                                            title={t.notifySubstitute}
-                                                        >
-                                                            <WhatsAppIcon />
-                                                        </button>
-                                                    )}
-                                                </div>
                                             </div>
                                         );
                                     })}

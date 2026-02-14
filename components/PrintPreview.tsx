@@ -25,7 +25,7 @@ interface HistoryState {
 
 // --- Icons ---
 const Icons = {
-  Print: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg>,
+  Print: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg>,
   Pdf: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" /></svg>,
   Excel: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1-1H3a1 1 0 01-1-1V3zm2 2v2h3V5H4zm0 3v2h3V8H4zm0 3v2h3v-2H4zm4 2v-2h3v2H8zm0-3v-2h3v2H8zm0-3V5h3v3H8zm4 5v-2h3v2h-3zm0-3v-2h3v2h-3zm0-3V5h3v3h-3z" /></svg>,
   Close: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
@@ -388,7 +388,7 @@ const SettingsSidebar: React.FC<{
 const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, generateHtml, onGenerateExcel, fileNameBase, children, designConfig, onSaveDesign }) => {
   const [lang, setLang] = useState<DownloadLanguage>('en');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(100);
+  const [zoomLevel, setZoomLevel] = useState(70); // Default 70%
   
   const [history, setHistory] = useState<HistoryState[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -401,8 +401,8 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
       fontSize: '', fontFamily: '', color: '', backgroundColor: '', textAlign: ''
   });
   
-  // State for collapsible panels
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // State for collapsible panels - Default closed
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const colorDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -418,7 +418,6 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
   useEffect(() => {
     if (isOpen) {
       const themedDesign = JSON.parse(JSON.stringify(designConfig));
-      // Apply theme defaults if needed, but respect saved config
       
       const initialHtml = generateHtml(lang, themedDesign);
       const initialPages = Array.isArray(initialHtml) ? initialHtml : [initialHtml];
@@ -430,15 +429,9 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
       setActiveElement(null);
       setLang('en');
       
-      // Auto-fit zoom
-      const isPortrait = themedDesign.page?.orientation === 'portrait';
-      const pageWidth = isPortrait ? 794 : 1123; 
-      const screenWidth = window.innerWidth - 340; // Approx sidebar width
-      let fitZoom = 100;
-      if (screenWidth < pageWidth) { fitZoom = Math.floor((screenWidth / pageWidth) * 100) - 5; fitZoom = Math.max(30, fitZoom); }
-      setZoomLevel(fitZoom);
+      setZoomLevel(70); // Force 70% on open
     }
-  }, [isOpen]); // Depend on isOpen to reset
+  }, [isOpen]); 
 
   const pushToHistory = useCallback((newOptions: DownloadDesignConfig, newPages: string[]) => {
       setHistory(prev => {
@@ -597,7 +590,7 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
         
         {/* Left Sidebar */}
         <div className={`transition-all duration-300 relative bg-gray-900 border-r border-gray-800 flex flex-col ${isSidebarOpen ? 'w-80' : 'w-0'}`}>
-            <div className="absolute -right-6 top-1/2 transform -translate-y-1/2 z-50">
+            <div className="absolute -right-6 top-4 z-50"> {/* Moved to top-4 */}
                 <button 
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
                     className="bg-gray-800 p-1.5 rounded-r-lg border-y border-r border-gray-700 shadow-lg text-gray-400 hover:text-white transition-colors"

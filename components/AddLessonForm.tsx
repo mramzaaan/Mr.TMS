@@ -565,25 +565,31 @@ const AddLessonForm: React.FC<AddLessonFormProps> = ({
 
   return (
     <div>
-      <button 
-        onClick={() => { resetForm(); setIsModalOpen(true); }}
-        className="w-full py-6 border-2 border-dashed border-[var(--border-secondary)] rounded-xl text-[var(--text-secondary)] font-bold text-lg hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-secondary)]/10 transition-all flex items-center justify-center gap-2 shadow-sm mb-8"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-        {t.addLesson}
-      </button>
+      {/* Removed large button */}
 
       {/* List Section */}
       <div className="bg-[var(--bg-secondary)] rounded-xl shadow-md border border-[var(--border-primary)] overflow-hidden">
           <div className="p-4 border-b border-[var(--border-primary)] bg-[var(--bg-tertiary)] flex justify-between items-center flex-wrap gap-4">
               <h3 className="text-lg font-bold text-[var(--text-primary)]">{t.lessonList}</h3>
-              {/* Hide sort options if list is limited to one class or teacher */}
-              {!limitToClassId && !limitToTeacherId && (
-                  <div className="flex bg-[var(--bg-secondary)] rounded-lg p-1 border border-[var(--border-secondary)]">
-                      <button onClick={() => setSortBy('class')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${sortBy === 'class' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>{t.sortByClass}</button>
-                      <button onClick={() => setSortBy('teacher')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${sortBy === 'teacher' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>{t.sortByTeacher}</button>
-                  </div>
-              )}
+              
+              <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => { resetForm(); setIsModalOpen(true); }}
+                    className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-primary)] text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-[var(--accent-primary-hover)] transition-colors shadow-sm"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>{t.addLesson}</span>
+                  </button>
+
+                  {!limitToClassId && !limitToTeacherId && (
+                      <div className="flex bg-[var(--bg-secondary)] rounded-lg p-1 border border-[var(--border-secondary)]">
+                          <button onClick={() => setSortBy('class')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${sortBy === 'class' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>{t.sortByClass}</button>
+                          <button onClick={() => setSortBy('teacher')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${sortBy === 'teacher' ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>{t.sortByTeacher}</button>
+                      </div>
+                  )}
+              </div>
           </div>
           
           <div className="divide-y divide-[var(--border-primary)]">
