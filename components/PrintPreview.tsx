@@ -23,70 +23,66 @@ interface HistoryState {
     pages: string[];
 }
 
-// Icons
-const PrintIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg>;
-const PdfIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" /></svg>;
-const ExcelIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1-1H3a1 1 0 01-1-1V3zm2 2v2h3V5H4zm0 3v2h3V8H4zm0 3v2h3v-2H4zm4 2v-2h3v2H8zm0-3v-2h3v2H8zm0-3V5h3v3H8zm4 5v-2h3v2h-3zm0-3v-2h3v2h-3zm0-3V5h3v3h-3z" /></svg>;
-const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
-const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
-const ZoomInIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>;
-const ZoomOutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" /></svg>;
-const ResetIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M4 4l16 16" /></svg>;
-const ShareIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>;
-const AlignLeftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h18v2H3V4zm0 15h12v2H3v-2zm0-5h18v2H3v-2zm0-5h12v2H3V9z"/></svg>;
-const AlignCenterIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 24 24" stroke="currentColor" strokeWidth={2}><path d="M3 4h18v2H3V4zm2 15h14v2H5v-2zm-2-5h18v2H3v-2zm2-5h14v2H5V9z"/></svg>;
-const AlignRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 24 24" fill="currentColor"><path d="M3 4h18v2H3V4zm6 15h12v2H9v-2zm-6-5h18v2H3v-2zm6-5h12v2H9V9z"/></svg>;
-const BoldIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 24 24" fill="currentColor"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-1v1h1a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6V4zm5 6h3a2 2 0 0 0 2-2 2 2 0 0 0-2-2h-3v4zm0 8h3a2 2 0 0 0 2-2 2 2 0 0 0-2-2h-3v4z"/></svg>;
-const ItalicIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 24 24" fill="currentColor"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg>;
-const UndoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>;
-const RedoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>;
-const TextColorIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 24 24" fill="currentColor"><path d="M2.53 19.65l1.34-1.34L19.33 3.32a3 3 0 014.24 4.24L8.11 23H2.53v-3.35zm3.17-1.24L4.53 21h2.17l.93-.93-1.93-1.66z" /><path fillOpacity=".36" d="M0 20h24v4H0z"/></svg>;
-const BgColorIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 24 24" stroke="currentColor" strokeWidth={2}><path d="M16.56 8.94L7.62 0 6.21 1.41l2.38 2.38-5.15 5.15a1.49 1.49 0 000 2.12l5.5 5.5c.29.29.68.44 1.06.44s.77-.15 1.06-.44l5.5-5.5c.59-.58.59-1.53 0-2.12zM5.21 10L10 5.21 14.79 10H5.21zM19 11.5s-2 2.17-2 3.5c0 1.1.9 2 2 2s2-.9 2-2c0-1.33-2-3.5-2-3.5z"/><path fillOpacity=".36" d="M0 20h24v4H0z"/></svg>;
-const CheckIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>;
+// --- Icons ---
+const Icons = {
+  Print: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg>,
+  Pdf: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" /></svg>,
+  Excel: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1-1H3a1 1 0 01-1-1V3zm2 2v2h3V5H4zm0 3v2h3V8H4zm0 3v2h3v-2H4zm4 2v-2h3v2H8zm0-3v-2h3v2H8zm0-3V5h3v3H8zm4 5v-2h3v2h-3zm0-3v-2h3v2h-3zm0-3V5h3v3h-3z" /></svg>,
+  Close: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
+  Layout: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>,
+  Header: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>, 
+  Table: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7-4h14a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2z" /></svg>,
+  Footer: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>, 
+  Check: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>,
+  Reset: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M4 4l16 16" /></svg>,
+  Share: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>,
+  Download: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
+  TextSize: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" /></svg>,
+  Bold: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4h-1v1h1a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6V4zm5 6h3a2 2 0 0 0 2-2 2 2 0 0 0-2-2h-3v4zm0 8h3a2 2 0 0 0 2-2 2 2 0 0 0-2-2h-3v4z"/></svg>,
+  Italic: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg>,
+  AlignLeft: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h18v2H3V4zm0 15h12v2H3v-2zm0-5h18v2H3v-2zm0-5h12v2H3V9z"/></svg>,
+  AlignCenter: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 24 24" stroke="currentColor" strokeWidth={2}><path d="M3 4h18v2H3V4zm2 15h14v2H5v-2zm-2-5h18v2H3v-2zm2-5h14v2H5V9z"/></svg>,
+  AlignRight: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 24 24" fill="currentColor"><path d="M3 4h18v2H3V4zm6 15h12v2H9v-2zm-6-5h18v2H3v-2zm6-5h12v2H9V9z"/></svg>,
+  Color: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a2 2 0 00-2 2v11a3 3 0 106 0V4a2 2 0 00-2-2H4zm1 14a1 1 0 100-2 1 1 0 000 2zm5-1.757l4.9-4.9a2 2 0 000-2.828L13.485 5.1a2 2 0 00-2.828 0L10 5.757v8.486zM16 18H9.071l6-6H16a2 2 0 012 2v2a2 2 0 01-2 2z" clipRule="evenodd" /></svg>,
+  BgColor: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>,
+  Eraser: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+  Edit: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+};
+
+const UndoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>;
+const RedoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>;
+const ZoomInIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" /></svg>;
+const ZoomOutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" /></svg>;
+const ChevronLeftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>;
+const ChevronRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>;
+const ChevronUpIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>;
+const ChevronDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>;
 
 const fontOptions: { label: string, value: FontFamily }[] = [
     { label: 'System Default', value: 'sans-serif' as FontFamily },
     { label: 'Gulzar (Urdu)', value: 'Gulzar' as FontFamily },
-    { label: 'Noto Nastaliq Urdu (Google)', value: 'Noto Nastaliq Urdu' as FontFamily },
-    { label: 'Amiri (Naskh)', value: 'Amiri' as FontFamily },
-    { label: 'Aref Ruqaa (Calligraphic)', value: 'Aref Ruqaa' as FontFamily },
-    { label: 'Times New Roman', value: 'Times New Roman' },
+    { label: 'Noto Nastaliq (Urdu)', value: 'Noto Nastaliq Urdu' as FontFamily },
     { label: 'Arial', value: 'Arial' },
+    { label: 'Times New Roman', value: 'Times New Roman' },
     { label: 'Impact', value: 'Impact' },
     { label: 'Calibri', value: 'Calibri' },
-    { label: 'Verdana', value: 'Verdana' },
-    { label: 'Tahoma', value: 'Tahoma' },
-    { label: 'Trebuchet MS', value: 'Trebuchet MS' },
-    { label: 'Segoe UI', value: 'Segoe UI' },
-    { label: 'Comic Sans MS', value: 'Comic Sans MS' },
-    { label: 'Lato', value: 'Lato' },
     { label: 'Roboto', value: 'Roboto' },
     { label: 'Open Sans', value: 'Open Sans' },
     { label: 'Montserrat', value: 'Montserrat' },
-    { label: 'Antonio', value: 'Antonio' },
-    { label: 'Monoton', value: 'Monoton' },
-    { label: 'Rubik Mono One', value: 'Rubik Mono One' },
-    { label: 'Bodoni Moda', value: 'Bodoni Moda' },
-    { label: 'Bungee Spice', value: 'Bungee Spice' },
     { label: 'Bebas Neue', value: 'Bebas Neue' },
     { label: 'Playfair Display', value: 'Playfair Display' },
     { label: 'Oswald', value: 'Oswald' },
-    { label: 'Anton', value: 'Anton' },
-    { label: 'Instrument Serif', value: 'Instrument Serif' },
-    { label: 'Orbitron', value: 'Orbitron' },
-    { label: 'Fjalla One', value: 'Fjalla One' },
-    { label: 'Playwrite', value: 'Playwrite CU' },
 ];
 
 const cardStyleOptions: { label: string, value: CardStyle }[] = [
     { label: 'Full Color', value: 'full' },
     { label: 'Outline', value: 'outline' },
     { label: 'Text Only', value: 'text' },
-    { label: 'Triangle Accent', value: 'triangle' },
-    { label: 'Glassmorphism', value: 'glass' },
+    { label: 'Triangle', value: 'triangle' },
+    { label: 'Glass', value: 'glass' },
     { label: 'Gradient', value: 'gradient' },
-    { label: 'Minimal Left', value: 'minimal-left' },
-    { label: 'Tag Badge', value: 'badge' },
+    { label: 'Minimal', value: 'minimal-left' },
+    { label: 'Badge', value: 'badge' },
 ];
 
 const triangleCornerOptions: { label: string, value: TriangleCorner }[] = [
@@ -96,13 +92,17 @@ const triangleCornerOptions: { label: string, value: TriangleCorner }[] = [
     { label: 'Bottom Right', value: 'bottom-right' },
 ];
 
-const SettingsPanel: React.FC<{
+const SettingsSidebar: React.FC<{
     options: DownloadDesignConfig,
     onUpdate: (options: DownloadDesignConfig) => void,
     onSaveDesign: (options: DownloadDesignConfig) => void,
     resetToDefaults: () => void,
-}> = ({ options, onUpdate, onSaveDesign, resetToDefaults }) => {
-    const [activeTab, setActiveTab] = useState<'page' | 'header' | 'table' | 'footer'>('page');
+    activeElement: HTMLElement | null,
+    activeElementStyles: { fontSize: string, fontFamily: string, color: string, backgroundColor: string, textAlign: string },
+    onApplyStyle: (property: string, value: string) => void,
+    onExecCmd: (cmd: string, val?: string) => void,
+}> = ({ options, onUpdate, onSaveDesign, resetToDefaults, activeElement, activeElementStyles, onApplyStyle, onExecCmd }) => {
+    const [activeSection, setActiveSection] = useState<'page' | 'header' | 'table' | 'footer' | 'edit'>('page');
     const [isSaving, setIsSaving] = useState(false);
 
     const handleValueChange = (path: string, value: any) => {
@@ -122,82 +122,263 @@ const SettingsPanel: React.FC<{
         setTimeout(() => setIsSaving(false), 2000);
     };
 
-    // Controls
-    const NumberControl = ({ label, path, value, min = 0, max = 100, step = 1 }: any) => (
-        <div className="flex flex-col justify-between bg-white p-1 rounded border border-gray-200 shadow-sm h-full min-h-[34px]">
-            <div className="flex justify-between items-start mb-0.5">
-                <label className="text-[9px] font-extrabold text-gray-600 uppercase tracking-tight leading-none break-words w-full truncate" title={label}>{label}</label>
-            </div>
-            <div className="flex items-center bg-gray-50 rounded border border-gray-200 p-0 overflow-hidden h-5 w-full">
-                <button onClick={() => handleValueChange(path, Math.max(min, parseFloat((value - step).toFixed(2))))} className="w-4 flex items-center justify-center bg-white hover:bg-gray-100 text-gray-700 text-[9px] font-bold h-full border-r border-gray-200">-</button>
-                <input type="number" value={value} onChange={(e) => { let val = parseFloat(e.target.value); if (isNaN(val)) val = min; handleValueChange(path, Math.min(max, Math.max(min, val))); }} className="flex-grow w-0 text-center text-[10px] font-bold text-gray-800 bg-transparent outline-none p-0 appearance-none m-0 leading-none" />
-                <button onClick={() => handleValueChange(path, Math.min(max, parseFloat((value + step).toFixed(2))))} className="w-4 flex items-center justify-center bg-white hover:bg-gray-100 text-gray-700 text-[9px] font-bold h-full border-l border-gray-200">+</button>
+    const SectionButton = ({ id, label, icon: Icon }: any) => (
+        <button
+            onClick={() => setActiveSection(id)}
+            className={`flex items-center gap-3 w-full px-4 py-3 text-sm font-bold transition-all duration-200 border-l-4 ${
+                activeSection === id 
+                ? 'bg-gray-800 border-teal-500 text-teal-400' 
+                : 'border-transparent text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+            }`}
+        >
+            <Icon />
+            <span>{label}</span>
+        </button>
+    );
+
+    const ControlGroup = ({ label, children }: any) => (
+        <div className="mb-4">
+            <h4 className="text-[10px] font-black uppercase text-gray-500 tracking-widest mb-2 border-b border-gray-700 pb-1">{label}</h4>
+            <div className="space-y-3">{children}</div>
+        </div>
+    );
+
+    const NumberInput = ({ label, path, value, min, max, step = 1 }: any) => (
+        <div className="flex items-center justify-between">
+            <label className="text-xs text-gray-300 font-medium">{label}</label>
+            <div className="flex items-center bg-gray-900 rounded border border-gray-700 w-24">
+                <button onClick={() => handleValueChange(path, Math.max(min, Number((value - step).toFixed(2))))} className="px-2 text-gray-400 hover:text-white">-</button>
+                <input 
+                    type="number" 
+                    value={value} 
+                    onChange={(e) => handleValueChange(path, Number(e.target.value))} 
+                    className="w-full bg-transparent text-center text-xs text-white outline-none py-1 appearance-none"
+                />
+                <button onClick={() => handleValueChange(path, Math.min(max, Number((value + step).toFixed(2))))} className="px-2 text-gray-400 hover:text-white">+</button>
             </div>
         </div>
     );
-    const SelectControl = ({ label, path, value, options: opts }: any) => {
-        const isFont = path.toLowerCase().includes('font');
-        return (
-            <div className="flex flex-col justify-between bg-white p-1 rounded border border-gray-200 shadow-sm h-full min-h-[34px]">
-                 <label className="text-[9px] font-extrabold text-gray-600 uppercase tracking-tight leading-none mb-0.5 break-words w-full truncate" title={label}>{label}</label>
-                 <div className="relative w-full">
-                     <select value={value} onChange={e => handleValueChange(path, e.target.value)} className={`w-full h-5 bg-gray-50 border border-gray-200 rounded text-[10px] font-medium px-0.5 py-0 focus:ring-1 focus:ring-teal-500 outline-none leading-none ${isFont ? 'cursor-pointer' : ''}`} style={isFont ? { fontFamily: value } : {}}>
-                        {opts.map((o: any) => (<option key={o.value} value={o.value} style={isFont ? { fontFamily: o.value, fontSize: '12px' } : {}}>{o.label}</option>))}
-                     </select>
-                 </div>
-            </div>
-        );
-    };
-    const TextControl = ({ label, path, value }: any) => ( <div className="flex flex-col justify-between bg-white p-1 rounded border border-gray-200 shadow-sm h-full min-h-[34px]"> <div className="flex justify-between items-start mb-0.5"> <label className="text-[9px] font-extrabold text-gray-600 uppercase tracking-tight leading-none break-words w-full truncate" title={label}>{label}</label> </div> <input type="text" value={value} onChange={(e) => handleValueChange(path, e.target.value)} className="w-full h-5 bg-gray-50 border border-gray-200 rounded text-[10px] font-medium px-1 py-0 focus:ring-1 focus:ring-teal-500 outline-none leading-none" /> </div> );
-    
-    // Color Control
-    const ColorControl = ({ label, path, value }: any) => (
-        <div className="flex flex-col justify-between bg-white p-1 rounded border border-gray-200 shadow-sm h-full min-h-[34px]">
-            <label className="text-[9px] font-extrabold text-gray-600 uppercase tracking-tight leading-none mb-0.5 break-words w-full truncate" title={label}>{label}</label>
-            <div className="flex items-center gap-1 h-5">
-                <div className="relative w-5 h-full rounded border border-gray-300 overflow-hidden flex-shrink-0 cursor-pointer hover:border-gray-400">
+
+    const SelectInput = ({ label, path, value, options: opts }: any) => (
+        <div className="space-y-1">
+            <label className="text-xs text-gray-300 font-medium">{label}</label>
+            <select 
+                value={value} 
+                onChange={(e) => handleValueChange(path, e.target.value)} 
+                className="w-full bg-gray-900 border border-gray-700 text-white text-xs rounded px-2 py-1.5 outline-none focus:border-teal-500"
+            >
+                {opts.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+        </div>
+    );
+
+    const ColorInput = ({ label, path, value }: any) => (
+        <div className="flex items-center justify-between">
+            <label className="text-xs text-gray-300 font-medium">{label}</label>
+            <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded border border-gray-600 overflow-hidden relative cursor-pointer">
                     <div className="absolute inset-0" style={{ backgroundColor: value }}></div>
-                    <input type="color" value={value} onChange={e => handleValueChange(path, e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
+                    <input type="color" value={value} onChange={(e) => handleValueChange(path, e.target.value)} className="opacity-0 w-full h-full cursor-pointer" />
                 </div>
                 <input 
                     type="text" 
                     value={value} 
                     onChange={(e) => handleValueChange(path, e.target.value)} 
-                    className="flex-grow w-0 min-w-0 h-full bg-gray-50 border border-gray-200 rounded text-[9px] font-mono font-medium px-1 py-0 focus:ring-1 focus:ring-teal-500 outline-none leading-none uppercase text-gray-700 text-center"
+                    className="w-16 bg-gray-900 border border-gray-700 text-white text-xs rounded px-1 py-1 outline-none text-center font-mono uppercase"
                     maxLength={7}
                 />
             </div>
         </div>
     );
 
-    const ToggleControl = ({ label, path, value }: any) => ( <div className="flex flex-col justify-between bg-white p-1 rounded border border-gray-200 shadow-sm h-full min-h-[34px]"> <label htmlFor={path} className="text-[9px] font-extrabold text-gray-600 uppercase tracking-tight leading-none mb-0.5 break-words cursor-pointer w-full truncate" title={label}>{label}</label> <div className="relative w-full h-5 flex items-center justify-between"> <div className="relative inline-block w-6 h-3.5 align-middle select-none transition duration-200 ease-in"> <input type="checkbox" name={path} id={path} checked={value} onChange={e => handleValueChange(path, e.target.checked)} className="toggle-checkbox absolute block w-3.5 h-3.5 rounded-full bg-white border border-gray-300 appearance-none cursor-pointer checked:right-0 right-2.5 checked:border-teal-500"/> <label htmlFor={path} className={`toggle-label block overflow-hidden h-3.5 rounded-full cursor-pointer ${value ? 'bg-teal-500' : 'bg-gray-300'}`}></label> </div> <span className="text-[8px] font-bold text-gray-500">{value ? 'ON' : 'OFF'}</span> </div> </div> );
-
-    const tabs = [ { id: 'page', label: 'Layout' }, { id: 'header', label: 'Header' }, { id: 'table', label: 'Table' }, { id: 'footer', label: 'Footer' }, ];
-    const sectionHeaderClass = "col-span-full font-black text-[9px] text-gray-400 uppercase mt-1 mb-0.5 tracking-widest border-b border-gray-200 pb-0.5";
-
-    return (
-        <div className="bg-gray-100 text-gray-800 border-b border-gray-300 shadow-sm flex flex-col w-full max-h-[50vh] sm:max-h-[60vh]">
-            <div className="flex border-b border-gray-300 bg-white overflow-x-auto no-scrollbar">
-                {tabs.map(tab => (
-                    <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 py-2 px-1 text-[10px] font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${activeTab === tab.id ? 'text-teal-600 border-b-2 border-teal-600 bg-teal-50' : 'text-gray-500 hover:bg-gray-50'}`}>{tab.label}</button>
-                ))}
+    const ToggleInput = ({ label, path, value }: any) => (
+        <div className="flex items-center justify-between cursor-pointer" onClick={() => handleValueChange(path, !value)}>
+            <label className="text-xs text-gray-300 font-medium cursor-pointer">{label}</label>
+            <div className={`w-8 h-4 rounded-full relative transition-colors ${value ? 'bg-teal-600' : 'bg-gray-700'}`}>
+                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${value ? 'left-4.5' : 'left-0.5'}`}></div>
             </div>
-            <div className="p-2 pb-16 overflow-y-auto custom-scrollbar flex-grow min-h-0 bg-gray-50">
-                <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
-                    {activeTab === 'page' && ( <> <div className={sectionHeaderClass}>General</div> <NumberControl label="Rows (All)" path="rowsPerPage" value={options.rowsPerPage} min={5} max={100} /> <NumberControl label="Rows (1st)" path="rowsPerFirstPage" value={options.rowsPerFirstPage || options.rowsPerPage} min={5} max={100} /> <SelectControl label="Mode" path="colorMode" value={options.colorMode} options={[{value: 'color', label: 'Color'}, {value: 'bw', label: 'B&W'}]} /> <div className={sectionHeaderClass}>Paper</div> <SelectControl label="Size" path="page.size" value={options.page.size} options={[{value: 'a4', label: 'A4'}, {value: 'letter', label: 'Letter'}, {value: 'legal', label: 'Legal'}]} /> <SelectControl label="Orient" path="page.orientation" value={options.page.orientation} options={[{value: 'portrait', label: 'Port'}, {value: 'landscape', label: 'Land'}]} /> <NumberControl label="Watermark" path="page.watermarkOpacity" value={options.page.watermarkOpacity} min={0} max={1} step={0.05} /> <div className={sectionHeaderClass}>Margins</div> <NumberControl label="Top" path="page.margins.top" value={options.page.margins.top} min={0} max={50} /> <NumberControl label="Bottom" path="page.margins.bottom" value={options.page.margins.bottom} min={0} max={50} /> <NumberControl label="Left" path="page.margins.left" value={options.page.margins.left} min={0} max={50} /> <NumberControl label="Right" path="page.margins.right" value={options.page.margins.right} min={0} max={50} /> <div className={sectionHeaderClass}>Advanced</div> <NumberControl label="Days/Page" path="daysPerPage" value={options.daysPerPage} min={1} max={7} /> </> )}
-                    {activeTab === 'header' && ( <> <div className={sectionHeaderClass}>Name</div> <SelectControl label="Font" path="header.schoolName.fontFamily" value={options.header.schoolName.fontFamily} options={fontOptions} /> <NumberControl label="Size" path="header.schoolName.fontSize" value={options.header.schoolName.fontSize} min={10} max={60} /> <SelectControl label="Align" path="header.schoolName.align" value={options.header.schoolName.align} options={[{value: 'left', label: 'Left'}, {value: 'center', label: 'Center'}, {value: 'right', label: 'Right'}]} /> <ColorControl label="Color" path="header.schoolName.color" value={options.header.schoolName.color} /> <div className={sectionHeaderClass}>Details</div> <SelectControl label="Font" path="header.details.fontFamily" value={options.header.details.fontFamily} options={fontOptions} /> <NumberControl label="Size" path="header.details.fontSize" value={options.header.details.fontSize} min={8} max={24} /> <ColorControl label="Bg" path="header.bgColor" value={options.header.bgColor} /> <div className={sectionHeaderClass}>Logo</div> <ToggleControl label="Show" path="header.showLogo" value={options.header.showLogo} /> <NumberControl label="Size" path="header.logoSize" value={options.header.logoSize} min={20} max={200} /> <SelectControl label="Pos" path="header.logoPosition" value={options.header.logoPosition} options={[{value: 'left', label: 'Left'}, {value: 'center', label: 'Center'}, {value: 'right', label: 'Right'}]} /> <div className={sectionHeaderClass}>Title</div> <ToggleControl label="Show" path="header.showTitle" value={options.header.showTitle} /> <NumberControl label="Size" path="header.title.fontSize" value={options.header.title.fontSize} min={10} max={40} /> <ToggleControl label="Line" path="header.divider" value={options.header.divider} /> </> )}
-                    {activeTab === 'table' && ( <> <div className={sectionHeaderClass}>Content</div> <SelectControl label="Card Style" path="table.cardStyle" value={options.table.cardStyle || 'full'} options={cardStyleOptions} /> <SelectControl label="Font" path="table.fontFamily" value={options.table.fontFamily} options={fontOptions} /> <NumberControl label="Size" path="table.fontSize" value={options.table.fontSize} min={8} max={24} /> <NumberControl label="Pad" path="table.cellPadding" value={options.table.cellPadding} min={0} max={40} /> <SelectControl label="Align V" path="table.verticalAlign" value={options.table.verticalAlign || 'middle'} options={[{value: 'top', label: 'Top'}, {value: 'middle', label: 'Middle'}, {value: 'bottom', label: 'Bottom'}]} /> <ColorControl label="Border" path="table.borderColor" value={options.table.borderColor} /> <div className={sectionHeaderClass}>Colors</div> <ColorControl label="Head BG" path="table.headerBgColor" value={options.table.headerBgColor} /> <ColorControl label="Head Txt" path="table.headerColor" value={options.table.headerColor} /> <ColorControl label="Body BG" path="table.bodyBgColor" value={options.table.bodyBgColor} /> <ColorControl label="Body Txt" path="table.bodyColor" value={options.table.bodyColor || '#000000'} /> <ColorControl label="Stripe" path="table.altRowColor" value={options.table.altRowColor} /> <div className={sectionHeaderClass}>Columns</div> <NumberControl label="P.Width" path="table.periodColumnWidth" value={options.table.periodColumnWidth} min={20} max={100} /> <ColorControl label="P.BG" path="table.periodColumnBgColor" value={options.table.periodColumnBgColor} /> <div className={sectionHeaderClass}>Advanced</div> <NumberControl label="Head Size" path="table.headerFontSize" value={options.table.headerFontSize || options.table.fontSize} min={8} max={24} /> <TextControl label="Sys Font" path="table.fontFamily" value={options.table.fontFamily} /> </> )}
-                    {activeTab === 'footer' && ( <> <div className={sectionHeaderClass}>Setup</div> <ToggleControl label="Show" path="footer.show" value={options.footer.show} /> <ToggleControl label="Page #" path="footer.includePageNumber" value={options.footer.includePageNumber} /> <SelectControl label="Align" path="footer.align" value={options.footer.align} options={[{value: 'left', label: 'Left'}, {value: 'center', label: 'Center'}, {value: 'right', label: 'Right'}]} /> <div className={sectionHeaderClass}>Style</div> <SelectControl label="Font" path="footer.fontFamily" value={options.footer.fontFamily} options={fontOptions} /> <NumberControl label="Size" path="footer.fontSize" value={options.footer.fontSize} min={8} max={20} /> <ColorControl label="Color" path="footer.color" value={options.footer.color} /> </> )}
+        </div>
+    );
+
+    // Edit Section Handlers
+    const ManualColorInput = ({ label, value, onChange }: any) => (
+        <div className="flex items-center justify-between">
+            <label className="text-xs text-gray-300 font-medium">{label}</label>
+            <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded border border-gray-600 overflow-hidden relative cursor-pointer">
+                    <div className="absolute inset-0" style={{ backgroundColor: value }}></div>
+                    <input type="color" onChange={(e) => onChange(e.target.value)} disabled={!activeElement} className="opacity-0 w-full h-full cursor-pointer disabled:cursor-not-allowed" />
                 </div>
             </div>
-            <div className="p-2 border-t border-gray-300 bg-gray-100 flex justify-end gap-2 flex-shrink-0 z-20 relative">
-                 <button onClick={resetToDefaults} className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition shadow-sm"><ResetIcon /> Reset</button>
-                 <button 
-                    onClick={handleSave} 
-                    className={`flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white rounded transition shadow-sm ${isSaving ? 'bg-green-600' : 'bg-teal-600 hover:bg-teal-700'}`}
-                 >
-                    {isSaving ? <CheckIcon /> : null}
-                    {isSaving ? 'Saved' : 'Save'}
+        </div>
+    );
+
+    return (
+        <div className="w-72 bg-gray-900 border-r border-gray-800 flex flex-col h-full shadow-xl z-20">
+            <div className="p-4 border-b border-gray-800 bg-gray-900">
+                <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Configuration</h3>
+            </div>
+            
+            <div className="flex flex-col border-b border-gray-800">
+                <SectionButton id="page" label="Layout" icon={Icons.Layout} />
+                <SectionButton id="header" label="Header" icon={Icons.Header} />
+                <SectionButton id="table" label="Table" icon={Icons.Table} />
+                <SectionButton id="footer" label="Footer" icon={Icons.Footer} />
+                <SectionButton id="edit" label="Edit Text" icon={Icons.Edit} />
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-6">
+                {activeSection === 'page' && (
+                    <>
+                        <ControlGroup label="General">
+                            <NumberInput label="Rows (All Pages)" path="rowsPerPage" value={options.rowsPerPage} min={5} max={100} />
+                            <NumberInput label="Rows (1st Page)" path="rowsPerFirstPage" value={options.rowsPerFirstPage || options.rowsPerPage} min={5} max={100} />
+                            <SelectInput label="Color Mode" path="colorMode" value={options.colorMode} options={[{value: 'color', label: 'Color'}, {value: 'bw', label: 'Black & White'}]} />
+                        </ControlGroup>
+                        <ControlGroup label="Paper">
+                            <SelectInput label="Size" path="page.size" value={options.page.size} options={[{value: 'a4', label: 'A4'}, {value: 'letter', label: 'Letter'}, {value: 'legal', label: 'Legal'}]} />
+                            <SelectInput label="Orientation" path="page.orientation" value={options.page.orientation} options={[{value: 'portrait', label: 'Portrait'}, {value: 'landscape', label: 'Landscape'}]} />
+                            <NumberInput label="Watermark Opacity" path="page.watermarkOpacity" value={options.page.watermarkOpacity} min={0} max={1} step={0.05} />
+                        </ControlGroup>
+                        <ControlGroup label="Margins (mm)">
+                            <NumberInput label="Top" path="page.margins.top" value={options.page.margins.top} min={0} max={50} />
+                            <NumberInput label="Bottom" path="page.margins.bottom" value={options.page.margins.bottom} min={0} max={50} />
+                            <NumberInput label="Left" path="page.margins.left" value={options.page.margins.left} min={0} max={50} />
+                            <NumberInput label="Right" path="page.margins.right" value={options.page.margins.right} min={0} max={50} />
+                        </ControlGroup>
+                    </>
+                )}
+
+                {activeSection === 'header' && (
+                    <>
+                        <ControlGroup label="School Name">
+                            <SelectInput label="Font" path="header.schoolName.fontFamily" value={options.header.schoolName.fontFamily} options={fontOptions} />
+                            <NumberInput label="Size" path="header.schoolName.fontSize" value={options.header.schoolName.fontSize} min={10} max={80} />
+                            <SelectInput label="Align" path="header.schoolName.align" value={options.header.schoolName.align} options={[{value: 'left', label: 'Left'}, {value: 'center', label: 'Center'}, {value: 'right', label: 'Right'}]} />
+                            <ColorInput label="Color" path="header.schoolName.color" value={options.header.schoolName.color} />
+                        </ControlGroup>
+                        <ControlGroup label="Header Features">
+                            <ToggleInput label="Show Logo" path="header.showLogo" value={options.header.showLogo} />
+                            <NumberInput label="Logo Size" path="header.logoSize" value={options.header.logoSize} min={20} max={200} />
+                            <ToggleInput label="Show Title" path="header.showTitle" value={options.header.showTitle} />
+                            <ToggleInput label="Show Divider" path="header.divider" value={options.header.divider} />
+                            <ColorInput label="Background" path="header.bgColor" value={options.header.bgColor} />
+                        </ControlGroup>
+                    </>
+                )}
+
+                {activeSection === 'table' && (
+                    <>
+                        <ControlGroup label="Dimensions & Layout">
+                            <NumberInput label="Column Width" path="table.periodColumnWidth" value={options.table.periodColumnWidth} min={20} max={100} />
+                            <NumberInput label="Border Width" path="table.borderWidth" value={options.table.borderWidth} min={0} max={10} step={0.5} />
+                            <SelectInput label="Grid Style" path="table.gridStyle" value={options.table.gridStyle} options={[{value:'solid', label:'Solid'}, {value:'dashed', label:'Dashed'}, {value:'dotted', label:'Dotted'}]} />
+                            <SelectInput label="Vertical Align" path="table.verticalAlign" value={options.table.verticalAlign} options={[{value:'top', label:'Top'}, {value:'middle', label:'Middle'}, {value:'bottom', label:'Bottom'}]} />
+                            <ToggleInput label="Merge Identical" path="table.mergeIdenticalPeriods" value={options.table.mergeIdenticalPeriods ?? true} />
+                        </ControlGroup>
+
+                        <ControlGroup label="Typography & Style">
+                            <SelectInput label="Card Design" path="table.cardStyle" value={options.table.cardStyle || 'full'} options={cardStyleOptions} />
+                            
+                            {options.table.cardStyle === 'outline' && (
+                                <NumberInput label="Outline Width" path="table.outlineWidth" value={options.table.outlineWidth || 2} min={0.5} max={10} step={0.5} />
+                            )}
+                            {options.table.cardStyle === 'triangle' && (
+                                <SelectInput label="Corner" path="table.triangleCorner" value={options.table.triangleCorner || 'bottom-left'} options={triangleCornerOptions} />
+                            )}
+                            {options.table.cardStyle === 'badge' && (
+                                <SelectInput label="Badge Target" path="table.badgeTarget" value={options.table.badgeTarget || 'subject'} options={[{value:'subject', label:'Subject'}, {value:'teacher', label:'Teacher'}, {value:'class', label:'Class'}]} />
+                            )}
+
+                            <SelectInput label="Font Family" path="table.fontFamily" value={options.table.fontFamily} options={fontOptions} />
+                            <NumberInput label="Body Size" path="table.fontSize" value={options.table.fontSize} min={8} max={32} />
+                            <NumberInput label="Header Size" path="table.headerFontSize" value={options.table.headerFontSize || options.table.fontSize} min={8} max={40} />
+                            <NumberInput label="Cell Padding" path="table.cellPadding" value={options.table.cellPadding} min={0} max={30} />
+                        </ControlGroup>
+
+                        <ControlGroup label="Colors">
+                            <ColorInput label="Header BG" path="table.headerBgColor" value={options.table.headerBgColor} />
+                            <ColorInput label="Header Text" path="table.headerColor" value={options.table.headerColor} />
+                            <ColorInput label="Body Text" path="table.bodyColor" value={options.table.bodyColor || '#000000'} />
+                            <ColorInput label="Period Col BG" path="table.periodColumnBgColor" value={options.table.periodColumnBgColor} />
+                            <ColorInput label="Period Col Text" path="table.periodColumnColor" value={options.table.periodColumnColor} />
+                            <ColorInput label="Alt Row" path="table.altRowColor" value={options.table.altRowColor} />
+                            <ColorInput label="Borders" path="table.borderColor" value={options.table.borderColor} />
+                        </ControlGroup>
+                    </>
+                )}
+
+                {activeSection === 'footer' && (
+                    <>
+                        <ControlGroup label="Footer Settings">
+                            <ToggleInput label="Show Footer" path="footer.show" value={options.footer.show} />
+                            <ToggleInput label="Page Numbers" path="footer.includePageNumber" value={options.footer.includePageNumber} />
+                            <SelectInput label="Alignment" path="footer.align" value={options.footer.align} options={[{value: 'left', label: 'Left'}, {value: 'center', label: 'Center'}, {value: 'right', label: 'Right'}]} />
+                            <NumberInput label="Font Size" path="footer.fontSize" value={options.footer.fontSize} min={6} max={20} />
+                            <ColorInput label="Color" path="footer.color" value={options.footer.color} />
+                        </ControlGroup>
+                    </>
+                )}
+
+                {activeSection === 'edit' && (
+                    <>
+                        <div className="bg-gray-800 p-3 rounded-lg border border-gray-700 mb-4">
+                            <p className="text-[10px] text-gray-400">Click on any text element in the preview to edit its style.</p>
+                            {!activeElement && <p className="text-xs text-yellow-500 mt-2 font-bold">No element selected</p>}
+                        </div>
+                        
+                        <ControlGroup label="Typography">
+                            <div className="space-y-1">
+                                <label className="text-xs text-gray-300 font-medium">Font Family</label>
+                                <select 
+                                    value={activeElementStyles.fontFamily.replace(/['"]/g, '')}
+                                    onChange={(e) => onApplyStyle('fontFamily', e.target.value)}
+                                    disabled={!activeElement}
+                                    className="w-full bg-gray-900 border border-gray-700 text-white text-xs rounded px-2 py-1.5 outline-none focus:border-teal-500 disabled:opacity-50"
+                                >
+                                    {fontOptions.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                                </select>
+                            </div>
+                            <div className="flex items-center justify-between mt-3">
+                                <label className="text-xs text-gray-300 font-medium">Font Size</label>
+                                <div className="flex items-center bg-gray-900 rounded border border-gray-700 w-24">
+                                    <button onClick={() => { if(activeElement) { const size = parseInt(activeElementStyles.fontSize) || 12; onApplyStyle('fontSize', `${size - 1}px`); } }} disabled={!activeElement} className="px-2 text-gray-400 hover:text-white disabled:opacity-50">-</button>
+                                    <span className="w-full bg-transparent text-center text-xs text-white py-1">{parseInt(activeElementStyles.fontSize) || '--'}</span>
+                                    <button onClick={() => { if(activeElement) { const size = parseInt(activeElementStyles.fontSize) || 12; onApplyStyle('fontSize', `${size + 1}px`); } }} disabled={!activeElement} className="px-2 text-gray-400 hover:text-white disabled:opacity-50">+</button>
+                                </div>
+                            </div>
+                        </ControlGroup>
+
+                        <ControlGroup label="Formatting">
+                            <div className="flex gap-2 mb-3">
+                                <button onClick={() => onExecCmd('bold')} disabled={!activeElement} className="flex-1 py-1.5 bg-gray-800 border border-gray-700 rounded text-gray-300 hover:text-white hover:bg-gray-700 disabled:opacity-50"><Icons.Bold /></button>
+                                <button onClick={() => onExecCmd('italic')} disabled={!activeElement} className="flex-1 py-1.5 bg-gray-800 border border-gray-700 rounded text-gray-300 hover:text-white hover:bg-gray-700 disabled:opacity-50"><Icons.Italic /></button>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => onApplyStyle('textAlign', 'left')} disabled={!activeElement} className="flex-1 py-1.5 bg-gray-800 border border-gray-700 rounded text-gray-300 hover:text-white hover:bg-gray-700 disabled:opacity-50"><Icons.AlignLeft /></button>
+                                <button onClick={() => onApplyStyle('textAlign', 'center')} disabled={!activeElement} className="flex-1 py-1.5 bg-gray-800 border border-gray-700 rounded text-gray-300 hover:text-white hover:bg-gray-700 disabled:opacity-50"><Icons.AlignCenter /></button>
+                                <button onClick={() => onApplyStyle('textAlign', 'right')} disabled={!activeElement} className="flex-1 py-1.5 bg-gray-800 border border-gray-700 rounded text-gray-300 hover:text-white hover:bg-gray-700 disabled:opacity-50"><Icons.AlignRight /></button>
+                            </div>
+                        </ControlGroup>
+
+                        <ControlGroup label="Colors">
+                            <ManualColorInput label="Text Color" value={activeElementStyles.color} onChange={(val: string) => onExecCmd('foreColor', val)} />
+                            <ManualColorInput label="Background" value={activeElementStyles.backgroundColor !== 'rgba(0, 0, 0, 0)' ? activeElementStyles.backgroundColor : '#ffffff'} onChange={(val: string) => onExecCmd('hiliteColor', val)} />
+                        </ControlGroup>
+
+                        <button onClick={() => onExecCmd('removeFormat')} disabled={!activeElement} className="w-full py-2 bg-red-900/30 border border-red-900/50 text-red-400 rounded hover:bg-red-900/50 flex items-center justify-center gap-2 disabled:opacity-50 text-xs font-bold mt-4">
+                            <Icons.Eraser /> Clear Formatting
+                        </button>
+                    </>
+                )}
+            </div>
+
+            <div className="p-4 border-t border-gray-800 bg-gray-900 flex gap-2">
+                 <button onClick={resetToDefaults} className="flex-1 py-2 text-xs font-bold text-gray-400 bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 hover:text-white transition">
+                     <div className="flex items-center justify-center gap-1"><Icons.Reset /> Reset</div>
+                 </button>
+                 <button onClick={handleSave} className="flex-1 py-2 text-xs font-bold text-white bg-teal-600 rounded hover:bg-teal-700 transition shadow-lg">
+                     <div className="flex items-center justify-center gap-1">{isSaving ? <Icons.Check /> : null} {isSaving ? 'Saved' : 'Save'}</div>
                  </button>
             </div>
         </div>
@@ -207,10 +388,8 @@ const SettingsPanel: React.FC<{
 const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, generateHtml, onGenerateExcel, fileNameBase, children, designConfig, onSaveDesign }) => {
   const [lang, setLang] = useState<DownloadLanguage>('en');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
-  const [screenshotScale, setScreenshotScale] = useState(2); 
-
+  
   const [history, setHistory] = useState<HistoryState[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [currentPage, setCurrentPage] = useState(0);
@@ -218,13 +397,14 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
   const previewRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [activeElement, setActiveElement] = useState<HTMLElement | null>(null);
+  const [activeElementStyles, setActiveElementStyles] = useState({
+      fontSize: '', fontFamily: '', color: '', backgroundColor: '', textAlign: ''
+  });
   
-  const [customFont, setCustomFont] = useState<{name: string, data: string} | null>(null);
+  // State for collapsible panels
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
   const colorDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const currentEntry = history[historyIndex];
-  const options = currentEntry?.options || designConfig;
-  const pages = currentEntry?.pages || [];
 
   const themeColors = useMemo(() => {
     if (typeof window === 'undefined') return { accent: '#6366f1' };
@@ -234,19 +414,12 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
     };
   }, [isOpen]);
 
-  useEffect(() => {
-      const storedFont = localStorage.getItem('mrtimetable_customFontData');
-      if (storedFont) { try { const parsed = JSON.parse(storedFont); setCustomFont(parsed); } catch(e) {} }
-  }, []);
-
+  // Initial Load
   useEffect(() => {
     if (isOpen) {
       const themedDesign = JSON.parse(JSON.stringify(designConfig));
-      themedDesign.table.headerBgColor = themeColors.accent;
-      themedDesign.table.periodColumnBgColor = themeColors.accent;
-      themedDesign.table.headerColor = '#FFFFFF';
-      themedDesign.table.periodColumnColor = '#FFFFFF';
-
+      // Apply theme defaults if needed, but respect saved config
+      
       const initialHtml = generateHtml(lang, themedDesign);
       const initialPages = Array.isArray(initialHtml) ? initialHtml : [initialHtml];
       const initialState = { options: themedDesign, pages: initialPages };
@@ -256,26 +429,16 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
       setCurrentPage(0);
       setActiveElement(null);
       setLang('en');
-      setScreenshotScale(2);
       
+      // Auto-fit zoom
       const isPortrait = themedDesign.page?.orientation === 'portrait';
       const pageWidth = isPortrait ? 794 : 1123; 
-      const screenWidth = window.innerWidth;
-      const availableWidth = screenWidth - 32; 
+      const screenWidth = window.innerWidth - 340; // Approx sidebar width
       let fitZoom = 100;
-      if (availableWidth < pageWidth) { fitZoom = Math.floor((availableWidth / pageWidth) * 100); fitZoom = Math.max(35, fitZoom); }
+      if (screenWidth < pageWidth) { fitZoom = Math.floor((screenWidth / pageWidth) * 100) - 5; fitZoom = Math.max(30, fitZoom); }
       setZoomLevel(fitZoom);
     }
-  }, [isOpen, designConfig, generateHtml, themeColors]);
-
-  useEffect(() => {
-    if (historyIndex >= 0 && history[historyIndex]) {
-        const numPages = history[historyIndex].pages.length;
-        if (currentPage >= numPages) {
-            setCurrentPage(numPages > 0 ? numPages - 1 : 0);
-        }
-    }
-  }, [historyIndex, history, currentPage]);
+  }, [isOpen]); // Depend on isOpen to reset
 
   const pushToHistory = useCallback((newOptions: DownloadDesignConfig, newPages: string[]) => {
       setHistory(prev => {
@@ -293,342 +456,278 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
       pushToHistory(newOptions, newPages);
   };
 
-  const saveManualEdit = () => {
-      if (!contentRef.current) return;
-      const clone = contentRef.current.cloneNode(true) as HTMLElement;
-      const selected = clone.querySelector('[data-selected-element="true"]');
-      if (selected) selected.removeAttribute('data-selected-element');
-      const currentHtml = clone.innerHTML;
-      const currentPages = [...history[historyIndex].pages];
-      currentPages[currentPage] = currentHtml;
-      pushToHistory(history[historyIndex].options, currentPages);
-  };
-
   const handleUndo = () => { if (historyIndex > 0) { setHistoryIndex(historyIndex - 1); setActiveElement(null); } };
   const handleRedo = () => { if (historyIndex < history.length - 1) { setHistoryIndex(historyIndex + 1); setActiveElement(null); } };
   const handlePageChange = (newPage: number) => { saveManualEdit(); setCurrentPage(newPage); setActiveElement(null); };
-  
-  const handleContentClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      const target = e.target as HTMLElement;
-      const selection = window.getSelection();
-      if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
-          setActiveElement(null);
-          if (contentRef.current) { const prevActive = contentRef.current.querySelector('[data-selected-element="true"]'); if(prevActive) prevActive.removeAttribute('data-selected-element'); }
-          return;
-      }
-      const editableElement = target.closest('th, td, div, span, p') as HTMLElement;
-      if (contentRef.current) { const prevActive = contentRef.current.querySelector('[data-selected-element="true"]'); if(prevActive) prevActive.removeAttribute('data-selected-element'); }
-      if (!editableElement || editableElement === contentRef.current || editableElement.classList.contains('page')) { setActiveElement(null); return; }
-      editableElement.setAttribute('data-selected-element', 'true');
-      setActiveElement(editableElement);
-  };
 
-  const applyFormat = (command: string, value?: string) => {
-      document.execCommand('styleWithCSS', false, 'true');
-      if (command === 'backgroundColor') {
-          const selection = window.getSelection();
-          if (selection && !selection.isCollapsed && selection.rangeCount > 0) { document.execCommand('hiliteColor', false, value || 'transparent'); } else if (activeElement) { activeElement.style.backgroundColor = value || 'transparent'; }
-      } else if (command === 'color') {
-          const selection = window.getSelection();
-          if (selection && !selection.isCollapsed && selection.rangeCount > 0) { document.execCommand('foreColor', false, value || '#000000'); } else if (activeElement) { activeElement.style.color = value || '#000000'; }
-      } else if (['justifyLeft', 'justifyCenter', 'justifyRight'].includes(command)) {
-          if (activeElement) { activeElement.style.textAlign = command.replace('justify', '').toLowerCase(); }
-      } else { document.execCommand(command, false, value); }
-      saveManualEdit();
-  };
-
-  const handleColorChange = (command: string, value: string) => {
-      if (command === 'backgroundColor') {
-          const selection = window.getSelection();
-          if (selection && !selection.isCollapsed) { document.execCommand('hiliteColor', false, value); } else if (activeElement) { activeElement.style.backgroundColor = value; }
-      } else if (command === 'color') {
-          const selection = window.getSelection();
-          if (selection && !selection.isCollapsed) { document.execCommand('foreColor', false, value); } else if (activeElement) { activeElement.style.color = value; }
-      }
-      if (colorDebounceRef.current) clearTimeout(colorDebounceRef.current);
-      colorDebounceRef.current = setTimeout(() => { saveManualEdit(); }, 500);
-  };
-
-  const setupClonedDocument = (clonedDoc: Document) => {
-      const style = clonedDoc.createElement('style');
-      const URDU_FONT_STACK = "'Gulzar', 'Noto Nastaliq Urdu', serif";
-      style.innerHTML = `
-          * { 
-            -webkit-font-smoothing: antialiased !important; 
-            -moz-osx-font-smoothing: grayscale !important; 
-            text-rendering: auto !important; 
-            font-variant-ligatures: none !important; 
-          } 
-          .print-container { 
-            font-family: '${options.table.fontFamily}', sans-serif; 
-            box-sizing: border-box; 
-          } 
-          .print-container .font-urdu, .print-container .font-urdu * { 
-            font-family: ${URDU_FONT_STACK} !important; 
-            line-height: 1.8; 
-            padding-top: 2px; 
-            direction: rtl; 
-            font-synthesis: none; 
-            font-weight: normal; 
-          } 
-          td { 
-            padding: ${options.table.cellPadding}px !important; 
-            border-color: ${options.table.borderColor} !important; 
-          } 
-          .page { 
-            overflow: visible !important; 
-            min-height: 100% !important; 
-            height: auto !important; 
-            display: flex !important; 
-            flex-direction: column !important; 
-          } 
-          .content-wrapper { 
-            flex-grow: 1 !important; 
-            display: flex !important; 
-            flex-direction: column !important; 
-          } 
-          .footer { 
-            margin-top: auto !important; 
-          }`;
-      clonedDoc.head.appendChild(style);
-      const clonedContainer = clonedDoc.body.querySelector('div[style*="visibility: hidden"]');
-      if (clonedContainer) (clonedContainer as HTMLElement).style.visibility = 'visible';
-  };
-
-  const handleSendAsPicture = async () => {
-      window.focus();
+  const saveManualEdit = () => {
       if (!contentRef.current) return;
+      const clone = contentRef.current.cloneNode(true) as HTMLElement;
+      // Remove selection marker before saving
+      const selected = clone.querySelector('[data-selected="true"]');
+      if (selected) selected.removeAttribute('data-selected');
+      
+      const currentHtml = clone.innerHTML;
+      const currentPages = [...history[historyIndex].pages];
+      currentPages[currentPage] = currentHtml;
+      
+      const updatedHistory = [...history];
+      updatedHistory[historyIndex] = { ...updatedHistory[historyIndex], pages: currentPages };
+      setHistory(updatedHistory);
+  };
+
+  const handleContentClick = (e: React.MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const editable = target.closest('td, th, h1, h2, span, p, div') as HTMLElement;
+      
+      // Cleanup previous selection
+      if (activeElement) activeElement.removeAttribute('data-selected');
+      
+      if (editable && editable !== contentRef.current && !editable.classList.contains('page')) {
+          editable.setAttribute('data-selected', 'true');
+          setActiveElement(editable);
+          
+          const computed = window.getComputedStyle(editable);
+          setActiveElementStyles({
+              fontSize: computed.fontSize,
+              fontFamily: computed.fontFamily,
+              color: computed.color,
+              backgroundColor: computed.backgroundColor,
+              textAlign: computed.textAlign
+          });
+          e.stopPropagation();
+      } else {
+          setActiveElement(null);
+      }
+  };
+
+  // Text Styling Handlers
+  const applyStyle = (property: string, value: string) => {
+      if (activeElement) {
+          activeElement.style[property as any] = value;
+          setActiveElementStyles(prev => ({ ...prev, [property]: value }));
+          saveManualEdit();
+      }
+  };
+  
+  const execCmd = (cmd: string, val?: string) => {
+      document.execCommand(cmd, false, val);
+      // For colors, update state
+      if (cmd === 'foreColor' && val) setActiveElementStyles(prev => ({...prev, color: val}));
+      if (cmd === 'hiliteColor' && val) setActiveElementStyles(prev => ({...prev, backgroundColor: val}));
       saveManualEdit();
+  };
+
+  const resetToDefaults = () => { handleDesignUpdate(designConfig); };
+
+  const handleShare = async () => {
+      if (!contentRef.current) return;
       setIsGenerating(true);
       try {
-          const orientation = options.page?.orientation || 'portrait';
-          const format = options.page?.size || 'a4';
-          let widthPx = 794; let heightPx = 1123;
-          if (format === 'a4') { widthPx = orientation === 'portrait' ? 794 : 1123; heightPx = orientation === 'portrait' ? 1123 : 794; }
-          else if (format === 'letter') { widthPx = orientation === 'portrait' ? 816 : 1056; heightPx = orientation === 'portrait' ? 1056 : 816; }
-          else if (format === 'legal') { widthPx = orientation === 'portrait' ? 816 : 1344; heightPx = orientation === 'portrait' ? 1344 : 816; }
+          // Remove selection before capture
+          if (activeElement) activeElement.removeAttribute('data-selected');
 
-          const tempContainer = document.createElement('div');
-          Object.assign(tempContainer.style, { 
-            position: 'fixed', 
-            left: '0', 
-            top: '0', 
-            zIndex: '-9999', 
-            width: `${widthPx}px`, 
-            height: `${heightPx}px`, 
-            backgroundColor: '#ffffff', 
-            visibility: 'hidden',
-            overflow: 'hidden'
-          });
-          if (options.colorMode === 'bw') tempContainer.style.filter = 'grayscale(100%)';
-          document.body.appendChild(tempContainer);
-          tempContainer.innerHTML = pages[currentPage];
-          
-          const printContainer = tempContainer.querySelector('.print-container') as HTMLElement;
-          if (printContainer) { printContainer.style.width = '100%'; printContainer.style.height = '100%'; }
-          
-          await document.fonts.ready;
-          await new Promise(r => setTimeout(r, 400));
-
-          const scale = screenshotScale;
-          const canvas = await html2canvas(tempContainer, {
-              scale: scale,
+          const canvas = await html2canvas(contentRef.current, {
+              scale: 2,
               useCORS: true,
-              backgroundColor: '#ffffff',
-              windowWidth: widthPx,
-              windowHeight: heightPx,
-              scrollX: 0,
-              scrollY: 0,
-              onclone: setupClonedDocument
+              backgroundColor: '#ffffff'
           });
-          document.body.removeChild(tempContainer);
-
-          const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
           
+          // Restore selection if needed (optional)
+          if (activeElement) activeElement.setAttribute('data-selected', 'true');
+
+          const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
           if (blob) {
-              try {
-                  const item = new ClipboardItem({ [blob.type]: blob });
-                  await navigator.clipboard.write([item]);
-              } catch (err) {
-                  console.warn("Clipboard copy failed:", err);
-              }
-
-              const file = new File([blob], `${fileNameBase}.png`, { type: blob.type });
+              const file = new File([blob], `${fileNameBase}.png`, { type: 'image/png' });
               if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                  try { 
-                      await navigator.share({ files: [file], title: title }); 
-                  } catch (error: any) { 
-                      console.warn("Share failed, falling back to download:", error);
-                      const link = document.createElement('a'); link.download = `${fileNameBase}.png`; link.href = canvas.toDataURL('image/png'); link.click();
-                  }
-              } else {
-                  const link = document.createElement('a'); link.download = `${fileNameBase}.png`; link.href = canvas.toDataURL('image/png'); link.click();
-              }
-          }
-      } catch (err) { console.error(err); alert("Capture failed."); } 
-      finally { setIsGenerating(false); }
-  };
-
-  const handlePrint = () => { saveManualEdit(); if (pages.length === 0) return; setTimeout(() => { const printWindow = window.open('', '_blank'); if (printWindow) { const content = pages.join(''); const grayscaleStyle = options.colorMode === 'bw' ? '<style>@media print { body { -webkit-print-color-adjust: exact; filter: grayscale(100%); } }</style>' : ''; const printCss = '<style>@media print { body { margin: 0; padding: 0; } .print-container { page-break-after: always; } .print-container:last-child { page-break-after: auto; } }</style>'; printWindow.document.write(grayscaleStyle + printCss + content); printWindow.document.close(); printWindow.onload = function() { printWindow.focus(); printWindow.print(); }; } }, 50); };
-  
-  const handleDownloadPdf = async () => { 
-      saveManualEdit(); 
-      if (pages.length === 0) return; 
-      setIsGenerating(true); 
-      try { 
-          const jsPDF = jspdf.jsPDF; 
-          const orientation = options.page?.orientation || 'landscape'; 
-          const format = options.page?.size || 'a4'; 
-          const pdf = new jsPDF({ orientation, unit: 'mm', format });
-          
-          const widthPx = orientation === 'portrait' ? 794 : 1123;
-          const heightPx = orientation === 'portrait' ? 1123 : 794;
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = pdf.internal.pageSize.getHeight();
-
-          const tempContainer = document.createElement('div');
-          Object.assign(tempContainer.style, {
-              position: 'fixed',
-              left: '-9999px',
-              top: '0',
-              width: `${widthPx}px`,
-              height: `${heightPx}px`,
-              backgroundColor: '#ffffff',
-              overflow: 'hidden'
-          });
-          document.body.appendChild(tempContainer);
-
-          try {
-              for (let i = 0; i < pages.length; i++) {
-                  tempContainer.innerHTML = pages[i];
-                  // Ensure layout
-                  const printContainer = tempContainer.querySelector('.print-container') as HTMLElement;
-                  if(printContainer) {
-                      printContainer.style.width = '100%';
-                      printContainer.style.height = '100%';
-                  }
-
-                  await document.fonts.ready;
-                  await new Promise(r => setTimeout(r, 100)); // Short delay for render
-
-                  const canvas = await html2canvas(tempContainer, {
-                      scale: 2, // Higher scale for better quality
-                      useCORS: true,
-                      backgroundColor: '#ffffff',
-                      windowWidth: widthPx,
-                      windowHeight: heightPx
+                  await navigator.share({
+                      files: [file],
+                      title: title,
+                      text: 'Check out this timetable!'
                   });
-
-                  const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                  if (i > 0) pdf.addPage(format, orientation);
-                  pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+              } else {
+                  // Fallback download
+                  const link = document.createElement('a');
+                  link.href = canvas.toDataURL('image/png');
+                  link.download = `${fileNameBase}.png`;
+                  link.click();
               }
-              pdf.save(`${fileNameBase}.pdf`);
-          } finally {
-              document.body.removeChild(tempContainer);
           }
-      } catch (err) {
-          console.error("PDF generation failed", err);
-          alert("Failed to generate PDF.");
+      } catch (e) {
+          console.error("Share failed", e);
+          alert("Failed to share.");
       } finally {
           setIsGenerating(false);
       }
   };
 
+  const handleDownloadImage = async () => {
+      if (!contentRef.current) return;
+      setIsGenerating(true);
+      try {
+          if (activeElement) activeElement.removeAttribute('data-selected');
+          
+          const canvas = await html2canvas(contentRef.current, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff'
+          });
+          
+          if (activeElement) activeElement.setAttribute('data-selected', 'true');
+
+          const link = document.createElement('a');
+          link.href = canvas.toDataURL('image/png');
+          link.download = `${fileNameBase}.png`;
+          link.click();
+      } catch (e) {
+          console.error("Download failed", e);
+          alert("Failed to download image.");
+      } finally {
+          setIsGenerating(false);
+      }
+  };
+
+  const currentRenderState = history[historyIndex] || { options: designConfig, pages: [] };
+  const { options, pages } = currentRenderState;
+
   if (!isOpen) return null;
 
   return (
-    <div className={`fixed inset-0 z-[105] bg-gray-100 flex flex-col transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-        {/* Header Toolbar */}
-        <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between shadow-sm z-50">
-            <div className="flex items-center gap-4">
-                <h3 className="font-bold text-gray-800 text-lg truncate max-w-[200px] sm:max-w-md">{title}</h3>
-                <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1">
-                    <button onClick={() => handlePageChange(Math.max(0, currentPage - 1))} disabled={currentPage === 0} className="p-1 hover:bg-white rounded disabled:opacity-30 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
-                    <span className="px-3 text-sm font-mono">{currentPage + 1} / {history[historyIndex]?.pages.length || 1}</span>
-                    <button onClick={() => handlePageChange(Math.min((history[historyIndex]?.pages.length || 1) - 1, currentPage + 1))} disabled={currentPage >= (history[historyIndex]?.pages.length || 1) - 1} className="p-1 hover:bg-white rounded disabled:opacity-30 transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
-                </div>
+    <div className="fixed inset-0 bg-black z-[110] flex overflow-hidden animate-scale-in">
+        
+        {/* Left Sidebar */}
+        <div className={`transition-all duration-300 relative bg-gray-900 border-r border-gray-800 flex flex-col ${isSidebarOpen ? 'w-80' : 'w-0'}`}>
+            <div className="absolute -right-6 top-1/2 transform -translate-y-1/2 z-50">
+                <button 
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+                    className="bg-gray-800 p-1.5 rounded-r-lg border-y border-r border-gray-700 shadow-lg text-gray-400 hover:text-white transition-colors"
+                    title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+                >
+                    {isSidebarOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+                </button>
             </div>
-            <div className="flex items-center gap-2">
-                <div className="flex items-center bg-gray-100 rounded-lg p-1 mr-2">
-                    <button onClick={() => setZoomLevel(Math.max(25, zoomLevel - 25))} className="p-1.5 hover:bg-white rounded text-gray-600"><ZoomOutIcon /></button>
-                    <span className="px-2 text-xs font-bold w-12 text-center">{zoomLevel}%</span>
-                    <button onClick={() => setZoomLevel(Math.min(200, zoomLevel + 25))} className="p-1.5 hover:bg-white rounded text-gray-600"><ZoomInIcon /></button>
-                </div>
-                
-                {/* Editor Tools if element selected */}
-                {activeElement && (
-                    <div className="hidden md:flex items-center gap-1 bg-gray-800 text-white rounded-lg p-1 mr-2 animate-scale-in">
-                        <button onClick={() => applyFormat('bold')} className="p-1.5 hover:bg-gray-700 rounded"><BoldIcon /></button>
-                        <button onClick={() => applyFormat('italic')} className="p-1.5 hover:bg-gray-700 rounded"><ItalicIcon /></button>
-                        <div className="w-px h-4 bg-gray-600 mx-1"></div>
-                        <button onClick={() => applyFormat('justifyLeft')} className="p-1.5 hover:bg-gray-700 rounded"><AlignLeftIcon /></button>
-                        <button onClick={() => applyFormat('justifyCenter')} className="p-1.5 hover:bg-gray-700 rounded"><AlignCenterIcon /></button>
-                        <button onClick={() => applyFormat('justifyRight')} className="p-1.5 hover:bg-gray-700 rounded"><AlignRightIcon /></button>
-                        <div className="w-px h-4 bg-gray-600 mx-1"></div>
-                        <label className="p-1.5 hover:bg-gray-700 rounded cursor-pointer relative">
-                            <TextColorIcon />
-                            <input type="color" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleColorChange('color', e.target.value)} />
-                        </label>
-                        <label className="p-1.5 hover:bg-gray-700 rounded cursor-pointer relative">
-                            <BgColorIcon />
-                            <input type="color" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleColorChange('backgroundColor', e.target.value)} />
-                        </label>
-                    </div>
-                )}
-
-                <div className="h-6 w-px bg-gray-300 mx-1"></div>
-                <button onClick={handleUndo} disabled={historyIndex <= 0} className="p-2 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"><UndoIcon /></button>
-                <button onClick={handleRedo} disabled={historyIndex >= history.length - 1} className="p-2 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"><RedoIcon /></button>
-                <div className="h-6 w-px bg-gray-300 mx-1"></div>
-
-                <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-2 rounded transition-colors ${isSettingsOpen ? 'bg-teal-100 text-teal-700' : 'text-gray-600 hover:bg-gray-100'}`} title="Design Settings"><SettingsIcon /></button>
-                {onGenerateExcel && <button onClick={() => onGenerateExcel(lang, options)} className="p-2 text-green-600 hover:bg-green-50 rounded" title="Export Excel"><ExcelIcon /></button>}
-                <button onClick={handlePrint} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Print"><PrintIcon /></button>
-                <button onClick={handleDownloadPdf} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Download PDF"><PdfIcon /></button>
-                <button onClick={handleSendAsPicture} className="p-2 text-purple-600 hover:bg-purple-50 rounded" title="Share Image"><ShareIcon /></button>
-                
-                <div className="h-6 w-px bg-gray-300 mx-1"></div>
-                <button onClick={onClose} className="p-2 text-gray-500 hover:bg-gray-100 rounded hover:text-red-500"><CloseIcon /></button>
+            
+            <div className={`overflow-hidden flex flex-col h-full ${!isSidebarOpen ? 'invisible' : ''}`}>
+                <SettingsSidebar 
+                    options={options} 
+                    onUpdate={handleDesignUpdate} 
+                    onSaveDesign={onSaveDesign} 
+                    resetToDefaults={resetToDefaults}
+                    activeElement={activeElement}
+                    activeElementStyles={activeElementStyles}
+                    onApplyStyle={applyStyle}
+                    onExecCmd={execCmd}
+                />
             </div>
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-grow flex relative overflow-hidden">
-            {/* Settings Sidebar - Floating/Absolute to not shift layout excessively, or flex */}
-            {isSettingsOpen && (
-                <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col z-40 shadow-xl absolute left-0 top-0 bottom-0 animate-slide-right">
-                    <SettingsPanel 
-                        options={options} 
-                        onUpdate={(newOpts) => handleDesignUpdate(newOpts)} 
-                        onSaveDesign={onSaveDesign}
-                        resetToDefaults={() => handleDesignUpdate(designConfig)}
-                    />
-                </div>
-            )}
+        <div className="flex-1 flex flex-col min-w-0 bg-gray-800">
+            
+            {/* Top Bar: Header & Toolbar */}
+            <div className="flex flex-col bg-white border-b border-gray-200 z-40 relative shadow-md">
+                
+                {/* Header Row (Title & Main Actions) */}
+                <div className="h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4 text-white">
+                    <div className="flex items-center gap-3">
+                        <span className="font-bold text-sm uppercase tracking-wider text-gray-300">{title}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        {/* Action Buttons */}
+                        <div className="flex items-center bg-gray-800 rounded-lg border border-gray-700 p-1 gap-1">
+                            <button onClick={handleUndo} disabled={historyIndex <= 0} className="p-1.5 hover:bg-gray-700 rounded disabled:opacity-30 text-gray-400 hover:text-white" title="Undo"><UndoIcon /></button>
+                            <div className="w-px h-4 bg-gray-700"></div>
+                            <button onClick={handleRedo} disabled={historyIndex >= history.length - 1} className="p-1.5 hover:bg-gray-700 rounded disabled:opacity-30 text-gray-400 hover:text-white" title="Redo"><RedoIcon /></button>
+                        </div>
 
-            {/* Preview Canvas */}
-            <div className="flex-grow bg-gray-100 overflow-auto flex items-start justify-center p-8 relative" onClick={() => { setActiveElement(null); }}>
-                {isGenerating && (
-                    <div className="absolute inset-0 bg-white/80 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
-                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-500 border-t-transparent mb-4"></div>
-                        <div className="text-teal-800 font-bold animate-pulse">Generating Output...</div>
+                        <button 
+                            onClick={handleDownloadImage}
+                            disabled={isGenerating}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+                            title="Download as Image"
+                        >
+                            <Icons.Download />
+                            <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Download</span>
+                        </button>
+
+                        <button 
+                            onClick={handleShare} 
+                            disabled={isGenerating}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
+                        >
+                            {isGenerating ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Icons.Share />}
+                            <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Share</span>
+                        </button>
+
+                        {onGenerateExcel && (
+                            <button 
+                                onClick={() => onGenerateExcel(lang, options)} 
+                                className="p-2 text-green-400 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition shadow-sm" 
+                                title="Export Excel"
+                            >
+                                <Icons.Excel />
+                            </button>
+                        )}
+                        
+                        <button 
+                            onClick={() => window.print()} 
+                            className="p-2 text-white bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition shadow-sm" 
+                            title="Print"
+                        >
+                            <Icons.Print />
+                        </button>
+
+                        <div className="w-px h-6 bg-gray-700 mx-1"></div>
+
+                        <button onClick={onClose} className="p-2 hover:bg-red-600 rounded text-gray-400 hover:text-white transition-colors">
+                            <Icons.Close />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Preview Area */}
+            <div className="flex-1 overflow-auto p-8 relative flex flex-col items-center bg-gray-500/10 custom-scrollbar" ref={previewRef}>
+                {pages.length > 1 && (
+                    <div className="sticky top-0 z-20 mb-4 bg-white/90 backdrop-blur shadow-sm rounded-full px-4 py-2 flex items-center gap-4 text-sm font-bold text-gray-600 border border-gray-200">
+                        <button onClick={() => handlePageChange(Math.max(0, currentPage - 1))} disabled={currentPage === 0} className="hover:text-teal-600 disabled:opacity-30">&larr;</button>
+                        <span>Page {currentPage + 1} of {pages.length}</span>
+                        <button onClick={() => handlePageChange(Math.min(pages.length - 1, currentPage + 1))} disabled={currentPage === pages.length - 1} className="hover:text-teal-600 disabled:opacity-30">&rarr;</button>
                     </div>
                 )}
-                
+
                 <div 
-                    ref={previewRef}
-                    className="origin-top transition-transform duration-200 ease-out shadow-2xl bg-white"
-                    style={{ transform: `scale(${zoomLevel / 100})`, marginBottom: '100px' }}
-                >
-                    <div 
-                        ref={contentRef}
-                        dangerouslySetInnerHTML={{ __html: pages[currentPage] || '' }}
-                        onClick={handleContentClick}
-                        className="print-preview-content"
-                    />
+                    ref={contentRef}
+                    onClick={handleContentClick}
+                    className="bg-white shadow-2xl transition-transform duration-200 origin-top"
+                    style={{ 
+                        transform: `scale(${zoomLevel / 100})`, 
+                        filter: options.colorMode === 'bw' ? 'grayscale(100%)' : 'none'
+                    }}
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
+                    dangerouslySetInnerHTML={{ __html: pages[currentPage] || '' }}
+                />
+
+                {/* Zoom Controls Floating */}
+                <div className="fixed bottom-6 right-6 flex flex-col gap-2 bg-white shadow-lg border border-gray-200 rounded-lg p-1 z-30">
+                    <button onClick={() => setZoomLevel(z => Math.min(200, z + 10))} className="p-2 hover:bg-gray-100 rounded text-gray-600"><ZoomInIcon /></button>
+                    <span className="text-xs font-bold text-center text-gray-500">{zoomLevel}%</span>
+                    <button onClick={() => setZoomLevel(z => Math.max(20, z - 10))} className="p-2 hover:bg-gray-100 rounded text-gray-600"><ZoomOutIcon /></button>
                 </div>
+
+                <style>{`
+                    [data-selected="true"] {
+                        outline: 2px solid #3b82f6 !important;
+                        outline-offset: -2px;
+                        cursor: text;
+                    }
+                    /* Hide scrollbars in preview but keep scroll capability */
+                    .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+                    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+                    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                `}</style>
             </div>
         </div>
     </div>

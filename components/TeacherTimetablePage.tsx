@@ -81,7 +81,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
 
   // Custom Dropdown State
   const [isTeacherDropdownOpen, setIsTeacherDropdownOpen] = useState(false);
-  const [teacherSortBy, setTeacherSortBy] = useState<'serial' | 'name' | 'workload'>('serial');
+  const [teacherSortBy, setTeacherSortBy] = useState<'serial' | 'name' | 'periods'>('serial');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [teacherSearchQuery, setTeacherSearchQuery] = useState('');
   const teacherDropdownRef = useRef<HTMLDivElement>(null);
@@ -112,14 +112,14 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
   const maxPeriods = useMemo(() => Math.max(...activeDays.map(day => schoolConfig.daysConfig?.[day]?.periodCount ?? 8)), [activeDays, schoolConfig.daysConfig]);
   const periodLabels = useMemo(() => Array.from({length: maxPeriods}, (_, i) => (i + 1).toString()), [maxPeriods]);
 
-  // Memoize Teacher Workloads for Sorting
-  const teacherWorkloads = useMemo(() => {
-    const workloads = new Map<string, number>();
+  // Memoize Teacher Period Counts for Sorting
+  const teacherPeriodCounts = useMemo(() => {
+    const counts = new Map<string, number>();
     teachers.forEach(t => {
         const stats = calculateWorkloadStats(t.id, classes, adjustments, leaveDetails, undefined, undefined, schoolConfig);
-        workloads.set(t.id, stats.totalWorkload);
+        counts.set(t.id, stats.weeklyPeriods);
     });
-    return workloads;
+    return counts;
   }, [teachers, classes, adjustments, leaveDetails, schoolConfig]);
 
   const sortedTeachers = useMemo(() => {
@@ -136,16 +136,16 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
           let res = 0;
           if (teacherSortBy === 'serial') {
               res = (a.serialNumber ?? 99999) - (b.serialNumber ?? 99999);
-          } else if (teacherSortBy === 'workload') {
-              const wa = teacherWorkloads.get(a.id) || 0;
-              const wb = teacherWorkloads.get(b.id) || 0;
-              res = wa - wb;
+          } else if (teacherSortBy === 'periods') {
+              const pa = teacherPeriodCounts.get(a.id) || 0;
+              const pb = teacherPeriodCounts.get(b.id) || 0;
+              res = pa - pb;
           } else { // name
               res = a.nameEn.localeCompare(b.nameEn);
           }
           return sortDirection === 'asc' ? res : -res;
       });
-  }, [teachers, teacherSearchQuery, teacherSortBy, sortDirection, teacherWorkloads]);
+  }, [teachers, teacherSearchQuery, teacherSortBy, sortDirection, teacherPeriodCounts]);
 
   const currentTeacherIndex = useMemo(() => {
     if (!selectedTeacherId) return -1;
@@ -913,7 +913,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
                                     {language === 'ur' ? selectedTeacher.nameUr : selectedTeacher.nameEn}
                                 </span>
                                 <span className="text-xs font-medium opacity-70 whitespace-nowrap bg-[var(--bg-tertiary)] px-2 py-1 rounded text-[var(--text-secondary)] flex-shrink-0 group-hover:bg-[var(--accent-secondary)] group-hover:text-[var(--accent-primary)] transition-colors">
-                                    {teacherWorkloads.get(selectedTeacher.id) || 0} p/w
+                                    {teacherPeriodCounts.get(selectedTeacher.id) || 0} Periods
                                 </span>
                             </div>
                         ) : (
@@ -955,7 +955,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
 
                             {/* Sort Controls */}
                             <div className="flex gap-1 mb-2 bg-[var(--bg-tertiary)] p-1 rounded-lg">
-                                {(['serial', 'name', 'workload'] as const).map(key => (
+                                {(['serial', 'name', 'periods'] as const).map(key => (
                                     <button
                                         key={key}
                                         onClick={() => {
@@ -968,7 +968,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
                                         }}
                                         className={`flex-1 text-[10px] font-bold uppercase py-1 rounded-md transition-colors flex items-center justify-center gap-1 ${teacherSortBy === key ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
                                     >
-                                        {key === 'serial' ? '#' : key}
+                                        {key === 'serial' ? '#' : key.toUpperCase()} 
                                         {teacherSortBy === key && (
                                             <span className="text-[8px]">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                                         )}
@@ -992,7 +992,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
                                         >
                                             <span className={`font-mono text-xs opacity-50 w-8 text-center flex-shrink-0 py-0.5 rounded ${selectedTeacherId === t.id ? 'bg-[var(--accent-primary)]/10' : 'bg-[var(--bg-primary)]'}`}>#{t.serialNumber ?? '-'}</span>
                                             <span className="font-bold flex-grow text-base break-words text-left leading-tight">{language === 'ur' ? t.nameUr : t.nameEn}</span>
-                                            <span className={`text-xs opacity-70 whitespace-nowrap min-w-[50px] text-center px-2 py-0.5 rounded ${selectedTeacherId === t.id ? 'bg-[var(--accent-primary)]/10' : 'bg-[var(--bg-primary)]'}`}>{teacherWorkloads.get(t.id) || 0} p/w</span>
+                                            <span className={`text-xs font-medium opacity-70 whitespace-nowrap min-w-[60px] text-center px-2 py-0.5 rounded ${selectedTeacherId === t.id ? 'bg-[var(--accent-primary)]/10' : 'bg-[var(--bg-primary)]'}`}>{teacherPeriodCounts.get(t.id) || 0} Periods</span>
                                             {selectedTeacherId === t.id && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] flex-shrink-0"></div>}
                                         </button>
                                     ))
