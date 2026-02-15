@@ -1220,7 +1220,18 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           }
       } catch (err: unknown) { 
           console.error("Image generation failed", err);
-          const errMsg = (err instanceof Error) ? err.message : String(err);
+          let errMsg = 'An unknown error occurred';
+          if (err instanceof Error) {
+              errMsg = err.message;
+          } else if (typeof err === 'string') {
+              errMsg = err as string;
+          } else {
+              try {
+                  errMsg = String(err);
+              } catch (e) {
+                  errMsg = 'Error object could not be converted to string';
+              }
+          }
           alert(errMsg);
       } finally {
           setIsGeneratingImage(false);

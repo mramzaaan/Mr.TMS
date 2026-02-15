@@ -58,9 +58,6 @@ const TEXT_HEX_MAP: Record<string, string> = {
     'subject-default': '#374151'
 };
 
-// Consolidated Clean Google Fonts URL
-const GOOGLE_FONTS_URL = "https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Anton&family=Antonio:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Bebas+Neue&family=Bodoni+Moda:opsz,wght@6..96,400..900&family=Bungee+Spice&family=Fjalla+One&family=Gulzar&family=Instrument+Serif:ital@0;1&family=Lato:wght@400;700&family=Merriweather:wght@400;700;900&family=Monoton&family=Montserrat:wght@400;500;700&family=Noto+Nastaliq+Urdu:wght@400;700&family=Open+Sans:wght@400;600;700&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Playfair+Display:wght@400;700&family=Playwrite+CU:wght@100..400&family=Roboto:wght@400;500;700&family=Rubik+Mono+One&display=swap";
-
 const abbreviateName = (name: string | undefined) => {
     if (!name) return '';
     const cleanName = name.replace(/[()]/g, '').trim();
@@ -98,8 +95,9 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
   subjectColorMap
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [mergePatterns, setMergePatterns] = useState(schoolConfig.downloadDesigns.teacher.table.mergeIdenticalPeriods ?? true);
-  const [showStartTimes, setShowStartTimes] = useState(false);
+  // Default merge OFF, time ON
+  const [mergePatterns, setMergePatterns] = useState(false);
+  const [showStartTimes, setShowStartTimes] = useState(true);
   const [selectedCardStyle, setSelectedCardStyle] = useState<CardStyle>(schoolConfig.downloadDesigns.teacher.table.cardStyle || 'full');
   const [selectedTriangleCorner, setSelectedTriangleCorner] = useState<TriangleCorner>(schoolConfig.downloadDesigns.teacher.table.triangleCorner || 'bottom-left');
   const [badgeTarget, setBadgeTarget] = useState<'subject' | 'class'>('subject');
@@ -142,7 +140,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       } else if (triangleCorner === 'bottom-right') {
           triangleStyles = `bottom: 0; right: 0; border-width: 0 0 ${triangleSize}px ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
       } else { 
-          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent currentColor transparent;`;
+          triangleStyles = `bottom: 0; left: 0; border-width: ${triangleSize}px 0 0 ${triangleSize}px; border-color: transparent transparent transparent currentColor;`;
       }
 
       let cardStyleCss = '';
@@ -157,7 +155,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       } else if (cardStyle === 'gradient') {
           cardStyleCss = 'background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.1) 100%) !important;';
       } else if (cardStyle === 'minimal-left') {
-          cardStyleCss = 'background-color: #f8fafc !important; border-left: 5px solid currentColor !important; border-top: none !important; border-right: none !important; border-bottom: none !important; border-radius: 2px !important;';
+          cardStyleCss = 'background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; position: relative !important; box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;';
       } else if (cardStyle === 'badge') {
           cardStyleCss = 'background-color: transparent !important; border: none !important; box-shadow: none !important;';
       }
@@ -187,32 +185,233 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             overflow: hidden;
             position: relative;
           }
-          /* ... other styles ... */
-          .font-urdu { font-family: 'Noto Nastaliq Urdu', serif !important; }
-          .img-header { flex-shrink: 0; margin-bottom: 20px; border-bottom: 3px solid ${themeColors.accent}; padding-bottom: 15px; }
-          .img-school-name { font-weight: 900; font-size: 56px; color: ${themeColors.accent}; text-align: center; text-transform: uppercase; margin-bottom: 15px; width: 100%; }
-          .header-info-row { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 10px; margin-top: 15px; }
-          .info-teacher-name { font-size: 52px; font-weight: 900; text-transform: uppercase; background-color: ${themeColors.accent}; color: #ffffff; border-radius: 12px; padding: 10px 30px; }
-          .info-stats-side { font-size: 20px; font-weight: 700; color: #64748b; text-transform: uppercase; min-width: 150px; padding-bottom: 5px; }
-          .compact-val { color: #1e293b; font-weight: 900; font-size: 20px; }
-          .img-table-wrapper { flex-grow: 1; width: 100%; border: 2px solid ${themeColors.accent}; display: flex; flex-direction: column; }
-          .img-table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
-          .img-table th { background-color: transparent; color: ${themeColors.accent}; font-weight: 900; text-transform: uppercase; padding: 10px 4px; font-size: 32px; border: 1px solid ${themeColors.accent}; }
-          .img-table th:first-child { width: 75px; background: #ffffff; }
-          .period-label { background-color: #f8fafc; color: ${themeColors.accent}; font-weight: 900; font-size: 70px; text-align: center; border: 1px solid ${themeColors.accent}; position: relative; }
-          .period-time-label { display: block; font-size: 24px; font-weight: 800; color: #000000; margin-top: 4px; }
-          .slot-cell { padding: 0; margin: 0; background-color: transparent; border: 1px solid ${themeColors.accent}; vertical-align: top; height: 1px; }
-          .card-wrapper { display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: center; align-items: center; }
-          .period-card-img { flex: 1; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: stretch; text-align: center; overflow: hidden; ${cardStyleCss} position: relative; padding: 6px; border-bottom: 1px solid ${themeColors.accent}; }
-          .period-card-img:last-child { border-bottom: none; }
-          .period-content-spread { display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; }
-          .period-subject { display: block; font-weight: 900; font-size: 22px; text-align: left; margin: 0; color: inherit; width: 100%; padding-left: 2px; }
-          .period-class { display: block; font-weight: 800; opacity: 0.95; font-size: 16px; text-align: right; align-self: flex-end; margin-top: auto; color: inherit; width: 100%; padding-right: 2px; }
-          .card-triangle { position: absolute; width: 0; height: 0; border-style: solid; ${triangleStyles} z-index: 5; }
-          .logo-overlay { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; opacity: 0.15; pointer-events: none; }
-          .logo-overlay img { max-width: 80%; max-height: 80%; object-fit: contain; filter: grayscale(100%); }
-          .footer-watermark { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 12px; color: #000000; font-weight: 700; text-transform: uppercase; border-top: 1px solid ${themeColors.accent}; padding-top: 5px; }
+          
+          .timetable-image-container::before {
+            content: '';
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 45%;
+            height: 45%;
+            background: radial-gradient(circle, ${themeColors.accent}15 0%, transparent 70%);
+            z-index: 0;
+            pointer-events: none;
+          }
+          .timetable-image-container::after {
+            content: '';
+            position: absolute;
+            bottom: -5%;
+            right: -5%;
+            width: 35%;
+            height: 35%;
+            background: radial-gradient(circle, ${themeColors.accent}10 0%, transparent 70%);
+            z-index: 0;
+            pointer-events: none;
+          }
 
+          .font-urdu { font-family: 'Noto Nastaliq Urdu', serif !important; }
+          
+          .img-header {
+            flex-shrink: 0;
+            margin-bottom: 20px;
+            border-bottom: 3px solid ${themeColors.accent};
+            padding-bottom: 15px;
+          }
+
+          .img-school-name { 
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; 
+            font-weight: 900;
+            font-size: 56px; 
+            color: ${themeColors.accent}; 
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            line-height: 1;
+            margin-bottom: 15px;
+            white-space: nowrap;
+            overflow: visible;
+            width: 100%;
+          }
+          
+          .header-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 10px;
+            margin-top: 15px;
+          }
+          
+          .info-teacher-name { 
+            font-size: 52px; 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            line-height: 1.1;
+            background-color: ${themeColors.accent}; 
+            color: #ffffff; 
+            border-radius: 12px; 
+            padding: 10px 30px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          }
+          
+          .info-stats-side { 
+            font-size: 20px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            min-width: 150px;
+            padding-bottom: 5px;
+          }
+
+          .compact-val { color: #1e293b; font-weight: 900; font-size: 20px; }
+
+          .img-table-wrapper {
+            flex-grow: 1;
+            width: 100%;
+            border: 2px solid ${themeColors.accent};
+            display: flex;
+            flex-direction: column;
+          }
+
+          .img-table { 
+            width: 100%; 
+            height: 100%;
+            border-collapse: collapse; 
+            table-layout: fixed; 
+          }
+          
+          .img-table th { 
+            background-color: transparent;
+            color: ${themeColors.accent}; 
+            font-weight: 900; 
+            text-transform: uppercase;
+            padding: 10px 4px;
+            font-size: 32px;
+            line-height: 1;
+            letter-spacing: 0.025em;
+            border: 1px solid ${themeColors.accent}; 
+            height: auto;
+            min-height: 55px;
+          }
+          .img-table th:first-child { width: 75px; background: #ffffff; }
+          
+          .period-label { 
+            background-color: #f8fafc; 
+            color: ${themeColors.accent}; 
+            font-weight: 900; 
+            font-size: 70px;
+            text-align: center;
+            line-height: 1;
+            border: 1px solid ${themeColors.accent};
+            position: relative; 
+          }
+
+          .period-time-label {
+             display: block;
+             font-size: 24px;
+             font-weight: 800;
+             color: #000000;
+             margin-top: 4px;
+             line-height: 1;
+             white-space: pre;
+          }
+          
+          .slot-cell { 
+            padding: 0; 
+            margin: 0;
+            background-color: transparent; 
+            border: 1px solid ${themeColors.accent}; 
+            vertical-align: top;
+            height: 1px;
+          }
+          
+          .card-wrapper {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+          }
+
+          .period-card-img { 
+            flex: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: stretch;
+            text-align: center;
+            overflow: hidden;
+            ${cardStyleCss}
+            position: relative;
+            padding: 6px;
+            border-bottom: 1px solid ${themeColors.accent};
+          }
+          .period-card-img:last-child { border-bottom: none; }
+
+          .period-content-spread {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 100%;
+            height: 100%;
+          }
+
+          .period-subject { 
+            display: block;
+            font-weight: 900; 
+            font-size: 22px;
+            text-transform: none; 
+            line-height: 1.1;
+            text-align: left; 
+            margin: 0;
+            color: inherit;
+            white-space: normal;
+            overflow: hidden;
+            width: 100%;
+            padding-left: 2px;
+          }
+          .period-class { 
+            display: block;
+            font-weight: 800; 
+            opacity: 0.95; 
+            font-size: 16px;
+            line-height: 1.1;
+            white-space: normal; 
+            overflow: hidden; 
+            text-align: right; 
+            align-self: flex-end;
+            margin-top: auto;
+            color: inherit;
+            width: 100%;
+            padding-right: 2px;
+          }
+
+          .card-triangle {
+              position: absolute;
+              width: 0;
+              height: 0;
+              border-style: solid;
+              ${triangleStyles}
+              z-index: 5;
+          }
+
+          .logo-overlay {
+             display: flex;
+             justify-content: center;
+             align-items: center;
+             width: 100%;
+             height: 100%;
+             opacity: 0.15;
+             pointer-events: none;
+          }
+          .logo-overlay img {
+             max-width: 80%;
+             max-height: 80%;
+             object-fit: contain;
+             filter: grayscale(100%);
+          }
+          
           ${allColorClasses.map(name => `
               .${name} { 
                   ${cardStyle === 'full' ? `background-color: ${COLOR_HEX_MAP[name]}; color: ${TEXT_HEX_MAP[name]};` : `background-color: #ffffff; color: ${TEXT_HEX_MAP[name]};`}
@@ -227,6 +426,19 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
                   .${name} .period-class { ${badgeTarget === 'class' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
               ` : ''}
           `).join('\n')}
+
+          .footer-watermark {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             margin-top: 10px; 
+             font-size: 12px; 
+             color: #000000; 
+             font-weight: 700; 
+             text-transform: uppercase;
+             border-top: 1px solid ${themeColors.accent};
+             padding-top: 5px;
+          }
         </style>
       `;
       
@@ -237,9 +449,11 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       for (let r = 0; r < maxPeriods; r++) {
           for (let c = 0; c < activeDays.length; c++) {
               const day = activeDays[c];
+              // Use teacherTimetableData passed as prop
               // @ts-ignore
               const slot = teacherTimetableData[day]?.[r] || [];
               if (slot.length > 0) {
+                  // Sort to ensure consistent order
                   const sortedPeriods = [...slot].sort((a, b) => {
                       const subA = subjects.find(s => s.id === a.subjectId);
                       const subB = subjects.find(s => s.id === b.subjectId);
@@ -247,25 +461,52 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
                   });
 
                   const key = sortedPeriods.map(p => `${p.subjectId}:${p.classId}`).join('|');
+                  
+                  // Aggregate data for merged card
                   const subjectNames = sortedPeriods.map(p => {
                       const sub = subjects.find(s => s.id === p.subjectId);
                       return abbreviateName(sub?.nameEn);
                   }).join(' / ');
+
                   const classNames = sortedPeriods.map(p => {
                       const cls = classes.find(c => c.id === p.classId);
                       return abbreviateName(cls?.nameEn);
                   }).join(', ');
+
                   const firstPeriod = sortedPeriods[0];
+                  // Use combination key for color
                   const colorKey = `${firstPeriod.classId}-${firstPeriod.subjectId}`;
                   const colorName = subjectColorMap.get(colorKey) || 'subject-default';
+
                   const triangleHtml = (cardStyle === 'triangle' || cardStyle === 'full') ? `<div class="card-triangle"></div>` : '';
-                  let subjectBadgeStyle = ''; let classBadgeStyle = '';
-                  if (cardStyle === 'badge') {
-                      const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 2px 8px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
-                      if (badgeTarget === 'class') { classBadgeStyle = badgeCss; } else { subjectBadgeStyle = badgeCss; }
+                  
+                  let separatorHtml = '';
+                  if (cardStyle === 'minimal-left') {
+                      separatorHtml = `<div style="position: absolute; top: 50%; left: 12%; right: 12%; height: 5px; background-color: currentColor; opacity: 0.35; clip-path: polygon(0 50%, 15px 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 15px 100%);"></div>`;
                   }
                   
-                  const cardsContent = `<div class="period-card-img ${colorName}">${triangleHtml}<div class="period-content-spread"><p class="period-subject" style="${subjectBadgeStyle}">${subjectNames}</p><p class="period-class" style="${classBadgeStyle}">${classNames}</p></div></div>`;
+                  let subjectBadgeStyle = '';
+                  let classBadgeStyle = '';
+                  if (cardStyle === 'badge') {
+                      const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 2px 8px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
+                      if (badgeTarget === 'class') {
+                         classBadgeStyle = badgeCss;
+                      } else {
+                         subjectBadgeStyle = badgeCss;
+                      }
+                  }
+                  
+                  const cardsContent = `
+                      <div class="period-card-img ${colorName}">
+                          ${triangleHtml}
+                          ${separatorHtml}
+                          <div class="period-content-spread">
+                              <p class="period-subject" style="${subjectBadgeStyle}">${subjectNames}</p>
+                              <p class="period-class" style="${classBadgeStyle}">${classNames}</p>
+                          </div>
+                      </div>
+                  `;
+                  
                   grid[r][c] = { html: `<div class="card-wrapper">${cardsContent}</div>`, key };
               }
           }
@@ -275,38 +516,92 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       const visited = Array.from({ length: maxPeriods }, () => Array(activeDays.length).fill(false));
 
       for (let r = 0; r < maxPeriods; r++) {
-          const startTime = showStartTimes && schoolConfig.periodTimings?.default?.[r]?.start ? formatTime12(schoolConfig.periodTimings.default[r].start) : '';
-          let rowHtml = `<td class="period-label"><div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;"><span>${r + 1}</span>${startTime ? `<span class="period-time-label">${startTime}</span>` : ''}</div></td>`;
+          const startTime = showStartTimes && schoolConfig.periodTimings?.default?.[r]?.start 
+              ? formatTime12(schoolConfig.periodTimings.default[r].start) 
+              : '';
+
+          let rowHtml = `<td class="period-label">
+              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+                <span>${r + 1}</span>
+                ${startTime ? `<span class="period-time-label">${startTime}</span>` : ''}
+              </div>
+          </td>`;
+
           for (let c = 0; c < activeDays.length; c++) {
               const dayName = activeDays[c];
               const dayLimit = schoolConfig.daysConfig?.[dayName]?.periodCount ?? 8;
+              
               if (visited[r][c]) continue;
+
               if (r === dayLimit && maxPeriods > dayLimit) {
                  const span = maxPeriods - dayLimit;
-                 for (let k = 0; k < span; k++) { if (r + k < maxPeriods) visited[r + k][c] = true; }
-                 const logoHtml = schoolConfig.schoolLogoBase64 ? `<div class="logo-overlay"><img src="${schoolConfig.schoolLogoBase64}" /></div>` : '';
+                 for (let k = 0; k < span; k++) {
+                     if (r + k < maxPeriods) visited[r + k][c] = true;
+                 }
+                 const logoHtml = schoolConfig.schoolLogoBase64 
+                    ? `<div class="logo-overlay"><img src="${schoolConfig.schoolLogoBase64}" /></div>` 
+                    : '';
                  rowHtml += `<td class="slot-cell" rowspan="${span}" style="background-color: #ffffff;">${logoHtml}</td>`;
                  continue;
               }
-              if (r >= dayLimit) { rowHtml += '<td class="slot-cell" style="background: #f8fafc;"></td>'; visited[r][c] = true; continue; }
+
+              if (r >= dayLimit) {
+                  rowHtml += '<td class="slot-cell" style="background: #f8fafc;"></td>';
+                  visited[r][c] = true;
+                  continue;
+              }
+              
               const current = grid[r][c];
-              if (!current) { rowHtml += '<td class="slot-cell"></td>'; visited[r][c] = true; continue; }
-              let rowspan = 1; let colspan = 1;
+
+              if (!current) {
+                  rowHtml += '<td class="slot-cell"></td>';
+                  visited[r][c] = true;
+                  continue;
+              }
+              
+              let rowspan = 1;
+              let colspan = 1;
+
               if (mergePatterns) {
-                  while (c + colspan < activeDays.length && grid[r][c + colspan] && grid[r][c + colspan]!.key === current.key && !visited[r][c + colspan]) { const dayLimitNext = schoolConfig.daysConfig?.[activeDays[c + colspan]]?.periodCount ?? 8; if (r >= dayLimitNext) break; colspan++; }
+                  while (c + colspan < activeDays.length && grid[r][c + colspan] && grid[r][c + colspan]!.key === current.key && !visited[r][c + colspan]) {
+                      const dayLimitNext = schoolConfig.daysConfig?.[activeDays[c + colspan]]?.periodCount ?? 8;
+                      if (r >= dayLimitNext) break;
+                      colspan++;
+                  }
+                  
                   let canExtendVertical = true;
                   while (r + rowspan < maxPeriods && canExtendVertical) {
-                      for (let j = 0; j < colspan; j++) { const next = grid[r + rowspan][c + j]; const dayLimitAt = schoolConfig.daysConfig?.[activeDays[c + j]]?.periodCount ?? 8; if (r + rowspan >= dayLimitAt || !next || next.key !== current.key || visited[r + rowspan][c + j]) { canExtendVertical = false; break; } }
+                      for (let j = 0; j < colspan; j++) {
+                          const next = grid[r + rowspan][c + j];
+                          const dayLimitAt = schoolConfig.daysConfig?.[activeDays[c + j]]?.periodCount ?? 8;
+                          if (r + rowspan >= dayLimitAt || !next || next.key !== current.key || visited[r + rowspan][c + j]) {
+                              canExtendVertical = false;
+                              break;
+                          }
+                      }
                       if (canExtendVertical) rowspan++;
                   }
               }
-              for (let i = 0; i < rowspan; i++) { for (let j = 0; j < colspan; j++) { visited[r + i][c + j] = true; } }
+
+              for (let i = 0; i < rowspan; i++) {
+                  for (let j = 0; j < colspan; j++) {
+                      visited[r + i][c + j] = true;
+                  }
+              }
+
               rowHtml += `<td class="slot-cell" ${rowspan > 1 ? `rowspan="${rowspan}"` : ''} ${colspan > 1 ? `colspan="${colspan}"` : ''}>${current.html}</td>`;
           }
           tableRows += `<tr style="height: ${100/maxPeriods}%;">${rowHtml}</tr>`;
       }
 
-      const currentTimestamp = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+      const currentTimestamp = new Date().toLocaleString('en-GB', { 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
 
       return `
         <div class="timetable-image-container">
@@ -314,18 +609,31 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           <div class="img-header">
             <div class="img-school-name">${schoolConfig.schoolNameEn}</div>
             <div class="header-info-row">
-                <div class="info-stats-side" style="text-align: left;"># <span class="compact-val">${selectedTeacher.serialNumber || '-'}</span></div>
+                <div class="info-stats-side" style="text-align: left;">
+                    # <span class="compact-val">${selectedTeacher.serialNumber || '-'}</span>
+                </div>
                 <div class="info-teacher-name">${selectedTeacher.nameEn}</div>
-                <div class="info-stats-side" style="text-align: right;"></div>
+                <div class="info-stats-side" style="text-align: right;">
+                    <!-- Placeholder -->
+                </div>
             </div>
           </div>
           <div class="img-table-wrapper">
             <table class="img-table">
-                <thead><tr><th style="width: 75px"></th>${activeDays.map(day => `<th>${t[day.toLowerCase()].substring(0,3)}</th>`).join('')}</tr></thead>
+                <thead>
+                <tr>
+                    <th style="width: 75px"></th>
+                    ${activeDays.map(day => `<th>${t[day.toLowerCase()].substring(0,3)}</th>`).join('')}
+                </tr>
+                </thead>
                 <tbody>${tableRows}</tbody>
             </table>
           </div>
-          <div class="footer-watermark"><span>OFFICIAL TEACHER SCHEDULE</span><span style="font-weight: 900; color: ${themeColors.accent}; font-size: 14px;">Generated by Mr. 🇵🇰</span><span>${currentTimestamp}</span></div>
+          <div class="footer-watermark">
+            <span>OFFICIAL TEACHER SCHEDULE</span>
+            <span style="font-weight: 900; color: ${themeColors.accent}; font-size: 14px;">Generated by Mr. 🇵🇰</span>
+            <span>${currentTimestamp}</span>
+          </div>
         </div>
       `;
   };
@@ -368,18 +676,14 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
         zIndex: '-9999',
         overflow: 'hidden'
     });
-    
-    // Inject Font Link directly for html2canvas
-    const fontLink = `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="${GOOGLE_FONTS_URL}" rel="stylesheet">`;
-    tempContainer.innerHTML = fontLink + generateTimetableImageHtml();
-    
+    tempContainer.innerHTML = generateTimetableImageHtml();
     document.body.appendChild(tempContainer);
     
     try {
         await document.fonts.ready;
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Increased wait time
+        await new Promise(resolve => setTimeout(resolve, 800));
 
-        const targetElement = tempContainer; 
+        const targetElement = tempContainer.children[0] as HTMLElement;
         const canvas = await html2canvas(targetElement, { 
             scale: 2, 
             useCORS: true, 
