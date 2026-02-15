@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { Language, SchoolClass, Subject, Teacher, TimetableGridData, Adjustment, SchoolConfig, Period, LeaveDetails, DownloadDesignConfig, TimetableSession } from '../types';
 import PrintPreview from './PrintPreview';
@@ -1217,7 +1218,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                   link.click();
               }
           }
-      } catch (err: unknown) { 
+      } catch (err: any) { 
           console.error("Image generation failed", err);
           const errMsg = (err instanceof Error) ? err.message : String(err);
           alert(errMsg);

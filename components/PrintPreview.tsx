@@ -580,6 +580,66 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
       }
   };
 
+  const handlePrint = useCallback(() => {
+      if (!contentRef.current) return;
+
+      // Remove selection highlighting for print
+      const wasSelected = activeElement;
+      if (wasSelected) wasSelected.removeAttribute('data-selected');
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow?.document;
+      if (doc) {
+          doc.open();
+          doc.write(`
+              <!DOCTYPE html>
+              <html>
+              <head>
+                  <title>${title}</title>
+                  <style>
+                      @media print {
+                          @page { margin: 0; size: auto; }
+                          body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                      }
+                      /* Ensure body takes full height to avoid cutoffs */
+                      html, body { height: 100%; width: 100%; }
+                  </style>
+              </head>
+              <body>
+                  ${contentRef.current.innerHTML}
+                  <script>
+                      // Wait for fonts to load
+                      document.fonts.ready.then(() => {
+                          setTimeout(() => {
+                              window.print();
+                          }, 500);
+                      });
+                  </script>
+              </body>
+              </html>
+          `);
+          doc.close();
+
+          // Restore selection highlighting if needed
+          if (wasSelected) wasSelected.setAttribute('data-selected', 'true');
+
+          // Cleanup iframe after sufficient time
+          setTimeout(() => {
+              if (document.body.contains(iframe)) {
+                  document.body.removeChild(iframe);
+              }
+          }, 5000); 
+      }
+  }, [title, activeElement]);
+
   const currentRenderState = history[historyIndex] || { options: designConfig, pages: [] };
   const { options, pages } = currentRenderState;
 
@@ -664,7 +724,7 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                         )}
                         
                         <button 
-                            onClick={() => window.print()} 
+                            onClick={handlePrint} 
                             className="p-2 text-white bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition shadow-sm" 
                             title="Print"
                         >
