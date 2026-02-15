@@ -28,7 +28,7 @@ const createLog = (
 
 // ... (Icons remain same)
 const WhatsAppIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.905 6.03l-.419 1.533 1.519-.4zM15.53 17.53c-.07-.121-.267-.202-.56-.347-.297-.146-1.758-.868-2.031-.967-.272-.099-.47-.146-.669.146-.199.293-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.15-1.255-.463-2.39-1.475-1.134-1.012-1.31-1.36-1.899-2.258-.151-.231-.04-.355.043-.463.083-.107.185-.293.28-.439.095-.146.12-.245.18-.41.06-.164.03-.311-.015-.438-.046-.127-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.177-.008-.375-.01-1.04-.01h-.11c-.307.003-1.348-.043-1.348 1.438 0 1.482.791 2.906 1.439 3.82.648.913 2.51 3.96 6.12 5.368 3.61 1.408 3.61 1.054 4.258 1.034.648-.02 1.758-.715 2.006-1.413.248-.698.248-1.289.173-1.413z" /></svg>);
-const PrintIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg>;
+const PrintIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg>;
 const UndoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>;
 const RedoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>;
 const SaveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 011-1h3.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V6a1 1 0 01-1 1h-1a1 1 0 01-1-1V4z" /></svg>;
@@ -944,73 +944,80 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
         designConfig={schoolConfig.downloadDesigns.teacher}
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        {/* ... (Dropdown and navigation UI remains mostly same) */}
-        <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">{t.selectATeacher}</label>
-            <div className="flex items-center gap-2">
-                <button 
-                    onClick={handlePreviousTeacher} 
-                    disabled={currentTeacherIndex <= 0}
-                    className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] disabled:opacity-50 transition-colors"
-                >
-                    <ChevronLeftIcon />
-                </button>
+      {/* Header Section: Centered Dropdown and Action Buttons */}
+      <div className="mb-8 flex flex-col items-center gap-6">
+        
+        {/* Navigation Row */}
+        <div className="flex items-center justify-center gap-2 sm:gap-4 w-full max-w-2xl relative z-20">
+            {/* Previous Button */}
+            <button 
+                onClick={handlePreviousTeacher} 
+                disabled={currentTeacherIndex <= 0}
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[var(--bg-secondary)] shadow-sm border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] disabled:opacity-30 transition-all flex items-center justify-center flex-shrink-0"
+            >
+                <ChevronLeftIcon />
+            </button>
 
-                <div className="relative" ref={teacherDropdownRef}>
+             {/* Main Pill Dropdown Container */}
+             <div className="flex-1 min-w-0" ref={teacherDropdownRef}>
+                 <div className="relative w-full max-w-md mx-auto">
                     <button
                         onClick={() => setIsTeacherDropdownOpen(!isTeacherDropdownOpen)}
-                        className="w-full md:w-[32rem] flex items-center justify-between px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-xl shadow-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all hover:border-[var(--accent-primary)] group"
+                        className="flex items-center gap-3 sm:gap-4 bg-[var(--bg-secondary)] rounded-full pl-1.5 pr-4 sm:pl-2 sm:pr-6 py-1.5 sm:py-2 shadow-md border border-[var(--border-secondary)] hover:border-[var(--accent-primary)] hover:shadow-lg transition-all w-full"
                     >
                         {selectedTeacher ? (
-                            <div className="flex items-center gap-3 w-full overflow-hidden">
-                                <span className="font-mono text-xs opacity-50 bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] group-hover:bg-[var(--accent-secondary)] group-hover:text-[var(--accent-primary)] transition-colors min-w-[2rem] text-center">
-                                    #{selectedTeacher.serialNumber ?? '-'}
-                                </span>
-                                <span className="font-bold truncate flex-grow text-left text-lg break-words leading-tight">
-                                    {language === 'ur' ? selectedTeacher.nameUr : selectedTeacher.nameEn}
-                                </span>
-                                <span className="text-xs font-medium opacity-70 whitespace-nowrap min-w-[60px] text-center px-2 py-0.5 rounded text-[var(--text-secondary)] flex-shrink-0 group-hover:bg-[var(--accent-secondary)] group-hover:text-[var(--accent-primary)] transition-colors">
-                                    {teacherPeriodCounts.get(selectedTeacher.id) || 0} Periods
-                                </span>
-                            </div>
+                            <>
+                                {/* Serial Circle */}
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[var(--accent-primary)] text-white flex items-center justify-center font-bold text-sm sm:text-lg shadow-sm flex-shrink-0">
+                                    {selectedTeacher.serialNumber ?? '-'}
+                                </div>
+                                
+                                {/* Text Stack */}
+                                <div className="flex flex-col items-start mr-auto overflow-hidden min-w-0 flex-1">
+                                    <span className="font-black text-sm sm:text-lg text-[var(--text-primary)] leading-none truncate w-full text-left">
+                                        {language === 'ur' ? selectedTeacher.nameUr : selectedTeacher.nameEn}
+                                    </span>
+                                    <span className="text-[9px] sm:text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mt-0.5 truncate w-full text-left">
+                                        {teacherPeriodCounts.get(selectedTeacher.id) || 0} Periods
+                                    </span>
+                                </div>
+                            </>
                         ) : (
-                            <span className="truncate text-left flex-grow">{t.selectATeacher}</span>
+                            <span className="text-[var(--text-secondary)] font-medium pl-4">{t.selectATeacher}</span>
                         )}
-                        <div className="ml-2 flex-shrink-0 text-[var(--text-secondary)]">
+                        
+                        <div className="text-[var(--text-secondary)] flex-shrink-0">
                             <ChevronDownIcon />
                         </div>
                     </button>
 
                     {isTeacherDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-2 w-full md:w-[32rem] bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-2xl shadow-2xl z-50 p-3 animate-scale-in origin-top-left">
+                        <div className="absolute top-full left-0 mt-2 w-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-2xl shadow-2xl p-3 animate-scale-in origin-top z-50">
                             {/* Search */}
                             <div className="relative mb-3">
-                                <div className="relative">
-                                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-placeholder)] pointer-events-none">
-                                        <SearchIcon />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        placeholder="Search teachers..."
-                                        value={teacherSearchQuery}
-                                        onChange={(e) => setTeacherSearchQuery(e.target.value)}
-                                        className="w-full pl-10 pr-10 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-xl text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
-                                        autoFocus
-                                    />
-                                    {teacherSearchQuery && (
-                                        <button 
-                                            onClick={() => setTeacherSearchQuery('')}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] hover:text-red-500 transition-colors p-1 rounded-full hover:bg-[var(--bg-secondary)]"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    )}
+                                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-placeholder)] pointer-events-none">
+                                    <SearchIcon />
                                 </div>
+                                <input
+                                    type="text"
+                                    placeholder="Search teachers..."
+                                    value={teacherSearchQuery}
+                                    onChange={(e) => setTeacherSearchQuery(e.target.value)}
+                                    className="w-full pl-10 pr-10 py-2.5 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-xl text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] transition-all"
+                                    autoFocus
+                                />
+                                {teacherSearchQuery && (
+                                    <button 
+                                        onClick={() => setTeacherSearchQuery('')}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] hover:text-red-500 transition-colors p-1 rounded-full hover:bg-[var(--bg-secondary)]"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                )}
                             </div>
-
+                            
                             {/* Sort Controls */}
                             <div className="flex gap-1 mb-2 bg-[var(--bg-tertiary)] p-1 rounded-lg">
                                 {(['serial', 'name', 'periods'] as const).map(key => (
@@ -1026,7 +1033,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
                                         }}
                                         className={`flex-1 text-[10px] font-bold uppercase py-1 rounded-md transition-colors flex items-center justify-center gap-1 ${teacherSortBy === key ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
                                     >
-                                        {key === 'serial' ? '#' : key.toUpperCase()} 
+                                        {key === 'serial' ? '#' : key.toUpperCase()}
                                         {teacherSortBy === key && (
                                             <span className="text-[8px]">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                                         )}
@@ -1050,7 +1057,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
                                         >
                                             <span className={`font-mono text-xs opacity-50 w-8 text-center flex-shrink-0 py-0.5 rounded ${selectedTeacherId === t.id ? 'bg-[var(--accent-primary)]/10' : 'bg-[var(--bg-primary)]'}`}>#{t.serialNumber ?? '-'}</span>
                                             <span className="font-bold flex-grow text-base break-words text-left leading-tight">{language === 'ur' ? t.nameUr : t.nameEn}</span>
-                                            <span className={`text-xs font-medium opacity-70 whitespace-nowrap min-w-[60px] text-center px-2 py-0.5 rounded ${selectedTeacherId === t.id ? 'bg-[var(--accent-primary)]/10' : 'bg-[var(--bg-primary)]'}`}>{teacherPeriodCounts.get(t.id) || 0} Periods</span>
+                                            <span className={`text-xs opacity-70 whitespace-nowrap min-w-[60px] text-center px-2 py-0.5 rounded ${selectedTeacherId === t.id ? 'bg-[var(--accent-primary)]/10' : 'bg-[var(--bg-primary)]'}`}>{teacherPeriodCounts.get(t.id) || 0} Periods</span>
                                             {selectedTeacherId === t.id && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] flex-shrink-0"></div>}
                                         </button>
                                     ))
@@ -1058,19 +1065,21 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
                             </div>
                         </div>
                     )}
-                </div>
+                 </div>
+             </div>
 
-                <button 
-                    onClick={handleNextTeacher}
-                    disabled={currentTeacherIndex >= sortedTeachers.length - 1}
-                    className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] disabled:opacity-50 transition-colors"
-                >
-                    <ChevronRightIcon />
-                </button>
-            </div>
+             {/* Next Button */}
+             <button 
+                 onClick={handleNextTeacher} 
+                 disabled={currentTeacherIndex >= sortedTeachers.length - 1}
+                 className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[var(--bg-secondary)] shadow-sm border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] disabled:opacity-30 transition-all flex items-center justify-center flex-shrink-0"
+             >
+                 <ChevronRightIcon />
+             </button>
         </div>
         
-        <div className="flex items-center gap-3 flex-wrap">
+        {/* Centered Action Buttons */}
+        <div className="flex items-center justify-center gap-3 flex-wrap">
             {onUndo && (
               <button onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)" className="p-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-lg shadow-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><UndoIcon /></button>
             )}
@@ -1093,6 +1102,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Unscheduled Periods Sidebar */}
           <div className="lg:w-1/4 space-y-6">
+            {/* Workload Summary Moved Here */}
             <TeacherAvailabilitySummary t={t} workloadStats={workloadStats} />
             
             <div 

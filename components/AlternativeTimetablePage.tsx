@@ -576,10 +576,10 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             ).flat();
 
             if (periodsToCover.length > 0) {
-                const processedJointPeriods = new Set<string>();
+                const processedJointIds = new Set<string>();
                 periodsToCover.forEach(firstPeriod => {
                     const jointPeriodId = firstPeriod.jointPeriodId;
-                    if(jointPeriodId && processedJointPeriods.has(jointPeriodId)) return;
+                    if(jointPeriodId && processedJointIds.has(jointPeriodId)) return;
 
                     const classIds = jointPeriodId 
                         ? classes.filter(c => c.timetable[dayOfWeek]?.[periodIndex]?.some(p => p.jointPeriodId === jointPeriodId)).map(c => c.id)
@@ -600,7 +600,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                         combinedClassNames: classNames,
                         subjectInfo: { en: subject?.nameEn || '', ur: subject?.nameUr || '' },
                     });
-                    if(jointPeriodId) processedJointPeriods.add(jointPeriodId);
+                    if(jointPeriodId) processedJointIds.add(jointPeriodId);
                 });
             }
         }
@@ -834,7 +834,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             const errorMessage = error instanceof Error ? error.message : String(error);
             alert(`Failed to import: ${errorMessage}`);
         }
-    }).catch((err: unknown) => { 
+    }).catch((err: any) => { 
         console.error("File read error:", err);
         const msg = err instanceof Error ? err.message : String(err);
         alert(`Failed to read file: ${msg}`);
@@ -1220,18 +1220,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
           }
       } catch (err: unknown) { 
           console.error("Image generation failed", err);
-          let errMsg = 'An unknown error occurred';
-          if (err instanceof Error) {
-              errMsg = err.message;
-          } else if (typeof err === 'string') {
-              errMsg = err as string;
-          } else {
-              try {
-                  errMsg = String(err);
-              } catch (e) {
-                  errMsg = 'Error object could not be converted to string';
-              }
-          }
+          const errMsg = err instanceof Error ? err.message : String(err);
           alert(errMsg);
       } finally {
           setIsGeneratingImage(false);
