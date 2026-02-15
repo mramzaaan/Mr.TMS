@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { DownloadFormat, DownloadLanguage, SchoolClass, Teacher, DownloadDesignConfig } from '../types';
 
@@ -26,6 +27,9 @@ interface DownloadModalProps {
   generateContentHtml?: (lang: DownloadLanguage, design: DownloadDesignConfig) => string;
   onGenerateExcel?: (lang: DownloadLanguage, design: DownloadDesignConfig) => void;
 }
+
+// Consolidated Clean Google Fonts URL for injection
+const GOOGLE_FONTS_URL = "https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Anton&family=Antonio:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Bebas+Neue&family=Bodoni+Moda:opsz,wght@6..96,400..900&family=Bungee+Spice&family=Fjalla+One&family=Gulzar&family=Instrument+Serif:ital@0;1&family=Lato:wght@400;700&family=Merriweather:wght@400;700;900&family=Monoton&family=Montserrat:wght@400;500;700&family=Noto+Nastaliq+Urdu:wght@400;700&family=Open+Sans:wght@400;600;700&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Playfair+Display:wght@400;700&family=Playwrite+CU:wght@100..400&family=Roboto:wght@400;500;700&family=Rubik+Mono+One&display=swap";
 
 const DownloadModal: React.FC<DownloadModalProps> = ({
   t,
@@ -80,8 +84,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
   };
 
   const onCloneHandler = (clonedDoc: Document) => {
+      // Inject fonts into the cloned document used by html2canvas
+      const fontLink = clonedDoc.createElement('link');
+      fontLink.href = GOOGLE_FONTS_URL;
+      fontLink.rel = "stylesheet";
+      clonedDoc.head.appendChild(fontLink);
+
       const style = clonedDoc.createElement('style');
-      const importsLatin = `@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Gulzar&family=Noto+Nastaliq+Urdu:wght@400;700&family=Anton&family=Antonio:wght@400;700&family=Bebas+Neue&family=Bodoni+Moda:opsz,wght@6..96,400..900&family=Bungee+Spice&family=Fjalla+One&family=Instrument+Serif:ital@0;1&family=Lato:wght@400;700&family=Merriweather:wght@400;700;900&family=Monoton&family=Montserrat:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Anton&family=Instrument+Serif:ital@0;1&family=Playwrite+CU:wght@100..400&family=Roboto:wght@400;500;700&family=Rubik+Mono+One&display=swap');`;
       const URDU_FONT_STACK = "'Gulzar', 'Noto Nastaliq Urdu', serif";
       style.innerHTML = `
           * { 
@@ -90,7 +99,6 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
               text-rendering: auto !important; 
               font-variant-ligatures: none !important;
           } 
-          ${importsLatin} 
           .print-container .font-urdu, .print-container .font-urdu * { 
               font-family: ${URDU_FONT_STACK} !important; 
               line-height: 1.8; 
@@ -159,7 +167,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
                     
                     window.scrollTo(0,0);
                     await document.fonts.ready;
-                    await new Promise(r => setTimeout(r, 400));
+                    await new Promise(r => setTimeout(r, 600)); // Wait for render
 
                     const canvas = await html2canvas(tempContainer, { 
                         scale: 1.5, 
@@ -196,7 +204,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
                 
                 window.scrollTo(0,0);
                 await document.fonts.ready;
-                await new Promise(r => setTimeout(r, 400));
+                await new Promise(r => setTimeout(r, 600)); // Wait for render
 
                 const canvas = await html2canvas(tempContainer, { 
                     scale: 1.5, 
@@ -258,7 +266,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
             
             window.scrollTo(0,0);
             await document.fonts.ready;
-            await new Promise(r => setTimeout(r, 400));
+            await new Promise(r => setTimeout(r, 600)); // Wait for render
 
             const canvas = await html2canvas(tempContainer, { 
                 scale: 1.5, 

@@ -1218,7 +1218,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                   link.click();
               }
           }
-      } catch (err: any) { 
+      } catch (err: unknown) { 
           console.error("Image generation failed", err);
           const errMsg = (err instanceof Error) ? err.message : String(err);
           alert(errMsg);

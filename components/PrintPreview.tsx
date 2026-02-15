@@ -25,7 +25,7 @@ interface HistoryState {
 
 // --- Icons ---
 const Icons = {
-  Print: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg>,
+  Print: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2v4h10z" /></svg>,
   Pdf: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" /></svg>,
   Excel: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1-1H3a1 1 0 01-1-1V3zm2 2v2h3V5H4zm0 3v2h3V8H4zm0 3v2h3v-2H4zm4 2v-2h3v2H8zm0-3v-2h3v2H8zm0-3V5h3v3H8zm4 5v-2h3v2h-3zm0-3v-2h3v2h-3zm0-3V5h3v3h-3z" /></svg>,
   Close: () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
@@ -404,7 +404,18 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
   // State for collapsible panels - Default closed
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
-  const colorDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref for the persistent print iframe
+  const printIframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  // Cleanup print iframe on unmount
+  useEffect(() => {
+      return () => {
+          if (printIframeRef.current) {
+              document.body.removeChild(printIframeRef.current);
+              printIframeRef.current = null;
+          }
+      };
+  }, []);
 
   const themeColors = useMemo(() => {
     if (typeof window === 'undefined') return { accent: '#6366f1' };
@@ -432,6 +443,21 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
       setZoomLevel(70); // Force 70% on open
     }
   }, [isOpen]); 
+
+  // Re-generate on Lang change
+  useEffect(() => {
+    if (isOpen && history[historyIndex]) {
+        const currentOptions = history[historyIndex].options;
+        const newHtml = generateHtml(lang, currentOptions);
+        const newPages = Array.isArray(newHtml) ? newHtml : [newHtml];
+        
+        const newHistory = history.slice(0, historyIndex + 1);
+        newHistory.push({ options: currentOptions, pages: newPages });
+        setHistory(newHistory);
+        setHistoryIndex(newHistory.length - 1);
+        setCurrentPage(0);
+    }
+  }, [lang]);
 
   const pushToHistory = useCallback((newOptions: DownloadDesignConfig, newPages: string[]) => {
       setHistory(prev => {
@@ -535,8 +561,7 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
               if (navigator.canShare && navigator.canShare({ files: [file] })) {
                   await navigator.share({
                       files: [file],
-                      title: title,
-                      text: 'Check out this timetable!'
+                      // Removed 'title' and 'text' to ensure only file is shared (prevents text+link sharing issues)
                   });
               } else {
                   // Fallback download
@@ -546,55 +571,112 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                   link.click();
               }
           }
-      } catch (e) {
-          console.error("Share failed", e);
-          alert("Failed to share.");
+      } catch (e: any) {
+          if (e.name !== 'AbortError') {
+              console.error("Share failed", e);
+              alert("Failed to share.");
+          }
       } finally {
           setIsGenerating(false);
       }
   };
 
-  const handleDownloadImage = async () => {
-      if (!contentRef.current) return;
+  const handleDownloadPdf = async () => {
       setIsGenerating(true);
-      try {
-          if (activeElement) activeElement.removeAttribute('data-selected');
-          
-          const canvas = await html2canvas(contentRef.current, {
-              scale: 2,
-              useCORS: true,
-              backgroundColor: '#ffffff'
-          });
-          
-          if (activeElement) activeElement.setAttribute('data-selected', 'true');
+      const jsPDF = jspdf.jsPDF;
+      const orientation = options.page.orientation || 'portrait';
+      const pdf = new jsPDF({ orientation, unit: 'mm', format: options.page.size || 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const widthPx = orientation === 'portrait' ? '794px' : '1123px';
+      const heightPx = orientation === 'portrait' ? '1123px' : '794px';
 
-          const link = document.createElement('a');
-          link.href = canvas.toDataURL('image/png');
-          link.download = `${fileNameBase}.png`;
-          link.click();
-      } catch (e) {
-          console.error("Download failed", e);
-          alert("Failed to download image.");
+      const tempContainer = document.createElement('div');
+      Object.assign(tempContainer.style, {
+          position: 'absolute',
+          left: '-9999px',
+          top: '0',
+          width: widthPx,
+          height: heightPx,
+          overflow: 'hidden',
+          backgroundColor: '#ffffff'
+      });
+      document.body.appendChild(tempContainer);
+
+      try {
+          const currentRender = history[historyIndex] || { options: designConfig, pages: [] };
+          const pagesToRender = currentRender.pages;
+
+          for (let i = 0; i < pagesToRender.length; i++) {
+              tempContainer.innerHTML = pagesToRender[i];
+              const pageContent = tempContainer.children[0] as HTMLElement;
+              
+              if (pageContent) {
+                  pageContent.style.width = '100%';
+                  pageContent.style.height = '100%';
+                  pageContent.style.margin = '0';
+              }
+              
+              // Ensure fonts are loaded
+              await document.fonts.ready;
+              await new Promise(r => setTimeout(r, 200));
+
+              const canvas = await html2canvas(tempContainer, {
+                  scale: 1.5,
+                  backgroundColor: '#ffffff',
+                  width: parseFloat(widthPx),
+                  height: parseFloat(heightPx),
+                  windowWidth: parseFloat(widthPx),
+                  windowHeight: parseFloat(heightPx),
+                  scrollX: 0,
+                  scrollY: 0,
+                  x: 0,
+                  y: 0,
+                  useCORS: true
+              });
+
+              const imgData = canvas.toDataURL('image/jpeg', 0.95);
+              if (i > 0) pdf.addPage(undefined, orientation);
+              pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+          }
+          pdf.save(`${fileNameBase}.pdf`);
+      } catch (err) {
+          console.error("PDF generation failed:", err);
+          alert("Failed to generate PDF.");
       } finally {
+          document.body.removeChild(tempContainer);
           setIsGenerating(false);
       }
   };
 
   const handlePrint = useCallback(() => {
-      if (!contentRef.current) return;
+      // Clean up any existing iframe first
+      if (printIframeRef.current) {
+          document.body.removeChild(printIframeRef.current);
+          printIframeRef.current = null;
+      }
 
       // Remove selection highlighting for print
       const wasSelected = activeElement;
       if (wasSelected) wasSelected.removeAttribute('data-selected');
 
       const iframe = document.createElement('iframe');
+      // Set to fixed size to prevent layout shifts during print preview resizing
       iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
+      iframe.style.top = '0';
+      iframe.style.left = '0';
+      iframe.style.width = '1px';
+      iframe.style.height = '1px';
       iframe.style.border = '0';
+      iframe.style.visibility = 'hidden';
+      iframe.style.zIndex = '-1';
+      
       document.body.appendChild(iframe);
+      printIframeRef.current = iframe;
+
+      const currentRender = history[historyIndex] || { options: designConfig, pages: [] };
+      const allPagesHtml = currentRender.pages.join('<div style="page-break-after: always; height: 0;"></div>');
 
       const doc = iframe.contentWindow?.document;
       if (doc) {
@@ -605,20 +687,25 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
               <head>
                   <title>${title}</title>
                   <style>
+                      /* Force white background and reset margins for print */
                       @media print {
                           @page { margin: 0; size: auto; }
-                          body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                          body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #ffffff !important; }
+                          .page-break { page-break-after: always; }
+                          .print-container { width: 100% !important; height: auto !important; }
+                          .page { width: 100% !important; height: 100% !important; margin: 0 !important; box-shadow: none !important; }
                       }
-                      /* Ensure body takes full height to avoid cutoffs */
-                      html, body { height: 100%; width: 100%; }
+                      /* Ensure iframe content is visible when printing */
+                      html, body { height: 100%; width: 100%; background: #ffffff; }
                   </style>
               </head>
               <body>
-                  ${contentRef.current.innerHTML}
+                  ${allPagesHtml}
                   <script>
                       // Wait for fonts to load
                       document.fonts.ready.then(() => {
                           setTimeout(() => {
+                              window.focus();
                               window.print();
                           }, 500);
                       });
@@ -630,15 +717,8 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
 
           // Restore selection highlighting if needed
           if (wasSelected) wasSelected.setAttribute('data-selected', 'true');
-
-          // Cleanup iframe after sufficient time
-          setTimeout(() => {
-              if (document.body.contains(iframe)) {
-                  document.body.removeChild(iframe);
-              }
-          }, 5000); 
       }
-  }, [title, activeElement]);
+  }, [title, activeElement, history, historyIndex]);
 
   const currentRenderState = history[historyIndex] || { options: designConfig, pages: [] };
   const { options, pages } = currentRenderState;
@@ -683,10 +763,18 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                 {/* Header Row (Title & Main Actions) */}
                 <div className="h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4 text-white">
                     <div className="flex items-center gap-3">
-                        <span className="font-bold text-sm uppercase tracking-wider text-gray-300">{title}</span>
+                        {/* Modified margin to clear sidebar toggle and smaller text size */}
+                        <span className="font-black text-xs uppercase tracking-wider text-gray-300 ml-12">{title}</span>
                     </div>
                     
                     <div className="flex items-center gap-2">
+                        {/* Language Selector */}
+                        <div className="flex bg-gray-800 rounded-lg border border-gray-700 p-0.5 mr-2">
+                            <button onClick={() => setLang('en')} className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md transition-colors ${lang === 'en' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'}`}>En</button>
+                            <button onClick={() => setLang('ur')} className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md transition-colors ${lang === 'ur' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'}`}>Ur</button>
+                            <button onClick={() => setLang('both')} className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md transition-colors ${lang === 'both' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'}`}>Both</button>
+                        </div>
+
                         {/* Action Buttons */}
                         <div className="flex items-center bg-gray-800 rounded-lg border border-gray-700 p-1 gap-1">
                             <button onClick={handleUndo} disabled={historyIndex <= 0} className="p-1.5 hover:bg-gray-700 rounded disabled:opacity-30 text-gray-400 hover:text-white" title="Undo"><UndoIcon /></button>
@@ -695,13 +783,13 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                         </div>
 
                         <button 
-                            onClick={handleDownloadImage}
+                            onClick={handleDownloadPdf}
                             disabled={isGenerating}
                             className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
-                            title="Download as Image"
+                            title="Download PDF"
                         >
                             <Icons.Download />
-                            <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Download</span>
+                            <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Download PDF</span>
                         </button>
 
                         <button 
