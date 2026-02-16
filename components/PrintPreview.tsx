@@ -761,22 +761,22 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
             <div className="flex flex-col bg-white border-b border-gray-200 z-40 relative shadow-md">
                 
                 {/* Header Row (Title & Main Actions) */}
-                <div className="h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4 text-white">
-                    <div className="flex items-center gap-3">
+                <div className="h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-2 sm:px-4 text-white">
+                    <div className="flex items-center gap-3 flex-shrink-0">
                         {/* Modified margin to clear sidebar toggle and smaller text size */}
-                        <span className="font-black text-xs uppercase tracking-wider text-gray-300 ml-12">{title}</span>
+                        <span className="font-black text-xs uppercase tracking-wider text-gray-300 ml-8 sm:ml-12 whitespace-nowrap truncate max-w-[60px] sm:max-w-[200px]" title={title}>{title}</span>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pl-2">
                         {/* Language Selector */}
-                        <div className="flex bg-gray-800 rounded-lg border border-gray-700 p-0.5 mr-2">
+                        <div className="flex bg-gray-800 rounded-lg border border-gray-700 p-0.5 mr-1 flex-shrink-0">
                             <button onClick={() => setLang('en')} className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md transition-colors ${lang === 'en' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'}`}>En</button>
                             <button onClick={() => setLang('ur')} className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md transition-colors ${lang === 'ur' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'}`}>Ur</button>
                             <button onClick={() => setLang('both')} className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md transition-colors ${lang === 'both' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'}`}>Both</button>
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex items-center bg-gray-800 rounded-lg border border-gray-700 p-1 gap-1">
+                        <div className="flex items-center bg-gray-800 rounded-lg border border-gray-700 p-1 gap-1 flex-shrink-0">
                             <button onClick={handleUndo} disabled={historyIndex <= 0} className="p-1.5 hover:bg-gray-700 rounded disabled:opacity-30 text-gray-400 hover:text-white" title="Undo"><UndoIcon /></button>
                             <div className="w-px h-4 bg-gray-700"></div>
                             <button onClick={handleRedo} disabled={historyIndex >= history.length - 1} className="p-1.5 hover:bg-gray-700 rounded disabled:opacity-30 text-gray-400 hover:text-white" title="Redo"><RedoIcon /></button>
@@ -785,26 +785,26 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                         <button 
                             onClick={handleDownloadPdf}
                             disabled={isGenerating}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+                            className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
                             title="Download PDF"
                         >
                             <Icons.Download />
-                            <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Download PDF</span>
+                            <span className="text-xs font-bold uppercase tracking-wider hidden md:inline">Download PDF</span>
                         </button>
 
                         <button 
                             onClick={handleShare} 
                             disabled={isGenerating}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
+                            className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
                         >
                             {isGenerating ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Icons.Share />}
-                            <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Share</span>
+                            <span className="text-xs font-bold uppercase tracking-wider hidden md:inline">Share</span>
                         </button>
 
                         {onGenerateExcel && (
                             <button 
                                 onClick={() => onGenerateExcel(lang, options)} 
-                                className="p-2 text-green-400 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition shadow-sm" 
+                                className="flex-shrink-0 p-2 text-green-400 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition shadow-sm" 
                                 title="Export Excel"
                             >
                                 <Icons.Excel />
@@ -813,15 +813,15 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                         
                         <button 
                             onClick={handlePrint} 
-                            className="p-2 text-white bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition shadow-sm" 
+                            className="flex-shrink-0 p-2 text-white bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg transition shadow-sm" 
                             title="Print"
                         >
                             <Icons.Print />
                         </button>
 
-                        <div className="w-px h-6 bg-gray-700 mx-1"></div>
+                        <div className="w-px h-6 bg-gray-700 mx-1 flex-shrink-0"></div>
 
-                        <button onClick={onClose} className="p-2 hover:bg-red-600 rounded text-gray-400 hover:text-white transition-colors">
+                        <button onClick={onClose} className="flex-shrink-0 p-2 hover:bg-red-600 rounded text-gray-400 hover:text-white transition-colors">
                             <Icons.Close />
                         </button>
                     </div>

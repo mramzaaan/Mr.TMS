@@ -1201,7 +1201,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
               if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
                   try {
                       await (navigator as any).share({ files: [file], title: `Signed_Adjustments_${selectedDate}` });
-                  } catch (error: unknown) { 
+                  } catch (error: any) { 
                       // Silently handle cancellation or abort
                       const isAbort = error instanceof Error && error.name === 'AbortError';
                       if (!isAbort) {
@@ -1218,7 +1218,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                   link.click();
               }
           }
-      } catch (err: unknown) { 
+      } catch (err: any) { 
           console.error("Image generation failed", err);
           const errMsg = err instanceof Error ? err.message : String(err);
           alert(errMsg);
