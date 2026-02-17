@@ -148,6 +148,8 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
       }
 
       let cardStyleCss = '';
+      let separatorHtml = '';
+
       if (cardStyle === 'full') {
           cardStyleCss = '';
       } else if (cardStyle === 'outline') {
@@ -160,6 +162,14 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
           cardStyleCss = 'background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.1) 100%) !important;';
       } else if (cardStyle === 'minimal-left') {
           cardStyleCss = 'background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; position: relative !important; box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;';
+          // Updated Minimal Design: Rounded line and larger circles
+          separatorHtml = `
+            <div style="position: absolute; top: 50%; left: 15%; right: 15%; display: flex; align-items: center; justify-content: center; opacity: 0.4; transform: translateY(-50%);">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+                <div style="height: 1.5px; flex-grow: 1; border-radius: 99px; background-color: currentColor; margin: 0 4px;"></div>
+                <div style="width: 8px; height: 8px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+            </div>
+          `;
       } else if (cardStyle === 'badge') {
           cardStyleCss = 'background-color: transparent !important; border: none !important; box-shadow: none !important;';
       }
@@ -375,34 +385,36 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             height: 100%;
           }
 
-          /* Match Styles */
           .period-subject { 
             display: block;
             font-weight: 900; 
-            font-size: 22px;
+            font-size: 34px; /* Increased Size - Subject Top Left */
             text-transform: none; 
             line-height: 1.1;
-            text-align: left; 
+            text-align: left; /* Top Left */
+            align-self: flex-start;
             margin: 0;
             color: inherit;
             white-space: normal;
             overflow: hidden;
-            width: 100%;
+            width: fit-content;
+            max-width: 100%;
             padding-left: 2px;
           }
           .period-teacher { 
             display: block;
             font-weight: 800; 
             opacity: 0.95; 
-            font-size: 16px;
+            font-size: 20px; /* Regular Size - Teacher Bottom Right */
             line-height: 1.1;
             white-space: normal; 
             overflow: hidden; 
-            text-align: right; 
+            text-align: right; /* Bottom Right */
             align-self: flex-end;
             margin-top: auto;
             color: inherit;
-            width: 100%;
+            width: fit-content;
+            max-width: 100%;
             padding-right: 2px;
           }
 
@@ -441,8 +453,8 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                   opacity: ${cardStyle === 'full' ? 0.3 : 1.0};
               }
               ${cardStyle === 'badge' ? `
-                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
-                  .${name} .period-teacher { ${badgeTarget === 'teacher' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
+                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: inline-block; width: fit-content; max-width: 100%; text-align: center; box-sizing: border-box; margin-bottom: 0;` : ''} }
+                  .${name} .period-teacher { ${badgeTarget === 'teacher' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: inline-block; width: fit-content; max-width: 100%; text-align: center; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
               ` : ''}
           `).join('\n')}
 
@@ -499,13 +511,17 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                   
                   let separatorHtml = '';
                   if (cardStyle === 'minimal-left') {
-                      separatorHtml = `<div style="position: absolute; top: 50%; left: 12%; right: 12%; height: 5px; background-color: currentColor; opacity: 0.35; clip-path: polygon(0 50%, 15px 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 15px 100%);"></div>`;
+                      separatorHtml = `<div style="position: absolute; top: 50%; left: 15%; right: 15%; display: flex; align-items: center; justify-content: center; opacity: 0.4; transform: translateY(-50%);">
+                          <div style="width: 8px; height: 8px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+                          <div style="height: 1.5px; flex-grow: 1; border-radius: 99px; background-color: currentColor; margin: 0 4px;"></div>
+                          <div style="width: 8px; height: 8px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+                      </div>`;
                   }
-
+                  
                   let subjectBadgeStyle = '';
                   let teacherBadgeStyle = '';
                   if (cardStyle === 'badge') {
-                      const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 2px 8px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
+                      const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: inline-block; width: fit-content; max-width: 100%; text-align: center; box-sizing: border-box; margin-bottom: 2px;`;
                       if (badgeTarget === 'teacher') {
                          teacherBadgeStyle = badgeCss;
                       } else {

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import type { Language, Page, TimetableSession, SchoolConfig, TimetableGridData, DownloadDesignConfig, DownloadDesigns } from '../types';
+import type { Language, Page, TimetableSession, SchoolConfig, TimetableGridData, DownloadDesignConfig, DownloadDesigns, Vacation } from '../types';
 import TimetableSessionModal from './TimetableSessionModal';
 import GlobalSearch from './GlobalSearch';
 import PrintPreview from './PrintPreview';
@@ -167,11 +167,12 @@ const FeatureCard: React.FC<{
     colorGradient: string;
     isActive: boolean;
     style?: React.CSSProperties;
-}> = ({ label, description, icon: IconComponent, onClick, colorGradient, isActive, style }) => (
+    className?: string; // Allow className to override defaults
+}> = ({ label, description, icon: IconComponent, onClick, colorGradient, isActive, style, className }) => (
     <button
         onClick={onClick}
         style={style}
-        className={`absolute flex-shrink-0 w-[140px] sm:w-[180px] aspect-[4/5] overflow-visible rounded-[1.5rem] p-4 text-center transition-all duration-500 group shadow-2xl ${colorGradient} border-b-[4px] border-black/20 ring-1 ring-white/10 origin-bottom
+        className={`${className || 'absolute w-[140px] sm:w-[180px]'} flex-shrink-0 aspect-[4/5] overflow-visible rounded-[1.5rem] p-4 text-center transition-all duration-500 group shadow-2xl ${colorGradient} border-b-[4px] border-black/20 ring-1 ring-white/10 origin-bottom
         ${isActive ? 'cursor-pointer' : 'cursor-default'}
         `}
     >
@@ -205,14 +206,15 @@ interface CurrentEvent {
 }
 
 interface SchoolDayStatus {
-    state: 'pre-school' | 'active' | 'post-school' | 'closed';
+    state: 'pre-school' | 'active' | 'post-school' | 'closed' | 'vacation';
     currentEvent: CurrentEvent | null;
     nextEvent: CurrentEvent | null;
     schoolStartTime: Date | null;
     schoolEndTime: Date | null;
+    vacationName?: string;
 }
 
-const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, t: any }> = ({ language, schoolConfig, t }) => {
+const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, t: any, vacations?: Vacation[] }> = ({ language, schoolConfig, t, vacations }) => {
     const [time, setTime] = useState(new Date());
     const [status, setStatus] = useState<SchoolDayStatus>({ state: 'closed', currentEvent: null, nextEvent: null, schoolStartTime: null, schoolEndTime: null });
 
@@ -225,10 +227,36 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
         if (!schoolConfig) return;
         const calculateEvent = () => {
             const now = new Date();
+            
+            // VACATION CHECK
+            if (vacations && vacations.length > 0) {
+                const todayTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                const activeVacation = vacations.find(v => {
+                    const start = new Date(v.startDate);
+                    start.setHours(0,0,0,0);
+                    const end = new Date(v.endDate);
+                    end.setHours(23,59,59,999);
+                    return todayTime >= start.getTime() && todayTime <= end.getTime();
+                });
+
+                if (activeVacation) {
+                    setStatus({ 
+                        state: 'vacation', 
+                        currentEvent: null, 
+                        nextEvent: null, 
+                        schoolStartTime: null, 
+                        schoolEndTime: null,
+                        vacationName: activeVacation.name
+                    });
+                    return;
+                }
+            }
+
             const dayIndex = now.getDay(); 
             const dayMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const currentDayName = dayMap[dayIndex];
-            const dayConfig = schoolConfig.daysConfig?.[currentDayName as any];
+            // @ts-ignore
+            const dayConfig = schoolConfig.daysConfig?.[currentDayName];
             
             if (!dayConfig?.active) {
                 setStatus({ state: 'closed', currentEvent: null, nextEvent: null, schoolStartTime: null, schoolEndTime: null });
@@ -245,37 +273,44 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
             const parseTime = (timeStr: string) => {
                 if (!timeStr) return null;
                 const [h, m] = timeStr.split(':').map(Number);
+                if (isNaN(h) || isNaN(m)) return null;
                 const d = new Date(now);
                 d.setHours(h, m, 0, 0);
                 return d;
             };
 
             if (assembly && assembly.start && assembly.end) {
-                events.push({ name: 'Assembly', startTime: parseTime(assembly.start)!, endTime: parseTime(assembly.end)!, type: 'assembly' });
+                const s = parseTime(assembly.start);
+                const e = parseTime(assembly.end);
+                if(s && e) events.push({ name: 'Assembly', startTime: s, endTime: e, type: 'assembly' });
             }
 
             const maxPeriods = dayConfig.periodCount;
             periods.forEach((p, idx) => {
                 if (idx < maxPeriods && p.start && p.end) {
-                    events.push({ name: p.name || `Period ${idx + 1}`, startTime: parseTime(p.start)!, endTime: parseTime(p.end)!, type: 'period' });
+                    const s = parseTime(p.start);
+                    const e = parseTime(p.end);
+                    if(s && e) events.push({ name: p.name || `Period ${idx + 1}`, startTime: s, endTime: e, type: 'period' });
                 }
             });
 
             breaks.forEach((b) => {
                 if (b.beforePeriod <= maxPeriods + 1 && b.startTime && b.endTime) {
-                    events.push({ name: b.name, startTime: parseTime(b.startTime)!, endTime: parseTime(b.endTime)!, type: 'break' });
+                    const s = parseTime(b.startTime);
+                    const e = parseTime(b.endTime);
+                    if(s && e) events.push({ name: b.name, startTime: s, endTime: e, type: 'break' });
                 }
             });
 
-            events.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+            const validEvents = events.filter(e => e.startTime && e.endTime && e.endTime > e.startTime).sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 
-            if (events.length === 0) {
+            if (validEvents.length === 0) {
                 setStatus({ state: 'closed', currentEvent: null, nextEvent: null, schoolStartTime: null, schoolEndTime: null });
                 return;
             }
 
-            const schoolStartTime = events[0].startTime;
-            const schoolEndTime = events[events.length - 1].endTime;
+            const schoolStartTime = validEvents[0].startTime;
+            const schoolEndTime = new Date(Math.max(...validEvents.map(e => e.endTime.getTime())));
 
             let currentState: SchoolDayStatus['state'] = 'active';
             let active = null;
@@ -283,29 +318,12 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
 
             if (now < schoolStartTime) {
                 currentState = 'pre-school';
-                next = events[0];
+                next = validEvents[0];
             } else if (now >= schoolEndTime) {
                 currentState = 'post-school';
             } else {
-                for (const event of events) {
-                    if (now >= event.startTime && now < event.endTime) {
-                        active = event;
-                        break; 
-                    }
-                }
-                if (active) {
-                    const currentIndex = events.indexOf(active);
-                    if (currentIndex + 1 < events.length) {
-                        next = events[currentIndex + 1];
-                    }
-                } else {
-                    for (const event of events) {
-                        if (now < event.startTime) {
-                            next = event;
-                            break;
-                        }
-                    }
-                }
+                active = validEvents.find(event => now >= event.startTime && now < event.endTime) || null;
+                next = validEvents.find(event => event.startTime > now) || null;
             }
 
             setStatus({ 
@@ -317,7 +335,7 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
             });
         };
         calculateEvent();
-    }, [time, schoolConfig]);
+    }, [time, schoolConfig, vacations]);
 
     const formattedDay = time.toLocaleDateString(language === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB', {
         weekday: 'long',
@@ -334,17 +352,29 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
         const { state, currentEvent, nextEvent, schoolStartTime, schoolEndTime } = status;
         const now = time.getTime();
 
+        if (state === 'vacation') {
+             return {
+                title: status.vacationName || t.onVacation,
+                badge: t.holiday,
+                left: t.enjoyDayOff,
+                right: '',
+                progress: 100,
+            };
+        }
+
         if (state === 'closed') {
             return { title: t.noSchoolToday, badge: t.holiday, left: t.enjoyDayOff, right: '', progress: 0 };
         }
 
         if (state === 'pre-school' && schoolStartTime && nextEvent) {
             const diff = schoolStartTime.getTime() - now;
-            const hours = Math.floor(diff / (1000 * 60 * 60));
-            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const hStr = hours > 0 ? `${hours}${t.hourAbbr} ` : '';
-            const mStr = `${mins}${t.minAbbr}`;
-            const badge = language === 'ur' ? `${hStr}${mStr} ${t.inTime}` : `${t.inTime} ${hStr}${mStr}`;
+            const rHrs = Math.floor(diff / (1000 * 60 * 60));
+            const rMins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const rSecs = Math.floor((diff % (1000 * 60)) / 1000);
+            const hStr = rHrs > 0 ? `${rHrs}h ` : '';
+            const mStr = `${rMins}m `;
+            const sStr = `${rSecs}s`;
+            const badge = `${t.starts} ${t.inTime} ${hStr}${mStr}${sStr}`;
             return {
                 title: t.schoolStartsSoon,
                 badge: badge,
@@ -361,18 +391,28 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
                 const total = end - start;
                 const elapsed = now - start;
                 const progress = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                
                 const remaining = end - now;
                 const rHrs = Math.floor(remaining / (1000 * 60 * 60));
                 const rMins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
                 const rSecs = Math.floor((remaining % (1000 * 60)) / 1000);
-                const hStr = rHrs > 0 ? `${rHrs}${t.hourAbbr} ` : '';
-                const mStr = rHrs > 0 ? `${rMins}${t.minAbbr}` : `${rMins}${t.minAbbr} `;
-                const sStr = rHrs === 0 ? `${rSecs}${t.secAbbr}` : '';
-                const badge = language === 'ur' ? `${hStr}${mStr}${sStr} ${t.inTime}` : `${t.inTime} ${hStr}${mStr}${sStr}`;
+                
+                // Formatted with zero padding for cleaner look
+                const hStr = `${rHrs.toString().padStart(2, '0')}h `;
+                const mStr = `${rMins.toString().padStart(2, '0')}m `;
+                const sStr = `${rSecs.toString().padStart(2, '0')}s`;
+                
+                // Detailed remaining time badge
+                const badge = `Remaining: ${hStr}${mStr}${sStr}`;
+
+                // 24h format for period range (e.g., 08:00 - 08:40)
+                const startTimeStr = currentEvent.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+                const endTimeStr = currentEvent.endTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+
                 return {
                     title: currentEvent.name,
                     badge: badge,
-                    left: `${currentEvent.startTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})} - ${currentEvent.endTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}`,
+                    left: `${startTimeStr} - ${endTimeStr}`,
                     right: nextEvent ? `${t.next}: ${nextEvent.name}` : t.nextHome,
                     progress: progress,
                 };
@@ -381,15 +421,15 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
                  const rHrs = Math.floor(diff / (1000 * 60 * 60));
                  const rMins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                  const rSecs = Math.floor((diff % (1000 * 60)) / 1000);
-                 const hStr = rHrs > 0 ? `${rHrs}${t.hourAbbr} ` : '';
-                 const mStr = rHrs > 0 ? `${rMins}${t.minAbbr}` : `${rMins}${t.minAbbr} `;
-                 const sStr = rHrs === 0 ? `${rSecs}${t.secAbbr}` : '';
-                 const badge = language === 'ur' ? `${hStr}${mStr}${sStr} ${t.inTime}` : `${t.inTime} ${hStr}${mStr}${sStr}`;
+                 const hStr = rHrs > 0 ? `${rHrs}h ` : '';
+                 const mStr = `${rMins}m `;
+                 const sStr = `${rSecs}s`;
+                 const badge = `${t.starts} ${t.inTime} ${hStr}${mStr}${sStr}`;
 
                  return {
                      title: `${t.next}: ${nextEvent.name}`,
                      badge: badge,
-                     left: `${t.starts} ${nextEvent.startTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}`,
+                     left: `Starts at ${nextEvent.startTime.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}`,
                      right: '',
                      progress: 0 
                  };
@@ -402,7 +442,7 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
                 badge: t.done,
                 left: `${t.ended} ${schoolEndTime?.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}`,
                 right: t.seeYouTomorrow,
-                progress: 100,
+                progress: 100, // Visual fix: Ensure bar is full when school is closed
             };
         }
         return null;
@@ -426,8 +466,8 @@ const DigitalClock: React.FC<{ language: Language, schoolConfig?: SchoolConfig, 
                     {cardData && (
                         <div className="w-full md:max-w-none md:flex-[1.2] bg-white/20 dark:bg-black/10 rounded-[1.5rem] sm:rounded-[2.5rem] p-5 sm:p-8 border border-white/40 shadow-xl backdrop-blur-md transition-transform duration-300 hover:scale-[1.01] animate-alive flex flex-col justify-center" style={{ animationDelay: '1s' }}>
                             <div className="flex justify-between items-center mb-3 sm:mb-6">
-                                <h2 className="text-lg sm:text-2xl font-black text-gray-800 dark:text-white tracking-tight">{cardData.title}</h2>
-                                <span className="px-3 sm:px-4 py-1.5 rounded-full border border-indigo-100 bg-indigo-50 dark:bg-indigo-900/30 text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-300 shadow-sm">{cardData.badge}</span>
+                                <h2 className="text-lg sm:text-2xl font-black text-gray-800 dark:text-white tracking-tight truncate pr-2">{cardData.title}</h2>
+                                <span className="px-3 sm:px-4 py-1.5 rounded-full border border-indigo-100 bg-indigo-50 dark:bg-indigo-900/30 text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-300 shadow-sm whitespace-nowrap">{cardData.badge}</span>
                             </div>
                             <div className="flex justify-between items-end text-[9px] sm:text-[12px] font-black text-gray-500 dark:text-gray-400 mb-2 sm:mb-3 uppercase tracking-widest gap-2">
                                 <span className="truncate">{cardData.left}</span>
@@ -455,7 +495,6 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' | null }>({ message: '', type: null });
   const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
   
-  // Preview States
   const [isBasicInfoPreviewOpen, setIsBasicInfoPreviewOpen] = useState(false);
   const [isSchoolTimingsPreviewOpen, setIsSchoolTimingsPreviewOpen] = useState(false);
   const [isWorkloadPreviewOpen, setIsWorkloadPreviewOpen] = useState(false);
@@ -463,7 +502,6 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
   const [isAlternativePreviewOpen, setIsAlternativePreviewOpen] = useState(false); 
   const [isAttendanceReportPreviewOpen, setIsAttendanceReportPreviewOpen] = useState(false);
   
-  // Selection States
   const [isTeacherSelectionForWorkloadOpen, setIsTeacherSelectionForWorkloadOpen] = useState(false);
   const [selectedTeacherIdsForWorkload, setSelectedTeacherIdsForWorkload] = useState<string[]>([]);
   const [workloadReportMode, setWorkloadReportMode] = useState<'weekly' | 'range'>('weekly');
@@ -472,7 +510,6 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
   const [selectedWeekDate, setSelectedWeekDate] = useState(new Date().toISOString().split('T')[0]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
-  // New Selection States for Timetables
   const [isClassSelectionForPrintOpen, setIsClassSelectionForPrintOpen] = useState(false);
   const [selectedClassIdsForPrint, setSelectedClassIdsForPrint] = useState<string[]>([]);
   const [isClassTimetablePreviewOpen, setIsClassTimetablePreviewOpen] = useState(false);
@@ -570,7 +607,6 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
   ];
 
   const getStackStyle = (index: number, activeIndex: number, total: number): React.CSSProperties => {
-    // ... (Stack style logic)
     const dist = (index - activeIndex + total) % total;
     if (dist === 0) return { transform: 'translateX(0) translateY(0) scale(1)', opacity: 1, zIndex: 50, pointerEvents: 'auto' };
     if (dist === total - 1) return { transform: 'translateX(-120%) translateY(10px) rotate(-15deg) scale(0.8)', opacity: 0, zIndex: 40, pointerEvents: 'none' };
@@ -640,7 +676,7 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                         
                         <DocumentCard title={t.workloadSummaryReport} subtitle="EFFORT ANALYTICS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} colorGradient="bg-gradient-to-br from-rose-500 to-pink-600" onClick={workloadReportClick} />
                         
-                        <DocumentCard title={t.classTimetable} subtitle="CLASS SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} colorGradient="bg-gradient-to-br from-violet-500 to-purple-600" onClick={handleClassTimetableClick} />
+                        <DocumentCard title={t.classTimetable} subtitle="CLASS SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v2a2 2 0 002 2z" /></svg>} colorGradient="bg-gradient-to-br from-violet-500 to-purple-600" onClick={handleClassTimetableClick} />
 
                         <DocumentCard title={t.teacherTimetable} subtitle="TEACHER SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>} colorGradient="bg-gradient-to-br from-emerald-500 to-green-600" onClick={handleTeacherTimetableClick} />
 
@@ -777,7 +813,7 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
 
         <main className="flex-grow container mx-auto px-4 pt-20 pb-4 flex flex-col items-center justify-center min-h-[90vh]">
             <div className="w-full animate-scale-in max-w-7xl relative flex flex-col items-center">
-                <DigitalClock language={language} schoolConfig={schoolConfig} t={t} />
+                <DigitalClock language={language} schoolConfig={schoolConfig} t={t} vacations={currentTimetableSession?.vacations} />
                 
                 {/* Active Session Card */}
                 {currentTimetableSession ? (
@@ -843,8 +879,19 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                 >
+                    <button 
+                        onClick={scrollToFeatures}
+                        className="group relative p-2.5 rounded-2xl bg-white/40 dark:bg-white/5 backdrop-blur-md border border-white/40 shadow-xl transition-all duration-300 hover:scale-110 active:scale-95 animate-bounce hidden md:block lg:hidden mb-8"
+                        aria-label="Scroll to features"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600 dark:text-indigo-400 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 13l-7 7-7-7m14-8l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    {/* Mobile/Tablet: Deck View */}
                     <div 
-                        className="relative w-full max-w-[200px] sm:max-w-[240px] h-[300px] sm:h-[350px] mb-12 flex items-center justify-center deck-container"
+                        className="lg:hidden relative w-full max-w-[200px] sm:max-w-[240px] h-[300px] sm:h-[350px] mb-12 flex items-center justify-center deck-container"
                         onWheel={handleWheel}
                     >
                         {navigationModules.map((module, idx) => (
@@ -860,8 +907,25 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                             />
                         ))}
                     </div>
+
+                    {/* Desktop: Grid View */}
+                    <div className="hidden lg:grid lg:grid-cols-4 lg:gap-6 lg:w-full lg:max-w-6xl lg:mx-auto mb-12 px-4">
+                        {navigationModules.map((module) => (
+                            <FeatureCard 
+                                key={module.id}
+                                label={module.label}
+                                description={module.description}
+                                icon={module.icon}
+                                onClick={module.action}
+                                colorGradient={module.color}
+                                isActive={true}
+                                className="relative w-full aspect-[4/5] hover:scale-105 hover:-translate-y-2 cursor-pointer transition-all duration-300 rounded-[2rem]"
+                            />
+                        ))}
+                    </div>
                     
-                    <div className="flex items-center gap-6 mb-8">
+                    {/* Deck Controls (Only Visible on Mobile/Tablet) */}
+                    <div className="lg:hidden flex items-center gap-6 mb-8">
                         <div className="flex items-center gap-3">
                             {navigationModules.map((module, i) => (
                                 <button 
@@ -873,16 +937,6 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                             ))}
                         </div>
                     </div>
-                    
-                    <button 
-                        onClick={scrollToFeatures}
-                        className="group relative p-2.5 rounded-2xl bg-white/40 dark:bg-white/5 backdrop-blur-md border border-white/40 shadow-xl transition-all duration-300 hover:scale-110 active:scale-95 animate-bounce hidden md:block"
-                        aria-label="Scroll to bottom"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600 dark:text-indigo-400 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 13l-7 7-7-7m14-8l-7 7-7-7" />
-                        </svg>
-                    </button>
                 </div>
             </div>
         </main>

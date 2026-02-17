@@ -24,7 +24,7 @@ const DoubleBookedWarningIcon = () => (
     </svg>
 );
 const WhatsAppIcon: React.FC = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.316 1.905 6.03l-.419 1.533 1.519-.4zM15.53 17.53c-.07-.121-.267-.202-.56-.347-.297-.146-1.758-.868-2.031-.967-.272-.099-.47-.146-.669.146-.199.293-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.15-1.255-.463-2.39-1.475-1.134-1.012-1.31-1.36-1.899-2.258-.151-.231-.04-.355.043-.463.083-.107.185-.293.28-.439.095-.146.12-.245.18-.41.06-.164.03-.311-.015-.438-.046-.127-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.177-.008-.375-.01-1.04-.01h-.11c-.307.003-1.348-.043-1.348 1.438 0 1.482.791 2.906 1.439 3.82.648.913 2.51 3.96 6.12 5.368 3.61 1.408 3.61 1.054 4.258 1.034.648-.02 1.758-.715 2.006-1.413.248-.698.248-1.289.173-1.413z" />
     </svg>
 );
@@ -283,7 +283,7 @@ const SubstitutePicker: React.FC<SubstitutePickerProps> = ({ teachersWithStatus,
         <div className="relative w-full" ref={dropdownRef}>
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full text-left rounded-xl px-4 py-3 text-sm font-bold flex justify-between items-center transition-all outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+                className={`w-full text-left rounded-xl px-3 py-2 text-xs font-bold flex justify-between items-center transition-all outline-none focus:ring-2 focus:ring-emerald-500/50 ${
                     selectedId 
                     ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' 
                     : 'bg-white dark:bg-gray-800 border border-[var(--border-secondary)] text-[var(--text-primary)] hover:border-[var(--accent-primary)] shadow-sm'
@@ -834,7 +834,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
             const errorMessage = error instanceof Error ? error.message : String(error);
             alert(`Failed to import: ${errorMessage}`);
         }
-    }).catch((err: any) => { 
+    }).catch((err: unknown) => {
         console.error("File read error:", err);
         const msg = err instanceof Error ? err.message : String(err);
         alert(`Failed to read file: ${msg}`);
@@ -1044,18 +1044,18 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                   throw new Error("Clipboard API unavailable");
               }
           } catch (e: unknown) {
-              console.warn("Clipboard failed, attempting download as fallback", e);
-              // Fallback: Download Image
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = `substitution_${substitute.nameEn.replace(/\s/g, '_')}.png`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              URL.revokeObjectURL(url);
-              alert("Could not copy image automatically. Image downloaded. Please attach manually in WhatsApp.");
-          }
+                  console.warn("Clipboard failed, attempting download as fallback", e);
+                  // Fallback: Download Image
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `substitution_${substitute.nameEn.replace(/\s/g, '_')}.png`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                  alert("Could not copy image automatically. Image downloaded. Please attach manually in WhatsApp.");
+              }
 
           // 2. Prepare Text Message
           const dateObj = new Date(selectedDate);
@@ -1201,7 +1201,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
               if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
                   try {
                       await (navigator as any).share({ files: [file], title: `Signed_Adjustments_${selectedDate}` });
-                  } catch (error: any) { 
+                  } catch (error: unknown) {
                       // Silently handle cancellation or abort
                       const isAbort = error instanceof Error && error.name === 'AbortError';
                       if (!isAbort) {
@@ -1218,7 +1218,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                   link.click();
               }
           }
-      } catch (err: any) { 
+      } catch (err: unknown) {
           console.error("Image generation failed", err);
           const errMsg = err instanceof Error ? err.message : String(err);
           alert(errMsg);
@@ -1568,32 +1568,39 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                                         const cardId = `${tid}-${group.periodIndex}-${gIdx}`;
                                         
                                         return (
-                                            <div key={cardId} className={`relative p-4 rounded-3xl border-4 transition-all flex flex-col gap-2 group ${currentSubstituteId ? 'border-emerald-100 bg-white dark:bg-[#1e293b] shadow-lg' : 'border-gray-100 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700'} ${activeDropdownCardId === cardId ? 'z-30' : 'z-0'}`}>
+                                            <div key={cardId} className={`relative p-3 rounded-2xl border-2 transition-all flex flex-col gap-3 group ${currentSubstituteId ? 'border-emerald-100 bg-white dark:bg-[#1e293b] shadow-md' : 'border-gray-100 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700'} ${activeDropdownCardId === cardId ? 'z-30' : 'z-0'}`}>
                                                 
-                                                {/* Period Indicator - Centered Top */}
-                                                <div className="absolute top-2 left-0 right-0 flex flex-col items-center pointer-events-none opacity-20 group-hover:opacity-100 transition-opacity">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">Period</span>
-                                                    <span className={`text-4xl font-black leading-none ${currentSubstituteId ? 'text-emerald-500' : 'text-red-500'}`}>{group.periodIndex + 1}</span>
-                                                </div>
-
-                                                {/* Class & Subject Info */}
-                                                <div className="relative z-10 mt-1">
-                                                    <h4 className="text-xl font-black text-[var(--text-primary)] leading-none">
-                                                        {language === 'ur' ? <span className="font-urdu">{group.combinedClassNames.ur}</span> : group.combinedClassNames.en}
-                                                    </h4>
-                                                    <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mt-1 opacity-70">
-                                                        {language === 'ur' ? <span className="font-urdu">{group.subjectInfo.ur}</span> : group.subjectInfo.en}
-                                                    </p>
-                                                </div>
-
-                                                {/* Controls Area */}
-                                                <div className="relative z-10">
-                                                    <div className="text-[9px] font-black text-[var(--text-placeholder)] uppercase mb-1.5 ml-1">
-                                                        Original: {absentTeacher.nameEn.split(' ')[0]}
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex flex-col overflow-hidden mr-2">
+                                                        <h4 className="text-base font-black text-[var(--text-primary)] leading-tight truncate" title={language === 'ur' ? group.combinedClassNames.ur : group.combinedClassNames.en}>
+                                                            {language === 'ur' ? <span className="font-urdu">{group.combinedClassNames.ur}</span> : group.combinedClassNames.en}
+                                                        </h4>
+                                                        <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-80 truncate" title={language === 'ur' ? group.subjectInfo.ur : group.subjectInfo.en}>
+                                                            {language === 'ur' ? <span className="font-urdu">{group.subjectInfo.ur}</span> : group.subjectInfo.en}
+                                                        </p>
                                                     </div>
-                                                    
-                                                    <div className="flex items-center gap-2 h-12">
-                                                        <div className="flex-grow h-full">
+
+                                                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                        <div className="flex flex-col items-center justify-center bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-lg w-10 h-10">
+                                                            <span className="text-[7px] font-bold text-[var(--text-placeholder)] uppercase tracking-wider leading-none mb-0.5">Pd</span>
+                                                            <span className={`text-xl font-black leading-none ${currentSubstituteId ? 'text-emerald-600' : 'text-[var(--accent-primary)]'}`}>{group.periodIndex + 1}</span>
+                                                        </div>
+                                                        
+                                                        {currentSubstituteId && (
+                                                            <button 
+                                                                onClick={() => handleSubstituteChange(group, '')}
+                                                                className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                title="Clear Assignment"
+                                                            >
+                                                                <TrashIcon />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="relative z-10 w-full">
+                                                    <div className="flex items-center gap-2 h-10">
+                                                        <div className="flex-grow h-full text-xs">
                                                             <SubstitutePicker 
                                                                 teachersWithStatus={availableTeachersList}
                                                                 selectedId={currentSubstituteId}
@@ -1605,31 +1612,22 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps> =
                                                         </div>
                                                         
                                                         {currentSubstituteId && (
-                                                            <>
-                                                                <button 
-                                                                    onClick={() => handleWhatsAppNotify(assignedAdj!)} 
-                                                                    className="h-full aspect-square flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-200 transition-colors shadow-sm"
-                                                                    title={t.notifySubstitute}
-                                                                >
-                                                                    <WhatsAppIcon />
-                                                                </button>
-                                                                <button 
-                                                                    onClick={() => handleSubstituteChange(group, '')} // Clear assignment
-                                                                    className="h-full aspect-square flex items-center justify-center bg-gray-100 text-gray-400 rounded-xl hover:bg-red-100 hover:text-red-500 transition-colors shadow-sm"
-                                                                    title="Clear"
-                                                                >
-                                                                    <TrashIcon />
-                                                                </button>
-                                                            </>
+                                                            <button 
+                                                                onClick={() => handleWhatsAppNotify(assignedAdj!)} 
+                                                                className="h-full aspect-square flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors shadow-sm"
+                                                                title={t.notifySubstitute}
+                                                            >
+                                                                <WhatsAppIcon />
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </div>
                                                 
-                                                {/* Conflict Warning if any */}
+                                                {/* Conflict Warning */}
                                                 {assignedAdj?.conflictDetails && (
-                                                    <div className="mt-3 flex items-center gap-1.5 px-3 py-2 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/40 text-[10px] text-red-600 font-bold animate-pulse">
+                                                    <div className="flex items-center gap-1.5 px-2 py-1.5 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/40 text-[9px] text-red-600 font-bold animate-pulse">
                                                         <DoubleBookedWarningIcon />
-                                                        <span>{t.doubleBook}: {language === 'ur' ? assignedAdj.conflictDetails.classNameUr : assignedAdj.conflictDetails.classNameEn}</span>
+                                                        <span className="truncate">{t.doubleBook}: {language === 'ur' ? assignedAdj.conflictDetails.classNameUr : assignedAdj.conflictDetails.classNameEn}</span>
                                                     </div>
                                                 )}
                                             </div>

@@ -95,7 +95,6 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
   subjectColorMap
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  // Default merge OFF, time ON
   const [mergePatterns, setMergePatterns] = useState(false);
   const [showStartTimes, setShowStartTimes] = useState(true);
   const [selectedCardStyle, setSelectedCardStyle] = useState<CardStyle>(schoolConfig.downloadDesigns.teacher.table.cardStyle || 'full');
@@ -144,6 +143,8 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       }
 
       let cardStyleCss = '';
+      let separatorHtml = '';
+
       if (cardStyle === 'full') {
           cardStyleCss = '';
       } else if (cardStyle === 'outline') {
@@ -156,6 +157,14 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           cardStyleCss = 'background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.1) 100%) !important;';
       } else if (cardStyle === 'minimal-left') {
           cardStyleCss = 'background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; position: relative !important; box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;';
+          // Updated Minimal Design: Rounded line and larger circles
+          separatorHtml = `
+            <div style="position: absolute; top: 50%; left: 10%; right: 10%; display: flex; align-items: center; justify-content: center; opacity: 0.6; transform: translateY(-50%);">
+                <div style="width: 16px; height: 16px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+                <div style="height: 4px; flex-grow: 1; border-radius: 99px; background-color: currentColor; margin: 0 4px;"></div>
+                <div style="width: 16px; height: 16px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+            </div>
+          `;
       } else if (cardStyle === 'badge') {
           cardStyleCss = 'background-color: transparent !important; border: none !important; box-shadow: none !important;';
       }
@@ -358,32 +367,37 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           }
 
           .period-subject { 
+            /* Holds Class Name now based on data mapping below */
             display: block;
             font-weight: 900; 
-            font-size: 22px;
+            font-size: 34px; /* Increased Size - Class Name Top Left */
             text-transform: none; 
             line-height: 1.1;
-            text-align: left; 
+            text-align: left; /* Top Left */
+            align-self: flex-start;
             margin: 0;
             color: inherit;
             white-space: normal;
             overflow: hidden;
-            width: 100%;
+            width: fit-content;
+            max-width: 100%;
             padding-left: 2px;
           }
           .period-class { 
+            /* Holds Subject Name now based on data mapping below */
             display: block;
             font-weight: 800; 
             opacity: 0.95; 
-            font-size: 16px;
+            font-size: 20px; /* Regular Size - Subject Bottom Right */
             line-height: 1.1;
             white-space: normal; 
             overflow: hidden; 
-            text-align: right; 
+            text-align: right; /* Bottom Right */
             align-self: flex-end;
             margin-top: auto;
             color: inherit;
-            width: 100%;
+            width: fit-content;
+            max-width: 100%;
             padding-right: 2px;
           }
 
@@ -422,8 +436,8 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
                   opacity: ${cardStyle === 'full' ? 0.3 : 1.0};
               }
               ${cardStyle === 'badge' ? `
-                  .${name} .period-subject { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
-                  .${name} .period-class { ${badgeTarget === 'class' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: block; width: 100%; text-align: right; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
+                  .${name} .period-subject { ${badgeTarget === 'class' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: inline-block; width: fit-content; max-width: 100%; text-align: center; box-sizing: border-box; margin-bottom: 0;` : ''} }
+                  .${name} .period-class { ${badgeTarget === 'subject' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: inline-block; width: fit-content; max-width: 100%; text-align: center; box-sizing: border-box; margin-bottom: 0; margin-top: auto;` : ''} }
               ` : ''}
           `).join('\n')}
 
@@ -449,7 +463,6 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       for (let r = 0; r < maxPeriods; r++) {
           for (let c = 0; c < activeDays.length; c++) {
               const day = activeDays[c];
-              // Use teacherTimetableData passed as prop
               // @ts-ignore
               const slot = teacherTimetableData[day]?.[r] || [];
               if (slot.length > 0) {
@@ -480,15 +493,11 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
 
                   const triangleHtml = (cardStyle === 'triangle' || cardStyle === 'full') ? `<div class="card-triangle"></div>` : '';
                   
-                  let separatorHtml = '';
-                  if (cardStyle === 'minimal-left') {
-                      separatorHtml = `<div style="position: absolute; top: 50%; left: 12%; right: 12%; height: 5px; background-color: currentColor; opacity: 0.35; clip-path: polygon(0 50%, 15px 0, calc(100% - 15px) 0, 100% 50%, calc(100% - 15px) 100%, 15px 100%);"></div>`;
-                  }
-                  
                   let subjectBadgeStyle = '';
                   let classBadgeStyle = '';
                   if (cardStyle === 'badge') {
-                      const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 2px 8px; border-radius: 10px; display: inline-block; width: fit-content; margin-bottom: 2px;`;
+                      // Badge style: Capsule
+                      const badgeCss = `background-color: ${TEXT_HEX_MAP[colorName] || '#000'}; color: #fff !important; padding: 4px 12px; border-radius: 999px; display: inline-block; width: fit-content; max-width: 100%; text-align: center; box-sizing: border-box; margin-bottom: 2px;`;
                       if (badgeTarget === 'class') {
                          classBadgeStyle = badgeCss;
                       } else {
@@ -496,13 +505,16 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
                       }
                   }
                   
+                  // In Teacher View:
+                  // .period-subject holds Class Name (Top Left, Large)
+                  // .period-class holds Subject Name (Bottom Right, Small)
                   const cardsContent = `
                       <div class="period-card-img ${colorName}">
                           ${triangleHtml}
                           ${separatorHtml}
                           <div class="period-content-spread">
-                              <p class="period-subject" style="${subjectBadgeStyle}">${subjectNames}</p>
-                              <p class="period-class" style="${classBadgeStyle}">${classNames}</p>
+                              <p class="period-subject" style="${classBadgeStyle}">${classNames}</p>
+                              <p class="period-class" style="${subjectBadgeStyle}">${subjectNames}</p>
                           </div>
                       </div>
                   `;
