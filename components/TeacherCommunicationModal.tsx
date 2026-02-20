@@ -121,6 +121,11 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
   );
 
   const generateTimetableImageHtml = () => {
+      const totalPeriods = activeDays.reduce((acc, day) => {
+         const slots = teacherTimetableData[day] || [];
+         return acc + slots.filter(s => s && s.length > 0).length;
+      }, 0);
+
       const allColorClasses = [...teacherColorNames, 'subject-default'];
       const cardStyle = selectedCardStyle;
       const triangleCorner = selectedTriangleCorner;
@@ -230,7 +235,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           .img-school-name { 
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; 
             font-weight: 900;
-            font-size: 56px; 
+            font-size: 48px; 
             color: ${themeColors.accent}; 
             text-align: center;
             text-transform: uppercase;
@@ -263,7 +268,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           }
           
           .info-stats-side { 
-            font-size: 20px;
+            font-size: 24px;
             font-weight: 700;
             color: #64748b;
             text-transform: uppercase;
@@ -271,7 +276,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             padding-bottom: 5px;
           }
 
-          .compact-val { color: #1e293b; font-weight: 900; font-size: 20px; }
+          .compact-val { color: #1e293b; font-weight: 900; font-size: 24px; }
 
           .img-table-wrapper {
             flex-grow: 1;
@@ -428,11 +433,11 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           
           ${allColorClasses.map(name => `
               .${name} { 
-                  ${cardStyle === 'full' ? `background-color: ${COLOR_HEX_MAP[name]}; color: ${TEXT_HEX_MAP[name]};` : `background-color: #ffffff; color: ${TEXT_HEX_MAP[name]};`}
+                  ${cardStyle === 'full' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #ffffff;` : `background-color: #ffffff; color: ${TEXT_HEX_MAP[name]};`}
               }
-              .${name} .period-subject, .${name} .period-class { color: ${TEXT_HEX_MAP[name]} !important; }
+              .${name} .period-subject, .${name} .period-class { color: ${cardStyle === 'full' ? '#ffffff' : TEXT_HEX_MAP[name]} !important; }
               .${name} .card-triangle { 
-                  color: ${TEXT_HEX_MAP[name]} !important;
+                  color: ${cardStyle === 'full' ? '#ffffff' : TEXT_HEX_MAP[name]} !important;
                   opacity: ${cardStyle === 'full' ? 0.3 : 1.0};
               }
               ${cardStyle === 'badge' ? `
@@ -626,7 +631,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
                 </div>
                 <div class="info-teacher-name">${selectedTeacher.nameEn}</div>
                 <div class="info-stats-side" style="text-align: right;">
-                    <!-- Placeholder -->
+                    Periods <span class="compact-val">${totalPeriods}</span>
                 </div>
             </div>
           </div>

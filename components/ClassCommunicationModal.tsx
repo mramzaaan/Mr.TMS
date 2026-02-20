@@ -445,11 +445,11 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
           
           ${allColorClasses.map(name => `
               .${name} { 
-                  ${cardStyle === 'full' ? `background-color: ${COLOR_HEX_MAP[name]}; color: ${TEXT_HEX_MAP[name]};` : `background-color: #ffffff; color: ${TEXT_HEX_MAP[name]};`}
+                  ${cardStyle === 'full' ? `background-color: ${TEXT_HEX_MAP[name]}; color: #ffffff;` : `background-color: #ffffff; color: ${TEXT_HEX_MAP[name]};`}
               }
-              .${name} .period-subject, .${name} .period-teacher { color: ${TEXT_HEX_MAP[name]} !important; }
+              .${name} .period-subject, .${name} .period-teacher { color: ${cardStyle === 'full' ? '#ffffff' : TEXT_HEX_MAP[name]} !important; }
               .${name} .card-triangle { 
-                  color: ${TEXT_HEX_MAP[name]} !important;
+                  color: ${cardStyle === 'full' ? '#ffffff' : TEXT_HEX_MAP[name]} !important;
                   opacity: ${cardStyle === 'full' ? 0.3 : 1.0};
               }
               ${cardStyle === 'badge' ? `
