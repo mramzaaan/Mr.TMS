@@ -43,7 +43,7 @@ const NavButton: React.FC<{
      return (
         <button
           onClick={onClick}
-          className={`flex items-center justify-center rounded-full transition-all duration-300 ${hiddenClasses} ${isActive ? color.bg + ' text-white shadow-lg' : 'text-gray-400 hover:bg-gray-100'}`}
+          className={`flex items-center justify-center rounded-full transition-all duration-300 ${hiddenClasses} ${isActive ? color.bg + ' text-white shadow-lg' : 'bg-white ' + color.text + ' hover:bg-gray-50 border border-gray-100'}`}
           title={label}
         >
            {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5" })}
@@ -58,7 +58,7 @@ const NavButton: React.FC<{
     >
       {/* Left Icon Box */}
       <div className={`relative z-20 h-10 w-12 bg-white flex items-center justify-center rounded-l-lg shadow-[2px_0_5px_rgba(0,0,0,0.05)] border border-gray-100`}>
-         <div className={`${isActive ? color.text : 'text-gray-400'} transition-colors duration-300`}>
+         <div className={`${color.text} transition-colors duration-300`}>
             {React.cloneElement(icon as React.ReactElement, { className: "h-6 w-6" })}
          </div>
       </div>
@@ -71,7 +71,7 @@ const NavButton: React.FC<{
           }}
       >
           <div className={`absolute inset-0 ${isActive ? color.bg : 'bg-gray-100'} -z-10 transition-colors duration-300`}></div>
-          <span className={`text-xs font-black uppercase tracking-wider whitespace-nowrap ${isActive ? 'text-white' : 'text-gray-500'}`}>
+          <span className={`text-xs font-black uppercase tracking-wider whitespace-nowrap ${isActive ? 'text-white' : color.text}`}>
             {label}
           </span>
       </div>
