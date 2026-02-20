@@ -67,6 +67,7 @@ interface TeacherTimetablePageProps {
   onUpdateJointPeriod: (jp: JointPeriod) => void;
   onDeleteJointPeriod: (jpId: string) => void;
   onUpdateTimetableSession: (updater: (session: TimetableSession) => TimetableSession) => void;
+  changeLogs?: TimetableChangeLog[];
 }
 
 const cmykPalette = [
@@ -79,7 +80,7 @@ const cmykPalette = [
 type SortField = 'date' | 'period' | 'type' | 'class' | 'subject' | 'teacher';
 
 export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
-  t, language, classes, subjects, teachers, jointPeriods, adjustments, leaveDetails, onSetClasses, schoolConfig, onUpdateSchoolConfig, selectedTeacherId, onSelectedTeacherChange, hasActiveSession, onUndo, onRedo, onSave, canUndo, canRedo, openConfirmation, onAddJointPeriod, onUpdateJointPeriod, onDeleteJointPeriod, onUpdateTimetableSession
+  t, language, classes, subjects, teachers, jointPeriods, adjustments, leaveDetails, onSetClasses, schoolConfig, onUpdateSchoolConfig, selectedTeacherId, onSelectedTeacherChange, hasActiveSession, onUndo, onRedo, onSave, canUndo, canRedo, openConfirmation, onAddJointPeriod, onUpdateJointPeriod, onDeleteJointPeriod, onUpdateTimetableSession, changeLogs
 }) => {
   if (!hasActiveSession) {
     return <NoSessionPlaceholder t={t} />;
@@ -92,6 +93,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
   const [isCommModalOpen, setIsCommModalOpen] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+  const [historyTab, setHistoryTab] = useState<'timeline' | 'attendance'>('timeline');
   const [historySortOrder, setHistorySortOrder] = useState<'asc' | 'desc'>('desc');
   const [historySortField, setHistorySortField] = useState<SortField>('date');
 
@@ -281,6 +283,13 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
       currentWeekRange.end,
       schoolConfig // Passed to respect holiday/inactive day config
   ), [selectedTeacherId, classes, adjustments, leaveDetails, currentWeekRange, schoolConfig]);
+
+  const teacherLogs = useMemo(() => {
+      if (!changeLogs || !selectedTeacherId) return [];
+      return changeLogs
+        .filter(log => log.entityType === 'teacher' && log.entityId === selectedTeacherId)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [changeLogs, selectedTeacherId]);
 
   const rawHistoryData = useMemo(() => {
       if (!selectedTeacherId) return { leaves: [], substitutions: [] };
@@ -1286,111 +1295,158 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
             
             {isHistoryExpanded && (
                 <div className="p-4 bg-[var(--bg-secondary)]">
-                    {(sortedHistory.leaves.length === 0 && sortedHistory.substitutions.length === 0) ? (
-                        <p className="text-sm text-[var(--text-secondary)] italic text-center py-4">No history records found.</p>
-                    ) : (
-                        <div className="space-y-8">
-                            {sortedHistory.leaves.length > 0 && (
-                                <div>
-                                    <h4 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-3 border-b-2 border-red-200 pb-1 flex items-center gap-2 text-red-600">
-                                        {t.leavesTaken || 'Leaves'} ({sortedHistory.leaves.length})
-                                    </h4>
-                                    <div className="overflow-x-auto rounded-lg border border-[var(--border-secondary)]">
-                                        <table className="w-full text-sm text-left">
-                                            <thead className="text-xs text-[var(--text-secondary)] uppercase bg-[var(--bg-tertiary)] border-b border-[var(--border-secondary)]">
-                                                <tr>
-                                                    <th className="px-4 py-3 font-bold w-32 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors" onClick={() => handleSort('date')}>Date {historySortField === 'date' && (historySortOrder === 'asc' ? '↑' : '↓')}</th>
-                                                    <th className="px-4 py-3 font-bold w-24">Day</th>
-                                                    <th className="px-4 py-3 font-bold w-24 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors" onClick={() => handleSort('type')}>Type {historySortField === 'type' && (historySortOrder === 'asc' ? '↑' : '↓')}</th>
-                                                    <th className="px-4 py-3 font-bold">Details / Reason</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-[var(--border-secondary)]">
-                                                {sortedHistory.leaves.map((item, idx) => (
-                                                    <tr key={`l-${idx}`} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
-                                                        <td className="px-4 py-3 font-mono font-medium text-[var(--text-primary)]">
-                                                            {new Date(item.date).toLocaleDateString()}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-[var(--text-secondary)]">{item.dayName}</td>
-                                                        <td className="px-4 py-3">
-                                                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${item.leaveType === 'full' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
-                                                                {item.leaveType === 'full' ? 'Full Day' : 'Half Day'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-[var(--text-primary)]">
-                                                            {item.leaveType === 'half' && <span className="font-bold text-[var(--text-secondary)] mr-2">From P{item.startPeriod}:</span>}
-                                                            {item.reason}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
+                    <div className="flex space-x-1 bg-[var(--bg-tertiary)] p-1 rounded-lg mb-4 border border-[var(--border-secondary)] w-fit">
+                        <button
+                            onClick={() => setHistoryTab('timeline')}
+                            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-colors ${historyTab === 'timeline' ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                        >
+                            Timeline
+                        </button>
+                        <button
+                            onClick={() => setHistoryTab('attendance')}
+                            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-colors ${historyTab === 'attendance' ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                        >
+                            Leaves & Subs
+                        </button>
+                    </div>
 
-                            {sortedHistory.substitutions.length > 0 && (
-                                <div className="border-2 border-red-200 rounded-xl overflow-hidden shadow-sm">
-                                    <h4 className="text-sm font-bold text-red-700 uppercase tracking-wider px-4 py-2 bg-red-50 border-b border-red-100 flex items-center gap-2">
-                                        {t.substitution || 'Substitutions'} ({sortedHistory.substitutions.length})
-                                    </h4>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm text-left">
-                                            <thead className="text-xs text-[var(--text-secondary)] uppercase bg-[var(--bg-tertiary)] border-b border-[var(--border-secondary)]">
-                                                <tr>
-                                                    <th className="px-4 py-3 font-bold w-32 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('date')}>
-                                                        Date {historySortField === 'date' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                    </th>
-                                                    <th className="px-4 py-3 font-bold w-16 text-center cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('period')}>
-                                                        Pd {historySortField === 'period' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                    </th>
-                                                    <th className="px-4 py-3 font-bold w-24 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('type')}>
-                                                        Type {historySortField === 'type' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                    </th>
-                                                    <th className="px-4 py-3 font-bold cursor-default">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="cursor-pointer hover:text-[var(--accent-primary)] flex items-center gap-1 select-none" onClick={() => handleSort('class')}>
-                                                                Class {historySortField === 'class' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                            </span>
-                                                            <span className="text-[var(--text-secondary)]">/</span>
-                                                            <span className="cursor-pointer hover:text-[var(--accent-primary)] flex items-center gap-1 select-none" onClick={() => handleSort('subject')}>
-                                                                Subject {historySortField === 'subject' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                            </span>
-                                                        </div>
-                                                    </th>
-                                                    <th className="px-4 py-3 font-bold cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('teacher')}>
-                                                        Teacher {historySortField === 'teacher' && (historySortOrder === 'asc' ? '↑' : '↓')}
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-[var(--border-secondary)]">
-                                                {sortedHistory.substitutions.map((item, idx) => (
-                                                    <tr key={`s-${idx}`} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
-                                                        <td className="px-4 py-3 font-mono font-medium text-[var(--text-primary)]">
-                                                            {new Date(item.date).toLocaleDateString()}
-                                                            <div className="text-[10px] text-[var(--text-secondary)] uppercase font-bold">{item.dayName}</div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center font-bold text-[var(--text-primary)] bg-[var(--bg-tertiary)]/30">{item.period}</td>
-                                                        <td className="px-4 py-3">
-                                                            {item.type === 'sub_given' ? (
-                                                                <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-orange-100 text-orange-700 border border-orange-200 whitespace-nowrap">Given ➔</span>
-                                                            ) : (
-                                                                <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700 border border-green-200 whitespace-nowrap">Taken ⬅️</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <div className="font-bold text-[var(--text-primary)]">{item.className}</div>
-                                                            <div className="text-xs text-[var(--text-secondary)]">{item.subjectName}</div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-[var(--text-primary)] font-medium">
-                                                            {item.teacherName}
-                                                        </td>
+                    {historyTab === 'timeline' && (
+                        <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                            {teacherLogs.length === 0 ? (
+                                <p className="text-sm text-[var(--text-secondary)] italic text-center py-4">No recent changes.</p>
+                            ) : (
+                                <ul className="space-y-3">
+                                    {teacherLogs.map((log) => (
+                                        <li key={log.id} className="text-sm border-b border-[var(--border-secondary)] last:border-0 pb-2">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
+                                                    log.type === 'delete' ? 'bg-red-100 text-red-700' : 
+                                                    log.type === 'add' ? 'bg-green-100 text-green-700' : 
+                                                    'bg-blue-100 text-blue-700'
+                                                }`}>
+                                                    {log.type}
+                                                </span>
+                                                <span className="text-[10px] text-[var(--text-secondary)]">
+                                                    {new Date(log.timestamp).toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <p className="text-[var(--text-primary)] pl-1">{log.details}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
+
+                    {historyTab === 'attendance' && (
+                        <div className="space-y-8">
+                            {(sortedHistory.leaves.length === 0 && sortedHistory.substitutions.length === 0) ? (
+                                <p className="text-sm text-[var(--text-secondary)] italic text-center py-4">No attendance records found.</p>
+                            ) : (
+                                <>
+                                {sortedHistory.leaves.length > 0 && (
+                                    <div>
+                                        <h4 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-3 border-b-2 border-red-200 pb-1 flex items-center gap-2 text-red-600">
+                                            {t.leavesTaken || 'Leaves'} ({sortedHistory.leaves.length})
+                                        </h4>
+                                        <div className="overflow-x-auto rounded-lg border border-[var(--border-secondary)]">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="text-xs text-[var(--text-secondary)] uppercase bg-[var(--bg-tertiary)] border-b border-[var(--border-secondary)]">
+                                                    <tr>
+                                                        <th className="px-4 py-3 font-bold w-32 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors" onClick={() => handleSort('date')}>Date {historySortField === 'date' && (historySortOrder === 'asc' ? '↑' : '↓')}</th>
+                                                        <th className="px-4 py-3 font-bold w-24">Day</th>
+                                                        <th className="px-4 py-3 font-bold w-24 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors" onClick={() => handleSort('type')}>Type {historySortField === 'type' && (historySortOrder === 'asc' ? '↑' : '↓')}</th>
+                                                        <th className="px-4 py-3 font-bold">Details / Reason</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody className="divide-y divide-[var(--border-secondary)]">
+                                                    {sortedHistory.leaves.map((item, idx) => (
+                                                        <tr key={`l-${idx}`} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
+                                                            <td className="px-4 py-3 font-mono font-medium text-[var(--text-primary)]">
+                                                                {new Date(item.date).toLocaleDateString()}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-[var(--text-secondary)]">{item.dayName}</td>
+                                                            <td className="px-4 py-3">
+                                                                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${item.leaveType === 'full' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
+                                                                    {item.leaveType === 'full' ? 'Full Day' : 'Half Day'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-[var(--text-primary)]">
+                                                                {item.leaveType === 'half' && <span className="font-bold text-[var(--text-secondary)] mr-2">From P{item.startPeriod}:</span>}
+                                                                {item.reason}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
+
+                                {sortedHistory.substitutions.length > 0 && (
+                                    <div className="border-2 border-red-200 rounded-xl overflow-hidden shadow-sm">
+                                        <h4 className="text-sm font-bold text-red-700 uppercase tracking-wider px-4 py-2 bg-red-50 border-b border-red-100 flex items-center gap-2">
+                                            {t.substitution || 'Substitutions'} ({sortedHistory.substitutions.length})
+                                        </h4>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="text-xs text-[var(--text-secondary)] uppercase bg-[var(--bg-tertiary)] border-b border-[var(--border-secondary)]">
+                                                    <tr>
+                                                        <th className="px-4 py-3 font-bold w-32 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('date')}>
+                                                            Date {historySortField === 'date' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                        </th>
+                                                        <th className="px-4 py-3 font-bold w-16 text-center cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('period')}>
+                                                            Pd {historySortField === 'period' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                        </th>
+                                                        <th className="px-4 py-3 font-bold w-24 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('type')}>
+                                                            Type {historySortField === 'type' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                        </th>
+                                                        <th className="px-4 py-3 font-bold cursor-default">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="cursor-pointer hover:text-[var(--accent-primary)] flex items-center gap-1 select-none" onClick={() => handleSort('class')}>
+                                                                    Class {historySortField === 'class' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                                </span>
+                                                                <span className="text-[var(--text-secondary)]">/</span>
+                                                                <span className="cursor-pointer hover:text-[var(--accent-primary)] flex items-center gap-1 select-none" onClick={() => handleSort('subject')}>
+                                                                    Subject {historySortField === 'subject' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                                </span>
+                                                            </div>
+                                                        </th>
+                                                        <th className="px-4 py-3 font-bold cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors select-none" onClick={() => handleSort('teacher')}>
+                                                            Teacher {historySortField === 'teacher' && (historySortOrder === 'asc' ? '↑' : '↓')}
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-[var(--border-secondary)]">
+                                                    {sortedHistory.substitutions.map((item, idx) => (
+                                                        <tr key={`s-${idx}`} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
+                                                            <td className="px-4 py-3 font-mono font-medium text-[var(--text-primary)]">
+                                                                {new Date(item.date).toLocaleDateString()}
+                                                                <div className="text-[10px] text-[var(--text-secondary)] uppercase font-bold">{item.dayName}</div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center font-bold text-[var(--text-primary)] bg-[var(--bg-tertiary)]/30">{item.period}</td>
+                                                            <td className="px-4 py-3">
+                                                                {item.type === 'sub_given' ? (
+                                                                    <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-orange-100 text-orange-700 border border-orange-200 whitespace-nowrap">Given ➔</span>
+                                                                ) : (
+                                                                    <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700 border border-green-200 whitespace-nowrap">Taken ⬅️</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-bold text-[var(--text-primary)]">{item.className}</div>
+                                                                <div className="text-xs text-[var(--text-secondary)]">{item.subjectName}</div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-[var(--text-primary)] font-medium">
+                                                                {item.teacherName}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                                </>
                             )}
                         </div>
                     )}

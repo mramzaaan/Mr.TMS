@@ -139,7 +139,7 @@ export interface AttendanceData {
 export interface TimetableChangeLog {
     id: string;
     timestamp: string;
-    type: 'move' | 'delete' | 'add';
+    type: 'move' | 'delete' | 'add' | 'update';
     details: string;
     entityType: 'teacher' | 'class';
     entityId: string;
