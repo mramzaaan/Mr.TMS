@@ -153,7 +153,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
       if (cardStyle === 'full') {
           cardStyleCss = '';
       } else if (cardStyle === 'outline') {
-          cardStyleCss = `background-color: #ffffff !important; border: ${outlineWidth}px solid inherit !important; color: inherit !important; margin: 1px;`;
+          cardStyleCss = `background-color: #ffffff !important; border: ${outlineWidth}px solid currentColor !important; border-radius: 8px !important; color: inherit !important; margin: 2px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);`;
       } else if (cardStyle === 'text' || cardStyle === 'triangle') {
           cardStyleCss = 'background-color: #ffffff !important; border: 1px solid transparent !important; color: inherit !important;';
       } else if (cardStyle === 'glass') {
@@ -511,10 +511,10 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
                   
                   let separatorHtml = '';
                   if (cardStyle === 'minimal-left') {
-                      separatorHtml = `<div style="position: absolute; top: 50%; left: 15%; right: 15%; display: flex; align-items: center; justify-content: center; opacity: 0.4; transform: translateY(-50%);">
-                          <div style="width: 8px; height: 8px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
-                          <div style="height: 1.5px; flex-grow: 1; border-radius: 99px; background-color: currentColor; margin: 0 4px;"></div>
-                          <div style="width: 8px; height: 8px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+                      separatorHtml = `<div style="position: absolute; top: 50%; left: 15%; right: 15%; display: flex; align-items: center; justify-content: center; opacity: 0.5; transform: translateY(-50%);">
+                          <div style="width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+                          <div style="height: 2px; flex-grow: 1; border-radius: 99px; background-color: currentColor; margin: 0 8px;"></div>
+                          <div style="width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
                       </div>`;
                   }
                   
@@ -834,7 +834,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[101] p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#1a2333] rounded-xl shadow-2xl w-full max-w-[98vw] flex flex-col border border-white/10 max-h-[95vh] overflow-hidden transition-all" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#1a2333] rounded-xl shadow-2xl w-full max-w-[95vw] md:max-w-[90vw] lg:max-w-4xl xl:max-w-5xl flex flex-col border border-white/10 max-h-[95vh] overflow-hidden transition-all" onClick={e => e.stopPropagation()}>
         
         {/* Header */}
         <div className="p-5 border-b border-white/10 bg-[#252f44] flex-shrink-0 flex justify-between items-center">

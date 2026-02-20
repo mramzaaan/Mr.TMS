@@ -153,7 +153,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       if (cardStyle === 'full') {
           cardStyleCss = '';
       } else if (cardStyle === 'outline') {
-          cardStyleCss = `background-color: #ffffff !important; border: ${outlineWidth}px solid inherit !important; color: inherit !important; margin: 1px;`;
+          cardStyleCss = `background-color: #ffffff !important; border: ${outlineWidth}px solid currentColor !important; border-radius: 8px !important; color: inherit !important; margin: 2px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);`;
       } else if (cardStyle === 'text' || cardStyle === 'triangle') {
           cardStyleCss = 'background-color: #ffffff !important; border: 1px solid transparent !important; color: inherit !important;';
       } else if (cardStyle === 'glass') {
@@ -162,12 +162,12 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
           cardStyleCss = 'background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.1) 100%) !important;';
       } else if (cardStyle === 'minimal-left') {
           cardStyleCss = 'background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; position: relative !important; box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;';
-          // Updated Minimal Design: Rounded line and larger circles
+          // Updated Minimal Design: Centered line with dots
           separatorHtml = `
-            <div style="position: absolute; top: 50%; left: 10%; right: 10%; display: flex; align-items: center; justify-content: center; opacity: 0.6; transform: translateY(-50%);">
-                <div style="width: 16px; height: 16px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
-                <div style="height: 4px; flex-grow: 1; border-radius: 99px; background-color: currentColor; margin: 0 4px;"></div>
-                <div style="width: 16px; height: 16px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+            <div style="position: absolute; top: 50%; left: 15%; right: 15%; display: flex; align-items: center; justify-content: center; opacity: 0.5; transform: translateY(-50%);">
+                <div style="width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+                <div style="height: 2px; flex-grow: 1; border-radius: 99px; background-color: currentColor; margin: 0 8px;"></div>
+                <div style="width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
             </div>
           `;
       } else if (cardStyle === 'badge') {
@@ -816,7 +816,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[101] p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#1a2333] rounded-xl shadow-2xl w-full max-w-[98vw] flex flex-col border border-white/10 max-h-[95vh] overflow-hidden transition-all" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#1a2333] rounded-xl shadow-2xl w-full max-w-[95vw] md:max-w-[90vw] lg:max-w-4xl xl:max-w-5xl flex flex-col border border-white/10 max-h-[95vh] overflow-hidden transition-all" onClick={e => e.stopPropagation()}>
         
         <div className="p-5 border-b border-white/10 bg-[#252f44] flex-shrink-0 flex justify-between items-center">
             <div>
