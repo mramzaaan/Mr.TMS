@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Page, SchoolConfig } from '../types';
 
 interface TopNavBarProps {
@@ -17,77 +17,138 @@ const AdjustmentsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className=
 const AttendanceIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
 const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
 
-const BannerNavButton: React.FC<{
+const NavButton: React.FC<{
   label: string;
   icon: React.ReactNode;
-  activeBgColor: string;
-  activeTextColor: string;
   isActive: boolean;
   onClick: () => void;
-}> = ({ label, icon, activeBgColor, activeTextColor, isActive, onClick }) => (
-  <button 
+  isCollapsed: boolean;
+  isHidden: boolean;
+  theme: string;
+}> = ({ label, icon, isActive, onClick, isCollapsed, isHidden, theme }) => {
+  
+  const colors: Record<string, { bg: string, text: string }> = {
+      blue: { bg: 'bg-blue-500', text: 'text-blue-500' },
+      emerald: { bg: 'bg-emerald-500', text: 'text-emerald-500' },
+      indigo: { bg: 'bg-indigo-500', text: 'text-indigo-500' },
+      violet: { bg: 'bg-violet-500', text: 'text-violet-500' },
+      orange: { bg: 'bg-orange-500', text: 'text-orange-500' },
+      teal: { bg: 'bg-teal-500', text: 'text-teal-500' },
+      slate: { bg: 'bg-slate-500', text: 'text-slate-500' },
+  };
+  const color = colors[theme] || colors.blue;
+
+  if (isCollapsed) {
+     const hiddenClasses = isHidden ? 'w-0 opacity-0 overflow-hidden m-0 p-0 border-0' : 'w-10 h-10 opacity-100 mx-1';
+     return (
+        <button
+          onClick={onClick}
+          className={`flex items-center justify-center rounded-full transition-all duration-300 ${hiddenClasses} ${isActive ? color.bg + ' text-white shadow-lg' : 'text-gray-400 hover:bg-gray-100'}`}
+          title={label}
+        >
+           {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5" })}
+        </button>
+     );
+  }
+
+  return (
+    <button
       onClick={onClick}
-      className={`group relative flex items-center h-14 transition-all duration-300 ${isActive ? 'scale-110 z-10 drop-shadow-2xl' : 'scale-100 hover:scale-105 drop-shadow-md hover:drop-shadow-xl'}`}
-  >
-      {/* Left Colored Section - Icon */}
-      <div className={`${isActive ? activeBgColor : 'bg-slate-400'} h-full flex items-center justify-center px-5 relative z-20 clip-path-left min-w-[70px] transition-colors duration-300`}>
-          <div className="text-white transform group-hover:scale-110 transition-transform duration-300">
-             {React.cloneElement(icon as React.ReactElement, { className: "h-7 w-7" })}
-          </div>
+      className={`group relative flex items-center h-12 transition-all duration-300 focus:outline-none ${isActive ? 'scale-105 z-10' : 'hover:scale-105 opacity-90 hover:opacity-100'}`}
+    >
+      {/* Left Icon Box */}
+      <div className={`relative z-20 h-10 w-12 bg-white flex items-center justify-center rounded-l-lg shadow-[2px_0_5px_rgba(0,0,0,0.05)] border border-gray-100`}>
+         <div className={`${isActive ? color.text : 'text-gray-400'} transition-colors duration-300`}>
+            {React.cloneElement(icon as React.ReactElement, { className: "h-6 w-6" })}
+         </div>
       </div>
-      
-      {/* Right White Section - Label */}
-      <div className="bg-white h-full flex items-center pl-10 pr-8 relative z-10 -ml-6 clip-path-right min-w-[160px]">
-          <span className={`text-sm font-black uppercase tracking-tight transition-colors duration-300 ${isActive ? activeTextColor : 'text-slate-400'}`}>
-              {label}
+
+      {/* Right Label Box */}
+      <div
+          className={`relative z-10 h-10 flex items-center pl-4 pr-8 -ml-2 transition-colors duration-300 shadow-sm`}
+          style={{ 
+            clipPath: 'polygon(0% 0%, 90% 0%, 100% 50%, 90% 100%, 0% 100%)',
+          }}
+      >
+          <div className={`absolute inset-0 ${isActive ? color.bg : 'bg-gray-100'} -z-10 transition-colors duration-300`}></div>
+          <span className={`text-xs font-black uppercase tracking-wider whitespace-nowrap ${isActive ? 'text-white' : 'text-gray-500'}`}>
+            {label}
           </span>
       </div>
-  </button>
-);
+    </button>
+  );
+};
 
 const TopNavBar: React.FC<TopNavBarProps> = ({ t, currentPage, setCurrentPage, schoolConfig }) => {
-  const navItems: { page: Page; labelKey: string; icon: React.ReactNode; activeBgColor: string; activeTextColor: string }[] = [
-    { page: 'home', labelKey: 'home', icon: <HomeIcon />, activeBgColor: 'bg-pink-600', activeTextColor: 'text-pink-600' },
-    { page: 'dataEntry', labelKey: 'dataEntry', icon: <DataEntryIcon />, activeBgColor: 'bg-amber-500', activeTextColor: 'text-amber-600' },
-    { page: 'classTimetable', labelKey: 'classTimetable', icon: <ClassTimetableIcon />, activeBgColor: 'bg-green-600', activeTextColor: 'text-green-600' },
-    { page: 'teacherTimetable', labelKey: 'teacherTimetable', icon: <TeacherTimetableIcon />, activeBgColor: 'bg-blue-600', activeTextColor: 'text-blue-600' },
-    { page: 'alternativeTimetable', labelKey: 'adjustments', icon: <AdjustmentsIcon />, activeBgColor: 'bg-purple-600', activeTextColor: 'text-purple-600' },
-    { page: 'attendance', labelKey: 'attendance', icon: <AttendanceIcon />, activeBgColor: 'bg-cyan-600', activeTextColor: 'text-cyan-600' },
-    { page: 'settings', labelKey: 'settings', icon: <SettingsIcon />, activeBgColor: 'bg-slate-600', activeTextColor: 'text-slate-600' },
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < 50) {
+          setIsCollapsed(false);
+      } else if (currentScrollY > lastScrollY + 5) {
+          setIsCollapsed(true);
+      } else if (currentScrollY < lastScrollY - 10) {
+          setIsCollapsed(false);
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
+  const navItems: { page: Page; labelKey: string; icon: React.ReactNode; theme: string }[] = [
+    { page: 'home', labelKey: 'home', icon: <HomeIcon />, theme: 'blue' },
+    { page: 'dataEntry', labelKey: 'dataEntry', icon: <DataEntryIcon />, theme: 'emerald' },
+    { page: 'classTimetable', labelKey: 'classTimetable', icon: <ClassTimetableIcon />, theme: 'indigo' },
+    { page: 'teacherTimetable', labelKey: 'teacherTimetable', icon: <TeacherTimetableIcon />, theme: 'violet' },
+    { page: 'alternativeTimetable', labelKey: 'adjustments', icon: <AdjustmentsIcon />, theme: 'orange' },
+    { page: 'attendance', labelKey: 'attendance', icon: <AttendanceIcon />, theme: 'teal' },
+    { page: 'settings', labelKey: 'settings', icon: <SettingsIcon />, theme: 'slate' },
   ];
 
   return (
     <>
-      <style>{`
-        .clip-path-left {
-          clip-path: polygon(0 0, 100% 0, 85% 100%, 0% 100%);
-        }
-        .clip-path-right {
-          clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%);
-        }
-      `}</style>
-      <nav className="hidden xl:flex fixed top-0 left-0 right-0 z-40 w-full pointer-events-none justify-center pt-4">
-        <div className="pointer-events-auto flex items-center gap-4 bg-white/10 backdrop-blur-sm p-4 rounded-full border border-white/20 shadow-2xl">
-            {/* Logo */}
-            {schoolConfig.schoolLogoBase64 && (
-                <div className="mr-4 bg-white p-1 rounded-full shadow-md">
-                    <img src={schoolConfig.schoolLogoBase64} alt="School Logo" className="h-12 w-12 object-contain rounded-full" />
-                </div>
-            )}
+      <nav className="hidden xl:flex fixed top-0 right-0 z-40 w-full pointer-events-none flex-col items-end">
+        <div className={`
+            relative pointer-events-auto flex items-center transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
+            ${isCollapsed 
+                // Collapsed: Small circle
+                ? 'mr-6 mt-6 w-20 h-20 rounded-full border-2 border-[var(--accent-primary)] justify-center shadow-2xl overflow-hidden bg-[var(--bg-secondary)] backdrop-blur-xl' 
+                // Expanded: Floating Dock in Top Right Corner (Right-Aligned) - Transparent
+                : 'mr-6 mt-4 w-auto h-[72px] rounded-2xl bg-transparent px-6 justify-between'
+            }
+        `} dir="ltr">
+            {/* Logo Section - Fades out and shrinks width when collapsing */}
+            <div className={`flex items-center gap-3 overflow-hidden whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${isCollapsed ? 'max-w-0 opacity-0 px-0' : 'max-w-[400px] opacity-100 mr-6'}`}>
+                {schoolConfig.schoolLogoBase64 && (
+                    <img src={schoolConfig.schoolLogoBase64} alt="School Logo" className="h-9 w-9 object-contain rounded-full" />
+                )}
+            </div>
 
-            {/* Nav Items */}
-            <div className="flex items-center gap-2">
-                {navItems.map((item) => (
-                    <BannerNavButton
+            {/* Nav Items - Centers content when collapsed */}
+            <div className={`flex items-center gap-2 transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${isCollapsed ? 'w-full justify-center' : ''}`}>
+                {navItems.map(item => {
+                    const isActive = currentPage === item.page;
+                    // When collapsed, hide all except active
+                    const isHidden = isCollapsed && !isActive;
+
+                    return (
+                    <NavButton
                         key={item.page}
                         label={t[item.labelKey]}
                         icon={item.icon}
-                        activeBgColor={item.activeBgColor}
-                        activeTextColor={item.activeTextColor}
-                        isActive={currentPage === item.page}
-                        onClick={() => setCurrentPage(item.page)}
+                        isActive={isActive}
+                        onClick={() => { setCurrentPage(item.page); setIsCollapsed(false); }}
+                        isCollapsed={isCollapsed}
+                        isHidden={isHidden}
+                        theme={item.theme}
                     />
-                ))}
+                    );
+                })}
             </div>
         </div>
       </nav>
