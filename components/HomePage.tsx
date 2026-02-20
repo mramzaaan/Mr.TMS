@@ -124,78 +124,134 @@ const DocumentCard: React.FC<{
     title: string;
     subtitle: string;
     icon: React.ReactNode;
-    colorGradient: string;
+    colorTheme: string;
+    index: number;
     onClick: () => void;
-}> = ({ title, subtitle, icon, colorGradient, onClick }) => (
-    <button 
-        onClick={onClick}
-        className={`group relative flex flex-col items-center justify-between p-6 rounded-[2.5rem] transition-all duration-500 w-full aspect-[3/4] shadow-2xl overflow-hidden hover:scale-[1.02] active:scale-95 border-2 border-white/40 ring-4 ring-white/10`}
-    >
-        {/* Base Layer with Gradient */}
-        <div className={`absolute inset-0 ${colorGradient} opacity-90`}></div>
-        
-        {/* Crystal Facets & Reflections for Live Look */}
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.4)0%,rgba(255,255,255,0.1)50%,rgba(255,255,255,0)51%,rgba(255,255,255,0.1)100%)]"></div>
-        <div className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[radial-gradient(circle,rgba(255,255,255,0.3)0%,transparent_60%)] animate-[pulse_4s_infinite]"></div>
-        <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent"></div>
-        
-        {/* Dynamic Reflection */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-[200%] group-hover:animate-[shimmer_1.5s_infinite] skew-x-12"></div>
+}> = ({ title, subtitle, icon, colorTheme, index, onClick }) => {
+    const colors: Record<string, { bg: string, text: string }> = {
+        blue: { bg: 'bg-blue-500', text: 'text-blue-600' },
+        cyan: { bg: 'bg-cyan-500', text: 'text-cyan-600' },
+        orange: { bg: 'bg-orange-500', text: 'text-orange-600' },
+        rose: { bg: 'bg-rose-500', text: 'text-rose-600' },
+        violet: { bg: 'bg-violet-500', text: 'text-violet-600' },
+        emerald: { bg: 'bg-emerald-500', text: 'text-emerald-600' },
+        indigo: { bg: 'bg-indigo-500', text: 'text-indigo-600' },
+        teal: { bg: 'bg-teal-500', text: 'text-teal-600' },
+    };
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col items-center justify-center h-full w-full gap-5">
-             <div className="p-5 rounded-3xl bg-white/20 backdrop-blur-md shadow-[inset_0_0_20px_rgba(255,255,255,0.4)] border border-white/50 text-white drop-shadow-[0_8px_8px_rgba(0,0,0,0.25)] transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-                {React.isValidElement(icon) 
-                    ? React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-16 w-16 sm:h-20 sm:w-20 stroke-[1.5]" }) 
-                    : icon
-                }
+    const theme = colors[colorTheme] || colors.blue;
+    const formattedIndex = (index + 1).toString().padStart(2, '0');
+
+    return (
+        <button 
+            onClick={onClick}
+            className="group relative w-full mt-6 focus:outline-none min-h-[220px]"
+        >
+            {/* Filter Container for Drop Shadow */}
+            <div className="relative w-full h-full drop-shadow-xl transition-transform duration-300 group-hover:scale-[1.02]">
+                
+                {/* Colored Accent Layer (Back) */}
+                <div 
+                    className={`absolute inset-0 ${theme.bg} transition-all duration-300`}
+                    style={{ 
+                        clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)',
+                        transform: 'translateX(8px)'
+                    }}
+                ></div>
+
+                {/* White Card Layer (Front) */}
+                <div 
+                    className="absolute inset-0 bg-white dark:bg-gray-800 flex flex-col pt-12 pb-6 pl-6 pr-12 text-left"
+                    style={{ 
+                        clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)'
+                    }}
+                >
+                    {/* Step Number */}
+                    <div className="absolute top-4 right-10 flex flex-col items-end opacity-40 group-hover:opacity-100 transition-opacity">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Step</span>
+                        <span className="text-2xl font-black text-gray-300 leading-none">{formattedIndex}</span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="mt-2 flex flex-col items-start gap-2 w-full">
+                        <h4 className={`text-lg font-black ${theme.text} uppercase tracking-tight leading-tight line-clamp-2`}>{title}</h4>
+                        <div className="w-12 h-1 rounded-full bg-gray-100 dark:bg-white/10 my-1"></div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed line-clamp-3">{subtitle}</p>
+                    </div>
+                </div>
             </div>
-            
-            <div className="flex flex-col items-center gap-1 w-full px-2">
-                <h4 className="text-lg sm:text-2xl font-black text-white uppercase tracking-tighter leading-none text-center drop-shadow-lg w-full line-clamp-2">{title}</h4>
-                <p className="text-[10px] sm:text-xs font-bold text-white/90 uppercase tracking-[0.25em] text-center">{subtitle}</p>
+
+            {/* Floating Icon (Outside Clip) */}
+            <div className="absolute -top-4 left-6 z-20">
+                <div className="relative w-16 h-16 rounded-full bg-white dark:bg-gray-800 shadow-lg flex items-center justify-center p-1.5 transition-transform duration-300 group-hover:-translate-y-1">
+                    <div className={`w-full h-full rounded-full ${theme.bg} flex items-center justify-center text-white shadow-inner`}>
+                         {React.isValidElement(icon) 
+                            ? React.cloneElement(icon as React.ReactElement<any>, { className: "h-7 w-7 stroke-[2]" }) 
+                            : icon
+                        }
+                    </div>
+                </div>
             </div>
-        </div>
-    </button>
-);
+        </button>
+    );
+};
 
 const FeatureCard: React.FC<{
     label: string;
     description: string;
     icon: React.ComponentType<{ className?: string }>;
     onClick: () => void;
-    colorGradient: string;
+    theme: string;
+    index: number;
     isActive: boolean;
     style?: React.CSSProperties;
-    className?: string; // Allow className to override defaults
-}> = ({ label, description, icon: IconComponent, onClick, colorGradient, isActive, style, className }) => (
-    <button
-        onClick={onClick}
-        style={style}
-        className={`${className || 'absolute w-[140px] sm:w-[180px]'} flex-shrink-0 aspect-[4/5] overflow-visible rounded-[1.5rem] p-4 text-center transition-all duration-500 group shadow-2xl ${colorGradient} border-b-[4px] border-black/20 ring-1 ring-white/10 origin-bottom
-        ${isActive ? 'cursor-pointer' : 'cursor-default'}
-        `}
-    >
-        {isActive && (
-            <div className="absolute inset-0 bg-white/5 rounded-[1.5rem] animate-pulse pointer-events-none"></div>
-        )}
-        
-        <div className="h-full flex flex-col items-center justify-between relative z-10 py-1">
-            <div className={`text-white transition-all duration-500 transform ${isActive ? 'drop-shadow-[0_10px_10px_rgba(0,0,0,0.4)] scale-110' : 'drop-shadow-md scale-95 opacity-80'}`}>
-                <IconComponent className="h-16 w-16 sm:h-24 sm:w-24" />
+    className?: string;
+}> = ({ label, description, icon: IconComponent, onClick, theme, index, isActive, style, className }) => {
+    const colors: Record<string, { text: string, bg: string, border: string }> = {
+        teal: { text: 'text-teal-600', bg: 'bg-teal-500', border: 'border-teal-500' },
+        orange: { text: 'text-orange-600', bg: 'bg-orange-500', border: 'border-orange-500' },
+        emerald: { text: 'text-emerald-600', bg: 'bg-emerald-500', border: 'border-emerald-500' },
+        blue: { text: 'text-blue-600', bg: 'bg-blue-500', border: 'border-blue-500' },
+        violet: { text: 'text-violet-600', bg: 'bg-violet-500', border: 'border-violet-500' },
+        indigo: { text: 'text-indigo-600', bg: 'bg-indigo-500', border: 'border-indigo-500' },
+        slate: { text: 'text-slate-600', bg: 'bg-slate-500', border: 'border-slate-500' },
+        cyan: { text: 'text-cyan-600', bg: 'bg-cyan-500', border: 'border-cyan-500' },
+        amber: { text: 'text-amber-600', bg: 'bg-amber-500', border: 'border-amber-500' },
+        rose: { text: 'text-rose-600', bg: 'bg-rose-500', border: 'border-rose-500' },
+    };
+    
+    const color = colors[theme] || colors.blue;
+
+    return (
+        <button
+            onClick={onClick}
+            style={style}
+            className={`${className || 'absolute w-[140px] sm:w-[180px]'} flex-shrink-0 aspect-[4/5] bg-white dark:bg-white/5 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 group overflow-hidden border border-white/20
+            ${isActive ? 'cursor-pointer scale-100 opacity-100' : 'cursor-default scale-95 opacity-70'}
+            `}
+        >
+            {/* Right Side Tab */}
+            <div className={`absolute top-1/4 bottom-1/4 right-0 w-4 rounded-l-lg ${color.bg}`}></div>
+
+            <div className="h-full flex flex-col items-center justify-center p-6 relative z-10">
+                {/* Icon */}
+                <div className={`mb-6 ${color.text} transform group-hover:scale-110 transition-transform duration-300`}>
+                    <IconComponent className="h-16 w-16 sm:h-20 sm:w-20" />
+                </div>
+
+                {/* Text */}
+                <div className="text-center">
+                    <h3 className={`text-sm sm:text-base font-bold text-gray-800 dark:text-white uppercase tracking-tight mb-2`}>
+                        {label}
+                    </h3>
+                    <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-3">
+                        {description}
+                    </p>
+                </div>
             </div>
-            
-            <div className={`mt-2 flex flex-col items-center transition-all duration-500 ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-40'}`}>
-                <h3 className="text-xs sm:text-base font-black text-white mb-0.5 tracking-tighter leading-tight uppercase drop-shadow-lg">
-                    {label}
-                </h3>
-                <p className="text-[7px] sm:text-[9px] font-black text-white/90 uppercase tracking-[0.15em] leading-relaxed max-w-[120px] opacity-70">
-                    {description}
-                </p>
-            </div>
-        </div>
-    </button>
-);
+        </button>
+    );
+};
 
 interface CurrentEvent {
     name: string;
@@ -596,14 +652,14 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
   };
 
   const navigationModules = [
-      { id: 'reports', label: t.printAndReports, description: 'Reports', icon: DesignIcon, color: 'bg-gradient-to-br from-teal-500 to-emerald-800', dotColor: 'bg-teal-500', action: () => setIsReportsModalOpen(true) },
-      { id: 'adjustments', label: t.adjustments, description: 'Substitutions', icon: AdjustmentsIcon, color: 'bg-gradient-to-br from-orange-500 to-red-600', dotColor: 'bg-orange-500', action: () => setCurrentPage('alternativeTimetable') },
-      { id: 'dataEntry', label: t.dataEntry, description: 'Classes & Staff', icon: DataEntryIcon, color: 'bg-gradient-to-br from-emerald-500 to-teal-700', dotColor: 'bg-emerald-500', action: () => setCurrentPage('dataEntry') },
-      { id: 'classTimetable', label: t.classTimetable, description: 'Class Schedules', icon: ClassTimetableIcon, color: 'bg-gradient-to-br from-blue-500 to-indigo-700', dotColor: 'bg-blue-500', action: () => setCurrentPage('classTimetable') },
-      { id: 'teacherTimetable', label: t.teacherTimetable, description: 'Teacher Schedules', icon: TeacherTimetableIcon, color: 'bg-gradient-to-br from-violet-500 to-purple-800', dotColor: 'bg-violet-500', action: () => setCurrentPage('teacherTimetable') },
-      { id: 'attendance', label: t.attendance, description: 'Daily Presence', icon: AttendanceIcon, color: 'bg-gradient-to-br from-indigo-500 to-blue-800', dotColor: 'bg-indigo-500', action: () => setCurrentPage('attendance') },
-      { id: 'csv', label: t.manageDataCsv, description: 'Import/Export', icon: CsvIcon, color: 'bg-gradient-to-br from-blue-600 to-cyan-800', dotColor: 'bg-blue-600', action: () => setIsCsvModalOpen(true) },
-      { id: 'settings', label: t.settings, description: 'System Config', icon: SettingsIcon, color: 'bg-gradient-to-br from-slate-500 to-gray-800', dotColor: 'bg-slate-500', action: () => setCurrentPage('settings') },
+      { id: 'reports', label: t.printAndReports, description: 'Reports', icon: DesignIcon, theme: 'blue', dotColor: 'bg-blue-500', action: () => setIsReportsModalOpen(true) },
+      { id: 'adjustments', label: t.adjustments, description: 'Substitutions', icon: AdjustmentsIcon, theme: 'orange', dotColor: 'bg-orange-500', action: () => setCurrentPage('alternativeTimetable') },
+      { id: 'dataEntry', label: t.dataEntry, description: 'Classes & Staff', icon: DataEntryIcon, theme: 'amber', dotColor: 'bg-amber-500', action: () => setCurrentPage('dataEntry') },
+      { id: 'classTimetable', label: t.classTimetable, description: 'Class Schedules', icon: ClassTimetableIcon, theme: 'cyan', dotColor: 'bg-cyan-500', action: () => setCurrentPage('classTimetable') },
+      { id: 'teacherTimetable', label: t.teacherTimetable, description: 'Teacher Schedules', icon: TeacherTimetableIcon, theme: 'indigo', dotColor: 'bg-indigo-500', action: () => setCurrentPage('teacherTimetable') },
+      { id: 'attendance', label: t.attendance, description: 'Daily Presence', icon: AttendanceIcon, theme: 'teal', dotColor: 'bg-teal-500', action: () => setCurrentPage('attendance') },
+      { id: 'csv', label: t.manageDataCsv, description: 'Import/Export', icon: CsvIcon, theme: 'rose', dotColor: 'bg-rose-500', action: () => setIsCsvModalOpen(true) },
+      { id: 'settings', label: t.settings, description: 'System Config', icon: SettingsIcon, theme: 'slate', dotColor: 'bg-slate-500', action: () => setCurrentPage('settings') },
   ];
 
   const getStackStyle = (index: number, activeIndex: number, total: number): React.CSSProperties => {
@@ -668,21 +724,21 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                 <div className="flex-grow overflow-y-auto pr-1 custom-scrollbar pb-2">
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
                         
-                        <DocumentCard title={t.basicInformation} subtitle="STATS & ROOMS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} colorGradient="bg-gradient-to-br from-blue-500 to-indigo-600" onClick={() => setIsBasicInfoPreviewOpen(true)} />
+                        <DocumentCard index={0} title={t.basicInformation} subtitle="STATS & ROOMS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} colorTheme="blue" onClick={() => setIsBasicInfoPreviewOpen(true)} />
                         
-                        <DocumentCard title={t.byPeriod} subtitle="AVAILABLE MATRIX" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorGradient="bg-gradient-to-br from-cyan-500 to-teal-600" onClick={() => setIsByPeriodPreviewOpen(true)} />
+                        <DocumentCard index={1} title={t.byPeriod} subtitle="AVAILABLE MATRIX" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorTheme="cyan" onClick={() => setIsByPeriodPreviewOpen(true)} />
                         
-                        <DocumentCard title={t.schoolTimings} subtitle="BELL SCHEDULE" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorGradient="bg-gradient-to-br from-amber-500 to-orange-600" onClick={() => setIsSchoolTimingsPreviewOpen(true)} />
+                        <DocumentCard index={2} title={t.schoolTimings} subtitle="BELL SCHEDULE" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorTheme="orange" onClick={() => setIsSchoolTimingsPreviewOpen(true)} />
                         
-                        <DocumentCard title={t.workloadSummaryReport} subtitle="EFFORT ANALYTICS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} colorGradient="bg-gradient-to-br from-rose-500 to-pink-600" onClick={workloadReportClick} />
+                        <DocumentCard index={3} title={t.workloadSummaryReport} subtitle="EFFORT ANALYTICS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} colorTheme="rose" onClick={workloadReportClick} />
                         
-                        <DocumentCard title={t.classTimetable} subtitle="CLASS SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v2a2 2 0 002 2z" /></svg>} colorGradient="bg-gradient-to-br from-violet-500 to-purple-600" onClick={handleClassTimetableClick} />
+                        <DocumentCard index={4} title={t.classTimetable} subtitle="CLASS SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v2a2 2 0 002 2z" /></svg>} colorTheme="violet" onClick={handleClassTimetableClick} />
 
-                        <DocumentCard title={t.teacherTimetable} subtitle="TEACHER SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>} colorGradient="bg-gradient-to-br from-emerald-500 to-green-600" onClick={handleTeacherTimetableClick} />
+                        <DocumentCard index={5} title={t.teacherTimetable} subtitle="TEACHER SCHEDULES" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>} colorTheme="emerald" onClick={handleTeacherTimetableClick} />
 
-                        <DocumentCard title={t.alternative} subtitle="SUBSTITUTION REGISTERS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>} colorGradient="bg-gradient-to-br from-indigo-500 to-violet-600" onClick={() => setIsAlternativePreviewOpen(true)} />
+                        <DocumentCard index={6} title={t.alternative} subtitle="SUBSTITUTION REGISTERS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>} colorTheme="indigo" onClick={() => setIsAlternativePreviewOpen(true)} />
                         
-                        <DocumentCard title={t.attendanceReport} subtitle="ENROLLMENT DATA" icon={<AttendanceIcon className="h-6 w-6" />} colorGradient="bg-gradient-to-br from-teal-500 to-emerald-600" onClick={() => setIsAttendanceReportPreviewOpen(true)} />
+                        <DocumentCard index={7} title={t.attendanceReport} subtitle="ENROLLMENT DATA" icon={<AttendanceIcon className="h-6 w-6" />} colorTheme="teal" onClick={() => setIsAttendanceReportPreviewOpen(true)} />
                     </div>
                 </div>
             </div>
@@ -901,7 +957,8 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                                 description={module.description}
                                 icon={module.icon}
                                 onClick={currentCardIndex === idx ? module.action : () => setCurrentCardIndex(idx)}
-                                colorGradient={module.color}
+                                theme={module.theme}
+                                index={idx}
                                 isActive={currentCardIndex === idx}
                                 style={getStackStyle(idx, currentCardIndex, navigationModules.length)}
                             />
@@ -909,15 +966,16 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                     </div>
 
                     {/* Desktop: Grid View */}
-                    <div className="hidden lg:grid lg:grid-cols-4 lg:gap-6 lg:w-full lg:max-w-6xl lg:mx-auto mb-12 px-4">
-                        {navigationModules.map((module) => (
+                    <div className="hidden lg:grid lg:grid-cols-4 lg:gap-5 lg:w-full lg:max-w-4xl lg:mx-auto mb-12 px-4">
+                        {navigationModules.map((module, idx) => (
                             <FeatureCard 
                                 key={module.id}
                                 label={module.label}
                                 description={module.description}
                                 icon={module.icon}
                                 onClick={module.action}
-                                colorGradient={module.color}
+                                theme={module.theme}
+                                index={idx}
                                 isActive={true}
                                 className="relative w-full aspect-[4/5] hover:scale-105 hover:-translate-y-2 cursor-pointer transition-all duration-300 rounded-[2rem]"
                             />
