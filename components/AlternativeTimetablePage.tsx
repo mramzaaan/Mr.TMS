@@ -934,12 +934,14 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps & 
       const subjectName = language === 'ur' ? sub?.nameUr : sub?.nameEn;
       const origName = language === 'ur' ? orig?.nameUr : orig?.nameEn;
       
+      const timings = adjustment.day === 'Friday' ? schoolConfig.periodTimings.friday : schoolConfig.periodTimings.default;
+      
       let message = t.notificationTemplateDefault
           .replace('{teacherName}', language === 'ur' ? teacher.nameUr : teacher.nameEn)
           .replace('{date}', selectedDate)
           .replace('{dayOfWeek}', dayOfWeek)
           .replace('{period}', (adjustment.periodIndex + 1).toString())
-          .replace('{time}', schoolConfig.periodTimings.default[adjustment.periodIndex]?.start || '')
+          .replace('{time}', timings[adjustment.periodIndex]?.start || '')
           .replace('{className}', className)
           .replace('{subjectName}', subjectName)
           .replace('{roomNumber}', cls?.roomNumber || '-')
@@ -951,7 +953,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps & 
             .replace('{date}', selectedDate)
             .replace('{dayOfWeek}', dayOfWeek)
             .replace('{period}', (adjustment.periodIndex + 1).toString())
-            .replace('{time}', schoolConfig.periodTimings.default[adjustment.periodIndex]?.start || '')
+            .replace('{time}', timings[adjustment.periodIndex]?.start || '')
             .replace('{className}', className)
             .replace('{subjectName}', subjectName)
             .replace('{roomNumber}', cls?.roomNumber || '-')
@@ -1161,7 +1163,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps & 
                             <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
                                 <p className="text-lg font-bold text-slate-400 uppercase tracking-widest mb-2">Time</p>
                                 <p className="text-5xl font-black text-emerald-500 mt-2">
-                                    {schoolConfig.periodTimings.default[slipData.periodIndex]?.start || '--:--'}
+                                    {(slipData.day === 'Friday' ? schoolConfig.periodTimings.friday : schoolConfig.periodTimings.default)[slipData.periodIndex]?.start || '--:--'}
                                 </p>
                             </div>
                             {/* Room */}

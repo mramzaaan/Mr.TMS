@@ -145,7 +145,7 @@ const DocumentCard: React.FC<{
     return (
         <button 
             onClick={onClick}
-            className="group relative w-full mt-6 focus:outline-none min-h-[220px]"
+            className="group relative w-full mt-6 focus:outline-none min-h-[180px]"
         >
             {/* Filter Container for Drop Shadow */}
             <div className="relative w-full h-full drop-shadow-xl transition-transform duration-300 group-hover:scale-[1.02]">
@@ -166,12 +166,6 @@ const DocumentCard: React.FC<{
                         clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)'
                     }}
                 >
-                    {/* Step Number */}
-                    <div className="absolute top-4 right-10 flex flex-col items-end opacity-40 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Step</span>
-                        <span className="text-2xl font-black text-gray-300 leading-none">{formattedIndex}</span>
-                    </div>
-
                     {/* Content */}
                     <div className="mt-2 flex flex-col items-start gap-2 w-full">
                         <h4 className={`text-lg font-black ${theme.text} uppercase tracking-tight leading-tight line-clamp-2`}>{title}</h4>
@@ -721,7 +715,7 @@ const HomePage: React.FC<HomePageProps> = ({ t, language, setCurrentPage, curren
                     <h3 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tighter">DOCUMENTS</h3>
                     <button onClick={() => setIsReportsModalOpen(false)} className="p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] rounded-full transition-colors"><CloseIcon /></button>
                 </div>
-                <div className="flex-grow overflow-y-auto pr-1 custom-scrollbar pb-2">
+                <div className="flex-grow overflow-y-auto pr-1 custom-scrollbar pb-2 no-scrollbar">
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
                         
                         <DocumentCard index={0} title={t.basicInformation} subtitle="STATS & ROOMS" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} colorTheme="blue" onClick={() => setIsBasicInfoPreviewOpen(true)} />

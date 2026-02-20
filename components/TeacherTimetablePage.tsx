@@ -87,6 +87,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
   }
 
   const [draggedData, setDraggedData] = useState<{ periods: Period[], sourceDay?: keyof TimetableGridData, sourcePeriodIndex?: number } | null>(null);
+  const draggedDataRef = useRef<{ periods: Period[], sourceDay?: keyof TimetableGridData, sourcePeriodIndex?: number } | null>(null);
   const [moveSource, setMoveSource] = useState<{ periods: Period[], sourceDay?: keyof TimetableGridData, sourcePeriodIndex?: number } | null>(null);
   
   const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
@@ -455,12 +456,15 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
   // --- Interaction Handlers ---
 
   const handleDragStart = (periods: Period[], sourceDay?: keyof TimetableGridData, sourcePeriodIndex?: number) => {
-      setDraggedData({ periods, sourceDay, sourcePeriodIndex });
+      const data = { periods, sourceDay, sourcePeriodIndex };
+      setDraggedData(data);
+      draggedDataRef.current = data;
       setMoveSource(null); // Clear selection if dragging starts
   };
 
   const handleDragEnd = () => {
       setDraggedData(null);
+      draggedDataRef.current = null;
   };
 
   const handleStackClick = (periods: Period[], sourceDay?: keyof TimetableGridData, sourcePeriodIndex?: number) => {
@@ -473,7 +477,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
   };
 
   const handleExecuteMove = (targetDay: keyof TimetableGridData, targetPeriodIndex: number) => {
-      const source = draggedData || moveSource;
+      const source = draggedDataRef.current || moveSource;
       if (!source || !selectedTeacherId || !teacherTimetableData) return;
 
       const periodLimit = schoolConfig.daysConfig?.[targetDay]?.periodCount ?? 8;
@@ -487,31 +491,104 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
 
       // Validation
       const conflicts: string[] = [];
+      const teacherConflicts: string[] = [];
+
       periods.forEach(p => {
           if (p.classId === NON_TEACHING_CLASS_ID) return;
+          
+          // Check if Class is busy
           if (getClassAvailability(p.classId, targetDay, targetPeriodIndex)) {
                const c = classes.find(cls => cls.id === p.classId);
                const clsPeriods = c?.timetable[targetDay]?.[targetPeriodIndex] || [];
+               // If the class has periods in this slot that are NOT the ones we are moving (in case of swap/move within same slot logic, though unlikely here)
                const isBlockedByOthers = clsPeriods.some(cp => !targetPeriods.some(tp => tp.id === cp.id));
-               if (isBlockedByOthers && c) conflicts.push(`${c.nameEn} is busy at target.`);
+               
+               if (isBlockedByOthers && c) {
+                   // Find who is teaching this class at this time
+                   const existingTeacherId = clsPeriods[0]?.teacherId;
+                   const existingTeacher = teachers.find(t => t.id === existingTeacherId);
+                   const teacherName = existingTeacher ? (language === 'ur' ? existingTeacher.nameUr : existingTeacher.nameEn) : 'Unknown';
+                   conflicts.push(`${c.nameEn} is already having a class with ${teacherName}.`);
+               }
+          }
+
+          // Check if Teacher is busy (The teacher of the period being moved)
+          // We are in Teacher View, so 'selectedTeacherId' is the teacher of 'p' (usually).
+          // But 'p' might be a joint period where p.teacherId is what matters.
+          const teacherIdToCheck = p.teacherId; 
+          // Find if this teacher is teaching ANY other class at targetDay/targetPeriodIndex
+          // We iterate over ALL classes to find if this teacher is booked
+          let isTeacherBusy = false;
+          let busyClass = '';
+          
+          classes.forEach(c => {
+              const slot = c.timetable[targetDay]?.[targetPeriodIndex];
+              if (Array.isArray(slot)) {
+                  slot.forEach(sp => {
+                      if (sp.teacherId === teacherIdToCheck && sp.id !== p.id) {
+                          // Found a period taught by this teacher in this slot, which is NOT the period we are moving
+                          isTeacherBusy = true;
+                          busyClass = language === 'ur' ? c.nameUr : c.nameEn;
+                      }
+                  });
+              }
+          });
+
+          if (isTeacherBusy) {
+              const tName = teachers.find(t => t.id === teacherIdToCheck)?.nameEn || 'Teacher';
+              teacherConflicts.push(`${tName} is already teaching ${busyClass} at this time.`);
           }
       });
 
       if (isSwap && sourceDay && sourcePeriodIndex !== undefined) {
           targetPeriods.forEach(p => {
               if (p.classId === NON_TEACHING_CLASS_ID) return;
+              
+              // Check if Class is busy at SOURCE
               if (getClassAvailability(p.classId, sourceDay, sourcePeriodIndex)) {
                   const c = classes.find(cls => cls.id === p.classId);
                   const clsPeriods = c?.timetable[sourceDay]?.[sourcePeriodIndex] || [];
                   const isBlockedByOthers = clsPeriods.some(cp => !periods.some(dp => dp.id === cp.id));
-                  if (isBlockedByOthers && c) conflicts.push(`${c.nameEn} is busy at source.`);
+                  
+                  if (isBlockedByOthers && c) {
+                       const existingTeacherId = clsPeriods[0]?.teacherId;
+                       const existingTeacher = teachers.find(t => t.id === existingTeacherId);
+                       const teacherName = existingTeacher ? (language === 'ur' ? existingTeacher.nameUr : existingTeacher.nameEn) : 'Unknown';
+                       conflicts.push(`${c.nameEn} is busy at source with ${teacherName}.`);
+                  }
+              }
+
+              // Check if Teacher is busy at SOURCE
+              const teacherIdToCheck = p.teacherId;
+              let isTeacherBusy = false;
+              let busyClass = '';
+              classes.forEach(c => {
+                  const slot = c.timetable[sourceDay]?.[sourcePeriodIndex];
+                  if (Array.isArray(slot)) {
+                      slot.forEach(sp => {
+                          if (sp.teacherId === teacherIdToCheck && sp.id !== p.id) {
+                              isTeacherBusy = true;
+                              busyClass = language === 'ur' ? c.nameUr : c.nameEn;
+                          }
+                      });
+                  }
+              });
+
+              if (isTeacherBusy) {
+                  const tName = teachers.find(t => t.id === teacherIdToCheck)?.nameEn || 'Teacher';
+                  teacherConflicts.push(`${tName} is busy at source teaching ${busyClass}.`);
               }
           });
       }
 
-      if (conflicts.length > 0) {
-          alert(`Cannot move/swap:\n${conflicts.join('\n')}`);
-          return;
+      if (conflicts.length > 0 || teacherConflicts.length > 0) {
+          const message = [
+              conflicts.length > 0 ? "Class Conflicts:\n" + conflicts.join('\n') : "",
+              teacherConflicts.length > 0 ? "Teacher Conflicts:\n" + teacherConflicts.join('\n') : ""
+          ].filter(Boolean).join('\n\n');
+
+          const confirm = window.confirm(`Conflicts Detected:\n\n${message}\n\nDo you want to proceed anyway?`);
+          if (!confirm) return;
       }
 
       // Perform Update
@@ -675,7 +752,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
   };
 
   const handleUnschedule = () => {
-      const source = draggedData || moveSource;
+      const source = draggedDataRef.current || moveSource;
       if (!source || !selectedTeacherId) return;
       
       const { periods, sourceDay, sourcePeriodIndex } = source;
