@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import type { Page, SchoolConfig } from '../types';
 
 interface TopNavBarProps {
@@ -17,118 +17,78 @@ const AdjustmentsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className=
 const AttendanceIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>;
 const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
 
-const NavButton: React.FC<{
+const BannerNavButton: React.FC<{
+  number: string;
   label: string;
   icon: React.ReactNode;
+  color: string;
   isActive: boolean;
   onClick: () => void;
-  isCollapsed: boolean;
-  isHidden: boolean;
-}> = ({ label, icon, isActive, onClick, isCollapsed, isHidden }) => {
-  
-  // Transition logic for hiding/showing items
-  const hiddenClasses = isHidden
-    ? 'max-w-0 opacity-0 px-0 m-0 border-0 overflow-hidden'
-    : isCollapsed 
-        ? 'max-w-[100px] opacity-100 w-full h-full' // Full size in collapsed circle
-        : 'max-w-[200px] opacity-100 px-4 py-2'; // Normal size
-
-  // When collapsed, remove gap to ensure perfect centering
-  const baseClasses = `relative flex items-center justify-center ${isCollapsed ? 'gap-0' : 'gap-2'} font-semibold transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] whitespace-nowrap overflow-hidden focus:outline-none ${hiddenClasses}`;
-  
-  // Active state styling
-  const activeClasses = isActive 
-    ? (isCollapsed 
-        ? 'text-[var(--accent-primary)]' // Only text/icon color when collapsed (container has border)
-        : 'bg-[var(--accent-primary)] text-[var(--accent-text)]') // Normal filled style when expanded
-    : 'text-[var(--text-secondary)] hover:bg-[var(--accent-secondary-hover)] hover:text-[var(--text-primary)]';
-
-  // Shape adjustment
-  const shapeClasses = isCollapsed 
-    ? 'rounded-full p-0' // Perfectly round when collapsed
-    : 'rounded-md text-sm focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-primary)] focus:ring-offset-[var(--bg-secondary)]';
-
-  return (
-    <button
+}> = ({ number, label, icon, color, isActive, onClick }) => (
+  <button 
       onClick={onClick}
-      className={`${baseClasses} ${activeClasses} ${shapeClasses}`}
-      title={isCollapsed ? label : ''}
-    >
-      <div className={`transition-transform duration-300 ${isCollapsed ? 'scale-150' : ''}`}>{icon}</div>
-      <span className={`transition-opacity duration-200 ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>{label}</span>
-    </button>
-  );
-};
+      className={`group relative flex items-center h-14 transition-all duration-300 hover:-translate-y-1 ${isActive ? 'scale-105 drop-shadow-2xl z-10' : 'drop-shadow-md hover:drop-shadow-xl opacity-90 hover:opacity-100'}`}
+  >
+      {/* Left Colored Section */}
+      <div className={`${color} h-full flex items-center justify-center px-5 relative z-20 clip-path-left min-w-[70px]`}>
+          <span className="text-2xl font-black text-white italic tracking-tighter">{number}</span>
+      </div>
+      
+      {/* Right White Section */}
+      <div className="bg-white h-full flex items-center pl-10 pr-6 relative z-10 -ml-6 clip-path-right min-w-[180px]">
+          <div className={`mr-3 transition-colors duration-300 ${isActive ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-600'}`}>
+              {React.cloneElement(icon as React.ReactElement, { className: "h-6 w-6" })}
+          </div>
+          <span className={`text-sm font-black uppercase tracking-tight transition-colors duration-300 ${isActive ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-600'}`}>
+              {label}
+          </span>
+      </div>
+  </button>
+);
 
 const TopNavBar: React.FC<TopNavBarProps> = ({ t, currentPage, setCurrentPage, schoolConfig }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY < 50) {
-          setIsCollapsed(false);
-      } else if (currentScrollY > lastScrollY + 5) {
-          setIsCollapsed(true);
-      } else if (currentScrollY < lastScrollY - 10) {
-          setIsCollapsed(false);
-      }
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
-
-  const navItems: { page: Page; labelKey: string; icon: React.ReactNode }[] = [
-    { page: 'home', labelKey: 'home', icon: <HomeIcon /> },
-    { page: 'dataEntry', labelKey: 'dataEntry', icon: <DataEntryIcon /> },
-    { page: 'classTimetable', labelKey: 'classTimetable', icon: <ClassTimetableIcon /> },
-    { page: 'teacherTimetable', labelKey: 'teacherTimetable', icon: <TeacherTimetableIcon /> },
-    { page: 'alternativeTimetable', labelKey: 'adjustments', icon: <AdjustmentsIcon /> },
-    { page: 'attendance', labelKey: 'attendance', icon: <AttendanceIcon /> },
-    { page: 'settings', labelKey: 'settings', icon: <SettingsIcon /> },
+  const navItems: { page: Page; labelKey: string; icon: React.ReactNode; color: string }[] = [
+    { page: 'home', labelKey: 'home', icon: <HomeIcon />, color: 'bg-pink-600' },
+    { page: 'dataEntry', labelKey: 'dataEntry', icon: <DataEntryIcon />, color: 'bg-amber-500' },
+    { page: 'classTimetable', labelKey: 'classTimetable', icon: <ClassTimetableIcon />, color: 'bg-green-600' },
+    { page: 'teacherTimetable', labelKey: 'teacherTimetable', icon: <TeacherTimetableIcon />, color: 'bg-blue-600' },
+    { page: 'alternativeTimetable', labelKey: 'adjustments', icon: <AdjustmentsIcon />, color: 'bg-purple-600' },
+    { page: 'attendance', labelKey: 'attendance', icon: <AttendanceIcon />, color: 'bg-cyan-600' },
+    { page: 'settings', labelKey: 'settings', icon: <SettingsIcon />, color: 'bg-slate-600' },
   ];
 
   return (
     <>
-      <nav className="hidden xl:flex fixed top-0 right-0 z-40 w-full pointer-events-none flex-col items-end">
-        <div className={`
-            relative pointer-events-auto flex items-center transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
-            ${isCollapsed 
-                // Collapsed: Small circle
-                ? 'mr-6 mt-6 w-20 h-20 rounded-full border-2 border-[var(--accent-primary)] justify-center shadow-2xl overflow-hidden bg-[var(--bg-secondary)] backdrop-blur-xl' 
-                // Expanded: Floating Dock in Top Right Corner (Right-Aligned) - Transparent
-                : 'mr-6 mt-4 w-auto h-[72px] rounded-2xl bg-transparent px-6 justify-between'
-            }
-        `} dir="ltr">
-            {/* Logo Section - Fades out and shrinks width when collapsing */}
-            <div className={`flex items-center gap-3 overflow-hidden whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${isCollapsed ? 'max-w-0 opacity-0 px-0' : 'max-w-[400px] opacity-100 mr-6'}`}>
-                {schoolConfig.schoolLogoBase64 && (
-                    <img src={schoolConfig.schoolLogoBase64} alt="School Logo" className="h-9 w-9 object-contain rounded-full" />
-                )}
-            </div>
+      <style>{`
+        .clip-path-left {
+          clip-path: polygon(0 0, 100% 0, 85% 100%, 0% 100%);
+        }
+        .clip-path-right {
+          clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%);
+        }
+      `}</style>
+      <nav className="hidden xl:flex fixed top-0 left-0 right-0 z-40 w-full pointer-events-none justify-center pt-4">
+        <div className="pointer-events-auto flex items-center gap-4 bg-white/10 backdrop-blur-sm p-4 rounded-full border border-white/20 shadow-2xl">
+            {/* Logo */}
+            {schoolConfig.schoolLogoBase64 && (
+                <div className="mr-4 bg-white p-1 rounded-full shadow-md">
+                    <img src={schoolConfig.schoolLogoBase64} alt="School Logo" className="h-12 w-12 object-contain rounded-full" />
+                </div>
+            )}
 
-            {/* Nav Items - Centers content when collapsed */}
-            <div className={`flex items-center gap-2 transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${isCollapsed ? 'w-full justify-center' : ''}`}>
-                {navItems.map(item => {
-                    const isActive = currentPage === item.page;
-                    // When collapsed, hide all except active
-                    const isHidden = isCollapsed && !isActive;
-
-                    return (
-                    <NavButton
+            {/* Nav Items */}
+            <div className="flex items-center gap-2">
+                {navItems.map((item, index) => (
+                    <BannerNavButton
                         key={item.page}
+                        number={(index + 1).toString().padStart(2, '0')}
                         label={t[item.labelKey]}
                         icon={item.icon}
-                        isActive={isActive}
-                        onClick={() => { setCurrentPage(item.page); setIsCollapsed(false); }}
-                        isCollapsed={isCollapsed}
-                        isHidden={isHidden}
+                        color={item.color}
+                        isActive={currentPage === item.page}
+                        onClick={() => setCurrentPage(item.page)}
                     />
-                    );
-                })}
+                ))}
             </div>
         </div>
       </nav>
