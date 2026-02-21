@@ -549,7 +549,19 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
           const canvas = await html2canvas(contentRef.current, {
               scale: 2,
               useCORS: true,
-              backgroundColor: '#ffffff'
+              backgroundColor: '#ffffff',
+              onclone: (clonedDoc) => {
+                  const style = clonedDoc.createElement('style');
+                  style.innerHTML = `
+                      * {
+                          text-rendering: geometricPrecision !important;
+                          -webkit-font-smoothing: antialiased !important;
+                          -moz-osx-font-smoothing: grayscale !important;
+                          line-height: 1.2 !important;
+                      }
+                  `;
+                  clonedDoc.head.appendChild(style);
+              }
           });
           
           // Restore selection if needed (optional)
@@ -633,7 +645,19 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                   scrollY: 0,
                   x: 0,
                   y: 0,
-                  useCORS: true
+                  useCORS: true,
+                  onclone: (clonedDoc) => {
+                      const style = clonedDoc.createElement('style');
+                      style.innerHTML = `
+                          * {
+                              text-rendering: geometricPrecision !important;
+                              -webkit-font-smoothing: antialiased !important;
+                              -moz-osx-font-smoothing: grayscale !important;
+                              line-height: 1.2 !important;
+                          }
+                      `;
+                      clonedDoc.head.appendChild(style);
+                  }
               });
 
               const imgData = canvas.toDataURL('image/jpeg', 0.95);

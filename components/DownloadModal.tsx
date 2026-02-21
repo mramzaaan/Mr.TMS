@@ -87,8 +87,9 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
           * { 
               -webkit-font-smoothing: antialiased !important; 
               -moz-osx-font-smoothing: grayscale !important; 
-              text-rendering: auto !important; 
+              text-rendering: geometricPrecision !important; 
               font-variant-ligatures: none !important;
+              line-height: 1.2 !important;
           } 
           ${importsLatin} 
           .print-container .font-urdu, .print-container .font-urdu * { 

@@ -729,6 +729,17 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             windowWidth: width, 
             windowHeight: height,
             onclone: (clonedDoc: Document) => {
+                const style = clonedDoc.createElement('style');
+                style.innerHTML = `
+                    * {
+                        text-rendering: geometricPrecision !important;
+                        -webkit-font-smoothing: antialiased !important;
+                        -moz-osx-font-smoothing: grayscale !important;
+                        line-height: 1.2 !important;
+                    }
+                `;
+                clonedDoc.head.appendChild(style);
+
                 const container = clonedDoc.querySelector('.timetable-image-container') as HTMLElement;
                 if (container) {
                     container.style.webkitTextSizeAdjust = 'none';

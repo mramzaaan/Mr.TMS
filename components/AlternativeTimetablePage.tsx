@@ -905,7 +905,22 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps & 
       
       if (slipRef.current) {
           try {
-              const canvas = await html2canvas(slipRef.current, { scale: 2, backgroundColor: '#ffffff' });
+              const canvas = await html2canvas(slipRef.current, { 
+                  scale: 2, 
+                  backgroundColor: '#ffffff',
+                  onclone: (clonedDoc) => {
+                      const style = clonedDoc.createElement('style');
+                      style.innerHTML = `
+                          * {
+                              text-rendering: geometricPrecision !important;
+                              -webkit-font-smoothing: antialiased !important;
+                              -moz-osx-font-smoothing: grayscale !important;
+                              line-height: 1.2 !important;
+                          }
+                      `;
+                      clonedDoc.head.appendChild(style);
+                  }
+              });
               const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
               if (blob) {
                   try {

@@ -476,35 +476,29 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
       }
   };
 
-  const handleExecuteMove = (targetDay: keyof TimetableGridData, targetPeriodIndex: number) => {
-      const source = draggedDataRef.current || moveSource;
-      if (!source || !selectedTeacherId || !teacherTimetableData) return;
+  const [dragOverTarget, setDragOverTarget] = useState<{ day: keyof TimetableGridData, periodIndex: number } | null>(null);
 
-      const periodLimit = schoolConfig.daysConfig?.[targetDay]?.periodCount ?? 8;
-      if (targetPeriodIndex >= periodLimit) return;
-
-      const { periods, sourceDay, sourcePeriodIndex } = source;
-      if (sourceDay === targetDay && sourcePeriodIndex === targetPeriodIndex) return;
-
-      const targetPeriods = teacherTimetableData[targetDay]?.[targetPeriodIndex] || [];
-      const isSwap = sourceDay && sourcePeriodIndex !== undefined && targetPeriods.length > 0;
-
-      // Validation
+  const getConflicts = (
+      periods: Period[],
+      targetDay: keyof TimetableGridData,
+      targetPeriodIndex: number,
+      isSwap: boolean,
+      sourceDay?: keyof TimetableGridData,
+      sourcePeriodIndex?: number
+  ) => {
       const conflicts: string[] = [];
       const teacherConflicts: string[] = [];
 
       periods.forEach(p => {
           if (p.classId === NON_TEACHING_CLASS_ID) return;
           
-          // Check if Class is busy
           if (getClassAvailability(p.classId, targetDay, targetPeriodIndex)) {
                const c = classes.find(cls => cls.id === p.classId);
                const clsPeriods = c?.timetable[targetDay]?.[targetPeriodIndex] || [];
-               // If the class has periods in this slot that are NOT the ones we are moving (in case of swap/move within same slot logic, though unlikely here)
+               const targetPeriods = teacherTimetableData?.[targetDay]?.[targetPeriodIndex] || [];
                const isBlockedByOthers = clsPeriods.some(cp => !targetPeriods.some(tp => tp.id === cp.id));
                
                if (isBlockedByOthers && c) {
-                   // Find who is teaching this class at this time
                    const existingTeacherId = clsPeriods[0]?.teacherId;
                    const existingTeacher = teachers.find(t => t.id === existingTeacherId);
                    const teacherName = existingTeacher ? (language === 'ur' ? existingTeacher.nameUr : existingTeacher.nameEn) : 'Unknown';
@@ -512,12 +506,7 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
                }
           }
 
-          // Check if Teacher is busy (The teacher of the period being moved)
-          // We are in Teacher View, so 'selectedTeacherId' is the teacher of 'p' (usually).
-          // But 'p' might be a joint period where p.teacherId is what matters.
           const teacherIdToCheck = p.teacherId; 
-          // Find if this teacher is teaching ANY other class at targetDay/targetPeriodIndex
-          // We iterate over ALL classes to find if this teacher is booked
           let isTeacherBusy = false;
           let busyClass = '';
           
@@ -526,7 +515,6 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
               if (Array.isArray(slot)) {
                   slot.forEach(sp => {
                       if (sp.teacherId === teacherIdToCheck && sp.id !== p.id) {
-                          // Found a period taught by this teacher in this slot, which is NOT the period we are moving
                           isTeacherBusy = true;
                           busyClass = language === 'ur' ? c.nameUr : c.nameEn;
                       }
@@ -541,10 +529,10 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
       });
 
       if (isSwap && sourceDay && sourcePeriodIndex !== undefined) {
+          const targetPeriods = teacherTimetableData?.[targetDay]?.[targetPeriodIndex] || [];
           targetPeriods.forEach(p => {
               if (p.classId === NON_TEACHING_CLASS_ID) return;
               
-              // Check if Class is busy at SOURCE
               if (getClassAvailability(p.classId, sourceDay, sourcePeriodIndex)) {
                   const c = classes.find(cls => cls.id === p.classId);
                   const clsPeriods = c?.timetable[sourceDay]?.[sourcePeriodIndex] || [];
@@ -558,7 +546,6 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
                   }
               }
 
-              // Check if Teacher is busy at SOURCE
               const teacherIdToCheck = p.teacherId;
               let isTeacherBusy = false;
               let busyClass = '';
@@ -580,6 +567,33 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
               }
           });
       }
+
+      return { conflicts, teacherConflicts };
+  };
+
+  const handleDragEnter = (day: keyof TimetableGridData, periodIndex: number) => {
+      setDragOverTarget({ day, periodIndex });
+  };
+
+  const handleDragLeave = () => {
+      setDragOverTarget(null);
+  };
+
+  const handleExecuteMove = (targetDay: keyof TimetableGridData, targetPeriodIndex: number) => {
+      const source = draggedDataRef.current || moveSource;
+      if (!source || !selectedTeacherId || !teacherTimetableData) return;
+
+      const periodLimit = schoolConfig.daysConfig?.[targetDay]?.periodCount ?? 8;
+      if (targetPeriodIndex >= periodLimit) return;
+
+      const { periods, sourceDay, sourcePeriodIndex } = source;
+      if (sourceDay === targetDay && sourcePeriodIndex === targetPeriodIndex) return;
+
+      const targetPeriods = teacherTimetableData[targetDay]?.[targetPeriodIndex] || [];
+      const isSwap = sourceDay && sourcePeriodIndex !== undefined && targetPeriods.length > 0;
+
+      // Validation
+      const { conflicts, teacherConflicts } = getConflicts(periods, targetDay, targetPeriodIndex, isSwap, sourceDay, sourcePeriodIndex);
 
       if (conflicts.length > 0 || teacherConflicts.length > 0) {
           const message = [
@@ -1274,11 +1288,30 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
 
                         const isTarget = moveSource && !isDisabled;
                         const statusClass = (!isDisabled && isSelectionActive) ? 'drop-target-available' : '';
+                        
+                        // Drag Over Visuals
+                        let dragVisualClass = '';
+                        if (dragOverTarget?.day === day && dragOverTarget?.periodIndex === periodIndex) {
+                            const source = draggedDataRef.current || moveSource;
+                            if (source) {
+                                const { periods, sourceDay, sourcePeriodIndex } = source;
+                                const isSwap = sourceDay && sourcePeriodIndex !== undefined && slotPeriods.length > 0;
+                                const { conflicts, teacherConflicts } = getConflicts(periods, day, periodIndex, isSwap, sourceDay, sourcePeriodIndex);
+                                
+                                if (conflicts.length > 0 || teacherConflicts.length > 0) {
+                                    dragVisualClass = 'bg-red-100 dark:bg-red-900/30 ring-inset ring-2 ring-red-500';
+                                } else {
+                                    dragVisualClass = 'bg-green-100 dark:bg-green-900/30 ring-inset ring-2 ring-green-500';
+                                }
+                            }
+                        }
 
                         return (
                           <td key={day} 
-                            className={`timetable-slot border border-[var(--border-secondary)] h-16 p-1 align-top ${isDisabled ? 'bg-[var(--slot-disabled-bg)] cursor-not-allowed' : 'bg-[var(--slot-available-bg)]'} transition-colors duration-300 ${statusClass} ${isTarget ? 'hover:bg-[var(--accent-secondary)] cursor-pointer ring-inset ring-2 ring-[var(--accent-primary)]/30' : ''} relative group`}
+                            className={`timetable-slot border border-[var(--border-secondary)] h-16 p-1 align-top ${isDisabled ? 'bg-[var(--slot-disabled-bg)] cursor-not-allowed' : 'bg-[var(--slot-available-bg)]'} transition-colors duration-300 ${statusClass} ${isTarget ? 'hover:bg-[var(--accent-secondary)] cursor-pointer ring-inset ring-2 ring-[var(--accent-primary)]/30' : ''} ${dragVisualClass} relative group`}
                             onDragOver={(e) => !isDisabled && handleDragOver(e)}
+                            onDragEnter={() => !isDisabled && handleDragEnter(day, periodIndex)}
+                            onDragLeave={handleDragLeave}
                             onDrop={(e) => !isDisabled && handleDrop(e, day, periodIndex)}
                             onClick={() => !isDisabled && moveSource && handleExecuteMove(day, periodIndex)}
                           >
