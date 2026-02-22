@@ -68,7 +68,7 @@ const defaultDesignV3: DownloadDesignConfig = {
     version: 3,
     page: { size: 'a4', orientation: 'portrait', margins: { top: 10, right: 10, bottom: 10, left: 10 }, watermarkOpacity: 0.07 },
     header: { showLogo: true, logoSize: 80, logoPosition: 'left', schoolName: { fontFamily: 'Roboto', fontSize: 24, fontWeight: 'bold', align: 'left', color: '#000000' }, showTitle: true, title: { fontFamily: 'Roboto', fontSize: 18, fontWeight: 'bold', align: 'left', color: '#444444' }, details: { fontFamily: 'Roboto', fontSize: 14, fontWeight: 'normal', align: 'left', color: '#000000' }, divider: true, bgColor: '#FFFFFF' },
-    table: { fontFamily: 'Roboto', fontSize: 14, cellPadding: 8, headerBgColor: '#1e293b', headerColor: '#FFFFFF', bodyBgColor: '#FFFFFF', bodyColor: '#000000', borderColor: '#000000', periodColumnWidth: 40, periodColumnBgColor: '#f1f5f9', periodColumnColor: '#000000', altRowColor: '#FFFFFF', gridStyle: 'solid', borderWidth: 1, headerFontSize: 14, cardStyle: 'full', triangleCorner: 'bottom-left', outlineWidth: 2 },
+    table: { fontFamily: 'Roboto', fontSize: 14, cellPadding: 8, headerBgColor: '#1e293b', headerColor: '#FFFFFF', bodyBgColor: '#FFFFFF', bodyColor: '#000000', borderColor: '#000000', periodColumnWidth: 40, periodColumnBgColor: '#f1f5f9', periodColumnColor: '#000000', altRowColor: '#FFFFFF', gridStyle: 'solid', borderWidth: 1, headerFontSize: 14, cardStyle: 'minimal-left', triangleCorner: 'bottom-left', outlineWidth: 2 },
     footer: { show: true, text: 'Mr.🇵🇰', fontFamily: 'Roboto', fontSize: 12, align: 'center', includePageNumber: true, color: '#4b5563', includeTimestamp: false },
     colorMode: 'color', rowsPerPage: 50, rowsPerFirstPage: 50, daysPerPage: 7, watermarkText: '', compactMode: false,
 };
@@ -154,9 +154,8 @@ const App: React.FC = () => {
     };
 
     const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('mrtimetable_language') as Language) || 'en');
-    const [navPosition, setNavPosition] = useState<NavPosition>(() => (localStorage.getItem('mrtimetable_navPosition') as NavPosition) || 'bottom');
-    const [navDesign, setNavDesign] = useState<NavDesign>(() => (localStorage.getItem('mrtimetable_navDesign') as NavDesign) || 'modern');
-    const [navShape, setNavShape] = useState<NavShape>(() => (localStorage.getItem('mrtimetable_navShape') as NavShape) || 'squircle');
+    const [navDesign, setNavDesign] = useState<NavDesign>(() => (localStorage.getItem('mrtimetable_navDesign') as NavDesign) || 'minimal');
+    const [navShape, setNavShape] = useState<NavShape>(() => (localStorage.getItem('mrtimetable_navShape') as NavShape) || 'pill');
     const [navShowLabels, setNavShowLabels] = useState<boolean>(() => { const saved = localStorage.getItem('mrtimetable_navShowLabels'); return saved !== null ? JSON.parse(saved) : false; });
     
     const [navAnimation, setNavAnimation] = useState<boolean>(() => { const saved = localStorage.getItem('mrtimetable_navAnimation'); return saved !== null ? JSON.parse(saved) : true; });
@@ -326,7 +325,6 @@ const App: React.FC = () => {
 
     useEffect(() => { document.documentElement.lang = language; document.documentElement.dir = language === 'ur' ? 'rtl' : 'ltr'; localStorage.setItem('mrtimetable_language', language); }, [language]);
     useEffect(() => { const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement; if (link) { link.href = userData.schoolConfig.schoolLogoBase64 || '/vite.svg'; } }, [userData.schoolConfig.schoolLogoBase64]);
-    useEffect(() => { localStorage.setItem('mrtimetable_navPosition', navPosition); }, [navPosition]);
     useEffect(() => { localStorage.setItem('mrtimetable_navDesign', navDesign); }, [navDesign]);
     useEffect(() => { localStorage.setItem('mrtimetable_navShape', navShape); }, [navShape]);
     useEffect(() => { localStorage.setItem('mrtimetable_navShowLabels', JSON.stringify(navShowLabels)); }, [navShowLabels]);
@@ -408,7 +406,7 @@ const App: React.FC = () => {
             case 'teacherTimetable': return <TeacherTimetablePage t={t} language={language} classes={currentTimetableSession?.classes || []} subjects={currentTimetableSession?.subjects || []} teachers={currentTimetableSession?.teachers || []} jointPeriods={currentTimetableSession?.jointPeriods || []} adjustments={currentTimetableSession?.adjustments || {}} leaveDetails={currentTimetableSession?.leaveDetails} onSetClasses={handleSetClasses} schoolConfig={effectiveSchoolConfig} onUpdateSchoolConfig={handleUpdateSchoolConfig} selectedTeacherId={teacherTimetableSelection.teacherId} onSelectedTeacherChange={(id) => setTeacherTimetableSelection({ teacherId: id })} hasActiveSession={!!currentTimetableSession} {...historyProps} openConfirmation={openConfirmation} onAddJointPeriod={handleAddJointPeriod} onUpdateJointPeriod={handleUpdateJointPeriod} onDeleteJointPeriod={handleDeleteJointPeriod} onUpdateTimetableSession={updateCurrentSession} />;
             case 'alternativeTimetable': return <AlternativeTimetablePage t={t} language={language} classes={currentTimetableSession?.classes || []} subjects={currentTimetableSession?.subjects || []} teachers={currentTimetableSession?.teachers || []} adjustments={currentTimetableSession?.adjustments || {}} leaveDetails={currentTimetableSession?.leaveDetails} onSetAdjustments={handleSetAdjustments} onSetLeaveDetails={handleSetLeaveDetails} onUpdateSession={updateCurrentSession} schoolConfig={effectiveSchoolConfig} onUpdateSchoolConfig={handleUpdateSchoolConfig} selection={adjustmentsSelection} onSelectionChange={setAdjustmentsSelection} openConfirmation={openConfirmation} hasActiveSession={!!currentTimetableSession} jointPeriods={currentTimetableSession?.jointPeriods} />;
             case 'attendance': return <AttendancePage t={t} language={language} classes={currentTimetableSession?.classes || []} currentTimetableSession={currentTimetableSession} onUpdateSession={updateCurrentSession} onUpdateSchoolConfig={handleUpdateSchoolConfig} schoolConfig={effectiveSchoolConfig} />;
-            case 'settings': return <SettingsPage t={t} language={language} setLanguage={setLanguage} theme={theme} setTheme={handleThemeChange} themeColors={themeColors} onColorChange={handleColorChange} onResetTheme={resetThemeColors} navPosition={navPosition} setNavPosition={setNavPosition} navDesign={navDesign} setNavDesign={setNavDesign} navShape={navShape} setNavShape={setNavShape} navShowLabels={navShowLabels} setNavShowLabels={setNavShowLabels} navBtnAlphaSelected={navBtnAlphaSelected} setNavBtnAlphaSelected={setNavBtnAlphaSelected} navBtnAlphaUnselected={navBtnAlphaUnselected} setNavBtnAlphaUnselected={setNavBtnAlphaUnselected} navBarAlpha={navBarAlpha} setNavBarAlpha={setNavBarAlpha} navBarColor={navBarColor} setNavBarColor={setNavBarColor} navAnimation={navAnimation} fontSize={fontSize} setFontSize={setFontSize} appFont={appFont} setAppFont={setAppFont} schoolConfig={effectiveSchoolConfig} onUpdateSchoolConfig={handleUpdateSchoolConfig} classes={currentTimetableSession?.classes || []} teachers={currentTimetableSession?.teachers || []} subjects={currentTimetableSession?.subjects || []} adjustments={currentTimetableSession?.adjustments || {}} leaveDetails={currentTimetableSession?.leaveDetails} attendance={currentTimetableSession?.attendance || {}} />;
+            case 'settings': return <SettingsPage t={t} language={language} setLanguage={setLanguage} theme={theme} setTheme={handleThemeChange} themeColors={themeColors} onColorChange={handleColorChange} onResetTheme={resetThemeColors} navDesign={navDesign} setNavDesign={setNavDesign} navShape={navShape} setNavShape={setNavShape} navShowLabels={navShowLabels} setNavShowLabels={setNavShowLabels} navBtnAlphaSelected={navBtnAlphaSelected} setNavBtnAlphaSelected={setNavBtnAlphaSelected} navBtnAlphaUnselected={navBtnAlphaUnselected} setNavBtnAlphaUnselected={setNavBtnAlphaUnselected} navBarAlpha={navBarAlpha} setNavBarAlpha={setNavBarAlpha} navBarColor={navBarColor} setNavBarColor={setNavBarColor} navAnimation={navAnimation} setNavAnimation={setNavAnimation} fontSize={fontSize} setFontSize={setFontSize} appFont={appFont} setAppFont={setAppFont} schoolConfig={effectiveSchoolConfig} onUpdateSchoolConfig={handleUpdateSchoolConfig} classes={currentTimetableSession?.classes || []} teachers={currentTimetableSession?.teachers || []} subjects={currentTimetableSession?.subjects || []} adjustments={currentTimetableSession?.adjustments || {}} leaveDetails={currentTimetableSession?.leaveDetails} attendance={currentTimetableSession?.attendance || {}} />;
             case 'home': default: return <HomePage t={t} language={language} setCurrentPage={setCurrentPage} currentTimetableSessionId={currentTimetableSessionId} timetableSessions={userData.timetableSessions} setCurrentTimetableSessionId={setCurrentTimetableSessionId} onCreateTimetableSession={handleCreateTimetableSession} onUpdateTimetableSession={handleUpdateTimetableSession} onDeleteTimetableSession={handleDeleteTimetableSession} onUploadTimetableSession={handleUploadTimetableSession} schoolConfig={effectiveSchoolConfig} onUpdateCurrentSession={updateCurrentSession} onSearchResultClick={handleSearchResultClick} onUpdateSchoolConfig={handleUpdateSchoolConfig} onOpenSchoolInfo={() => setIsSchoolInfoModalOpen(true)} />;
         }
     };
@@ -417,16 +415,16 @@ const App: React.FC = () => {
         <>
             <ConfirmationModal t={t} isOpen={confirmationState.isOpen} onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))} onConfirm={confirmationState.onConfirm} title={confirmationState.title} message={confirmationState.message} />
             <SchoolInfoModal t={t} isOpen={isSchoolInfoModalOpen} onClose={() => setIsSchoolInfoModalOpen(false)} schoolConfig={effectiveSchoolConfig} onUpdateSchoolConfig={handleUpdateSchoolConfig} />
-            <div className={`min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300 ${currentPage !== 'home' ? (navPosition === 'top' ? 'pb-6 xl:pb-0' : 'pb-24 xl:pb-0') : ''}`}>
+            <div className={`min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300 ${currentPage !== 'home' ? 'pb-24 xl:pb-0' : ''}`}>
                 {currentPage !== 'home' && (
                     <TopNavBar t={t} currentPage={currentPage} setCurrentPage={setCurrentPage} schoolConfig={effectiveSchoolConfig} />
                 )}
-                <main className={`${currentPage === 'home' ? '!pt-0' : (navPosition === 'top' ? 'pt-24 xl:pt-28' : 'pt-6 xl:pt-28')}`}>
+                <main className={`${currentPage === 'home' ? '!pt-0' : 'pt-6 xl:pt-28'}`}>
                     {renderPage()}
                 </main>
                 
                 {currentPage !== 'home' && (
-                    <BottomNavBar t={t} currentPage={currentPage} setCurrentPage={setCurrentPage} position={navPosition} design={navDesign} shape={navShape} showLabels={navShowLabels} alphaSelected={navBtnAlphaSelected} alphaUnselected={navBtnAlphaUnselected} barAlpha={navBarAlpha} barColor={navBarColor} navAnimation={navAnimation} />
+                    <BottomNavBar t={t} currentPage={currentPage} setCurrentPage={setCurrentPage} position="bottom" design={navDesign} shape={navShape} showLabels={navShowLabels} alphaSelected={navBtnAlphaSelected} alphaUnselected={navBtnAlphaUnselected} barAlpha={navBarAlpha} barColor={navBarColor} navAnimation={navAnimation} />
                 )}
             </div>
         </>

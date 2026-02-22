@@ -81,24 +81,6 @@ const NavButton: React.FC<{
 
 const TopNavBar: React.FC<TopNavBarProps> = ({ t, currentPage, setCurrentPage, schoolConfig }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY < 50) {
-          setIsCollapsed(false);
-      } else if (currentScrollY > lastScrollY + 5) {
-          setIsCollapsed(true);
-      } else if (currentScrollY < lastScrollY - 10) {
-          setIsCollapsed(false);
-      }
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
 
   const navItems: { page: Page; labelKey: string; icon: React.ReactNode; theme: string }[] = [
     { page: 'home', labelKey: 'home', icon: <HomeIcon />, theme: 'blue' },

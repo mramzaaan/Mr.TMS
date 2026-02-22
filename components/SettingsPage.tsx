@@ -30,8 +30,6 @@ interface SettingsPageProps {
   themeColors: ThemeColors;
   onColorChange: (key: keyof ThemeColors, value: string) => void;
   onResetTheme: () => void;
-  navPosition: NavPosition;
-  setNavPosition: (pos: NavPosition) => void;
   navDesign: NavDesign;
   setNavDesign: (design: NavDesign) => void;
   navShape: NavShape;
@@ -261,7 +259,7 @@ const ReportCard: React.FC<{
 };
 
 const SettingsPage: React.FC<SettingsPageProps> = ({
-  t, language, setLanguage, theme, setTheme, themeColors, onColorChange, onResetTheme, navPosition, setNavPosition, navDesign, setNavDesign, navShape, setNavShape, navShowLabels, setNavShowLabels, navBtnAlphaSelected, setNavBtnAlphaSelected, navBtnAlphaUnselected, setNavBtnAlphaUnselected, navBarAlpha, setNavBarAlpha, navBarColor, setNavBarColor, navAnimation, setNavAnimation, fontSize, setFontSize, appFont, setAppFont, schoolConfig, onUpdateSchoolConfig, classes, teachers, subjects, adjustments, leaveDetails, attendance
+  t, language, setLanguage, theme, setTheme, themeColors, onColorChange, onResetTheme, navDesign, setNavDesign, navShape, setNavShape, navShowLabels, setNavShowLabels, navBtnAlphaSelected, setNavBtnAlphaSelected, navBtnAlphaUnselected, setNavBtnAlphaUnselected, navBarAlpha, setNavBarAlpha, navBarColor, setNavBarColor, navAnimation, setNavAnimation, fontSize, setFontSize, appFont, setAppFont, schoolConfig, onUpdateSchoolConfig, classes, teachers, subjects, adjustments, leaveDetails, attendance
 }) => {
   const [isThemeOptionsOpen, setIsThemeOptionsOpen] = useState(false); 
   const [isInterfaceOptionsOpen, setIsInterfaceOptionsOpen] = useState(false);
@@ -703,26 +701,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                             
                             <div className="grid grid-cols-1 gap-3">
                                 <div className="bg-[var(--bg-tertiary)]/30 p-2 rounded-lg border border-[var(--border-secondary)] space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs font-medium text-[var(--text-primary)]">{t.position}</span>
-                                        <div className="flex bg-[var(--bg-tertiary)] p-0.5 rounded-md border border-[var(--border-secondary)] h-6">
-                                            <button 
-                                                onClick={() => setNavPosition('bottom')} 
-                                                className={`px-2 text-[10px] font-bold rounded transition-all flex items-center ${navPosition === 'bottom' ? 'bg-[var(--bg-secondary)] text-[var(--accent-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-                                            >
-                                                {t.bottom}
-                                            </button>
-                                            <div className="w-px bg-[var(--border-secondary)] my-0.5"></div>
-                                            <button 
-                                                onClick={() => setNavPosition('top')} 
-                                                className={`px-2 text-[10px] font-bold rounded transition-all flex items-center ${navPosition === 'top' ? 'bg-[var(--bg-secondary)] text-[var(--accent-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-                                            >
-                                                {t.top}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="w-full h-px bg-[var(--border-secondary)]"></div>
 
                                     <div className="flex justify-between gap-4">
                                         <div className="flex items-center gap-2">
@@ -775,29 +753,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
         </div>
 
-        <div className="bg-[var(--bg-secondary)] rounded-lg shadow-md border border-[var(--border-primary)] mb-8 overflow-hidden">
-            <button className="w-full flex justify-between items-center p-6 text-left" onClick={() => setIsPrintSectionOpen(!isPrintSectionOpen)}>
-                <h3 className="text-xl font-bold text-[var(--text-primary)]">{t.printAndReports}</h3>
-                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transform transition-transform text-[var(--text-secondary)] ${isPrintSectionOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-            </button>
-            <div className={`grid transition-all duration-500 ${isPrintSectionOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                {/* ... (Print Reports content unchanged) ... */}
-                <div className="overflow-hidden">
-                    <div className="p-6 pt-0">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <ReportCard title={t.basicInformation} description="Class stats, room numbers, and in-charges." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} colorGradient="from-blue-500 to-blue-600" onClick={() => setIsBasicInfoPreviewOpen(true)} />
-                            <ReportCard title={t.byPeriod} description="List of free teachers for every period." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorGradient="from-cyan-500 to-teal-600" onClick={() => setIsByPeriodPreviewOpen(true)} />
-                            <ReportCard title={t.schoolTimings} description="Bell schedule for regular days and Friday." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} colorGradient="from-amber-500 to-orange-600" onClick={() => setIsSchoolTimingsPreviewOpen(true)} />
-                            <ReportCard title={t.classTimetable} description="Print timetables for selected classes." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} colorGradient="from-violet-500 to-purple-600" onClick={handleClassTimetableClick} />
-                            <ReportCard title={t.teacherTimetable} description="Print timetables for selected teachers." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>} colorGradient="from-emerald-500 to-green-600" onClick={handleTeacherTimetableClick} />
-                            <ReportCard title={t.workloadSummaryReport} description="Weekly period counts for teachers." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} colorGradient="from-rose-500 to-pink-600" onClick={handleWorkloadReportClick} />
-                            <ReportCard title={t.alternative} description="Daily adjustments and substitution slip." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>} colorGradient="from-indigo-500 to-violet-600" onClick={() => setIsAlternativePreviewOpen(true)} />
-                            <ReportCard title={t.attendanceReport} description="Daily student attendance with class in-charge." icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} colorGradient="from-emerald-500 to-teal-600" onClick={() => setIsAttendanceReportPreviewOpen(true)} />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+
 
         <button onClick={() => setIsAboutOpen(true)} className="fixed bottom-24 right-6 xl:bottom-8 xl:right-8 z-40 bg-[var(--accent-primary)] text-white w-12 h-12 rounded-full shadow-lg hover:shadow-xl hover:bg-[var(--accent-primary-hover)] hover:-translate-y-1 transition-all duration-300 flex items-center justify-center" title="About Mr. TMS"><AboutIcon /></button>
       </div>
