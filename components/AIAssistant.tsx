@@ -103,11 +103,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentSession }) => {
       `;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3-flash-preview',
         contents: userMessage,
         config: {
           systemInstruction: systemPrompt,
-          thinkingConfig: { thinkingBudget: 32768 },
         },
       });
 
@@ -152,7 +151,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentSession }) => {
             <SparklesIcon />
             <div>
                 <h3 className="font-bold text-base leading-none">Mr. TMS AI</h3>
-                <span className="text-[10px] opacity-90 font-mono">gemini-3-pro (Thinking)</span>
+                <span className="text-[10px] opacity-90 font-mono">gemini-3-flash</span>
             </div>
           </div>
           <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-white/20 rounded-full transition">

@@ -100,11 +100,13 @@ const AddTeacherForm: React.FC<AddTeacherFormProps> = ({ t, teachers, onAddTeach
     <div>
         <button 
             onClick={() => setIsFormOpen(true)}
-            className="w-full py-6 border-2 border-dashed border-[var(--border-secondary)] rounded-xl text-[var(--text-secondary)] font-bold text-lg hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-secondary)]/10 transition-all flex items-center justify-center gap-2 shadow-sm mb-8"
+            className="w-full py-4 bg-blue-500 text-white font-bold text-lg rounded-full shadow-lg hover:bg-blue-600 hover:shadow-xl transition-all flex items-center justify-center gap-2 mb-8 transform active:scale-[0.98]"
         >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
+            <div className="bg-white/20 rounded-full p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+            </div>
             {t.addTeacher}
         </button>
 
@@ -189,45 +191,60 @@ const AddTeacherForm: React.FC<AddTeacherFormProps> = ({ t, teachers, onAddTeach
             </div>
         )}
 
-      <div className="mt-10">
-        <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-[var(--text-primary)]">{t.existingTeachers}</h3>
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-[var(--text-primary)] uppercase tracking-wide">{t.existingTeachers}</h3>
+                <span className="bg-blue-100 text-blue-600 text-xs font-bold px-2.5 py-0.5 rounded-full">{sortedTeachers.length} Total</span>
+            </div>
             <select 
                 value={sortBy} 
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-1.5 text-sm bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-[var(--accent-primary)]"
+                className="px-3 py-1.5 text-xs bg-transparent text-gray-500 font-medium focus:outline-none cursor-pointer hover:text-gray-700"
             >
                 <option value="serial">Sort by: Serial</option>
                 <option value="nameEn">Sort by: Name (En)</option>
                 <option value="nameUr">Sort by: Name (Ur)</option>
             </select>
         </div>
-        <div className="bg-[var(--bg-secondary)] rounded-lg shadow-md border border-[var(--border-primary)]">
-          <ul className="divide-y divide-[var(--border-primary)]">
+        
+        <div className="flex flex-col gap-3">
             {sortedTeachers.map((teacher) => (
-              <li key={teacher.id} className="hover:bg-[var(--bg-tertiary)] transition-colors">
-                <div className="flex items-center">
-                    <div className="flex-shrink-0 w-12 text-center text-sm font-medium text-[var(--text-secondary)]">
-                        {teacher.serialNumber}
-                    </div>
-                    <div className="flex-grow border-l border-[var(--border-primary)]">
-                        <SwipeableListItem
-                          t={t}
-                          item={teacher}
-                          onEdit={handleEditClick}
-                          onDelete={handleDelete}
-                          renderContent={(item) => (
-                            <div>
-                                <p className="font-semibold text-[var(--text-primary)]">{item.nameEn} <span className="font-urdu">/ {item.nameUr}</span></p>
-                                <p className="text-sm text-[var(--text-secondary)]">{item.contactNumber} ({item.gender})</p>
+              <div key={teacher.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                <SwipeableListItem
+                  t={t}
+                  item={teacher}
+                  onEdit={handleEditClick}
+                  onDelete={handleDelete}
+                  renderContent={(item) => (
+                    <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${
+                            item.gender === 'Female' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'
+                        }`}>
+                            {item.nameEn.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-gray-900 text-base">{item.nameEn}</h4>
+                            <div className="flex items-center gap-4 mt-1">
+                                <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                    </svg>
+                                    {item.contactNumber}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                    </svg>
+                                    {item.gender}
+                                </div>
                             </div>
-                          )}
-                        />
+                        </div>
                     </div>
-                </div>
-              </li>
+                  )}
+                />
+              </div>
             ))}
-          </ul>
         </div>
       </div>
     </div>

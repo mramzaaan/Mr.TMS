@@ -89,6 +89,7 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
   const [isCommModalOpen, setIsCommModalOpen] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+  const [isLessonListOpen, setIsLessonListOpen] = useState(false);
   
   // Custom Dropdown State
   const [isClassDropdownOpen, setIsClassDropdownOpen] = useState(false);
@@ -663,56 +664,108 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
       {!selectedClass ? (
         <p className="text-center text-[var(--text-secondary)] py-10">{t.selectAClass}</p>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Unscheduled Periods Sidebar */}
-          <div className="lg:w-1/4 space-y-6">
-            <div 
-                className={`bg-[var(--bg-secondary)] p-4 rounded-lg shadow-md border border-[var(--border-primary)] sticky top-24 transition-colors ${draggedData?.sourceDay || (moveSource?.sourceDay) ? 'unscheduled-drop-target cursor-pointer' : ''}`}
-                onDragOver={handleDragOver}
-                onDrop={handleSidebarDrop}
-                onClick={moveSource?.sourceDay ? handleUnschedule : undefined}
+        <div className="relative flex flex-col lg:flex-row gap-6 items-start">
+          
+          {/* Desktop Toggle Button (Visible when closed) */}
+          <button
+              onClick={() => setIsLessonListOpen(true)}
+              className={`
+                  hidden lg:flex absolute left-0 top-24 z-10 
+                  bg-[var(--accent-primary)] text-white 
+                  pl-1 pr-2 py-3 rounded-r-xl shadow-lg 
+                  hover:bg-[var(--accent-primary-hover)] hover:pr-3
+                  transition-all duration-300 items-center gap-2 
+                  ${isLessonListOpen ? 'opacity-0 -translate-x-full pointer-events-none' : 'opacity-100 translate-x-0'}
+              `}
+              title={t.unscheduledPeriods}
+              style={{ writingMode: 'vertical-lr' }}
+          >
+              <span className="rotate-180 text-xs font-bold uppercase tracking-widest whitespace-nowrap">{t.unscheduledPeriods}</span>
+              <ChevronRightIcon />
+          </button>
+
+          {/* Mobile Toggle Button */}
+          <button
+                onClick={() => setIsLessonListOpen(!isLessonListOpen)}
+                className="lg:hidden w-full mb-4 bg-[var(--accent-primary)] text-white p-3 rounded-xl shadow-md flex items-center justify-between"
             >
-              <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3 border-b border-[var(--border-primary)] pb-2 flex justify-between items-center">
-                  {t.unscheduledPeriods}
-                  {moveSource && moveSource.sourceDay && (
-                      <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full animate-pulse">Click here to Unschedule</span>
-                  )}
-              </h3>
-              {Object.keys(groupedUnscheduled).length === 0 ? (
-                <p className="text-sm text-[var(--text-secondary)] italic">{t.dragAndDropInstruction}</p>
-              ) : (
-                <div className="flex flex-col gap-2 max-h-[calc(100vh-200px)] overflow-y-auto pr-2 period-stack-clickable">
-                  {Object.values(groupedUnscheduled).map((group, index) => {
-                      const jp = group[0].jointPeriodId ? jointPeriods.find(j => j.id === group[0].jointPeriodId) : undefined;
-                      const isSelected = moveSource && moveSource.periods[0].id === group[0].id;
-                      const groupKey = jp ? `jp-${jp.id}` : `sub-${group[0].subjectId}`;
-                      
-                      return (
-                        <PeriodStack 
-                            key={`unscheduled-${groupKey}-${index}`} 
-                            periods={group} 
-                            onDragStart={handleDragStart} 
-                            onDragEnd={handleDragEnd}
-                            onClick={(p) => handleStackClick(p)}
-                            colorName={teacherColorMap.get(group[0].teacherId)}
-                            language={language}
-                            subjects={subjects}
-                            teachers={teachers}
-                            classes={classes}
-                            jointPeriods={jointPeriods}
-                            displayContext="teacher"
-                            jointPeriodName={jp?.name}
-                            isSelected={!!isSelected}
-                        />
-                      );
-                  })}
+                <span className="font-bold">{t.unscheduledPeriods}</span>
+                {isLessonListOpen ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          </button>
+
+          {/* Unscheduled Periods Sidebar */}
+          <div className={`
+              lg:transition-all lg:duration-500 lg:ease-[cubic-bezier(0.4,0,0.2,1)]
+              ${isLessonListOpen ? 'lg:w-1/4 lg:opacity-100 lg:translate-x-0' : 'lg:w-0 lg:opacity-0 lg:-translate-x-4 lg:pointer-events-none'}
+              w-full ${isLessonListOpen ? 'block' : 'hidden lg:block'}
+              lg:overflow-hidden
+          `}>
+            <div className="w-full min-w-[280px]">
+                <div 
+                    className={`bg-[var(--bg-secondary)] p-4 rounded-2xl shadow-xl border border-[var(--border-primary)] sticky top-24 transition-colors ${draggedData?.sourceDay || (moveSource?.sourceDay) ? 'unscheduled-drop-target cursor-pointer ring-2 ring-red-400' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDrop={handleSidebarDrop}
+                    onClick={moveSource?.sourceDay ? handleUnschedule : undefined}
+                >
+                <div className="flex justify-between items-center mb-4 border-b border-[var(--border-secondary)] pb-3">
+                    <h3 className="text-lg font-black text-[var(--text-primary)] flex items-center gap-2">
+                        {t.unscheduledPeriods}
+                        <span className="bg-[var(--accent-primary)] text-white text-xs px-2 py-0.5 rounded-full">{Object.keys(groupedUnscheduled).length}</span>
+                    </h3>
+                    <button onClick={() => setIsLessonListOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 rounded-full hover:bg-[var(--bg-tertiary)] transition-colors">
+                        <ChevronLeftIcon />
+                    </button>
                 </div>
-              )}
+
+                {moveSource && moveSource.sourceDay && (
+                    <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-center animate-pulse cursor-pointer">
+                        <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">Drop here to Unschedule</span>
+                    </div>
+                )}
+
+                {Object.keys(groupedUnscheduled).length === 0 ? (
+                    <div className="text-center py-8 opacity-50">
+                        <div className="mb-2 mx-auto w-12 h-12 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[var(--text-secondary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <p className="text-sm text-[var(--text-secondary)] font-medium">{t.allLessonsScheduled}</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-1 custom-scrollbar period-stack-clickable p-1">
+                    {Object.values(groupedUnscheduled).map((group, index) => {
+                        const jp = group[0].jointPeriodId ? jointPeriods.find(j => j.id === group[0].jointPeriodId) : undefined;
+                        const isSelected = moveSource && moveSource.periods[0].id === group[0].id;
+                        const groupKey = jp ? `jp-${jp.id}` : `sub-${group[0].subjectId}`;
+                        
+                        return (
+                            <div key={`unscheduled-${groupKey}-${index}`} className="transform transition-transform hover:scale-[1.02]">
+                                <PeriodStack 
+                                    periods={group} 
+                                    onDragStart={handleDragStart} 
+                                    onDragEnd={handleDragEnd}
+                                    onClick={(p) => handleStackClick(p)}
+                                    colorName={teacherColorMap.get(group[0].teacherId)}
+                                    language={language}
+                                    subjects={subjects}
+                                    teachers={teachers}
+                                    classes={classes}
+                                    jointPeriods={jointPeriods}
+                                    displayContext="teacher"
+                                    jointPeriodName={jp?.name}
+                                    isSelected={!!isSelected}
+                                    className="w-full shadow-sm hover:shadow-md"
+                                />
+                            </div>
+                        );
+                    })}
+                    </div>
+                )}
+                </div>
             </div>
           </div>
 
           {/* Timetable Grid */}
-          <div className="lg:w-3/4 overflow-x-auto">
+          <div className={`transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-x-auto ${isLessonListOpen ? 'lg:w-3/4' : 'w-full'}`}>
             <div className="bg-[var(--bg-secondary)] shadow-lg rounded-lg overflow-hidden border border-[var(--border-primary)]" ref={tableRef}>
               <table className="w-full text-center border-collapse table-fixed">
                 <thead>

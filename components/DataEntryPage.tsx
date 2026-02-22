@@ -121,15 +121,12 @@ const DataEntryPage: React.FC<DataEntryPageProps> = ({
     return (
         <button
           onClick={() => onTabChange(tabName)}
-          className={`flex items-center gap-3 px-6 py-3 text-[11px] font-black uppercase tracking-[0.15em] rounded-2xl transition-all duration-300 whitespace-nowrap shadow-sm border ${
+          className={`flex items-center justify-center px-8 py-2.5 text-sm font-bold rounded-full transition-all duration-200 whitespace-nowrap min-w-[100px] ${
             isActive
-              ? 'bg-[var(--accent-secondary)] text-[var(--accent-primary)] border-[var(--accent-primary)]'
-              : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-primary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)]/50'
+              ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5'
+              : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <span className={`${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--accent-primary)]/70'} transition-colors`}>
-            {TAB_ICONS[tabName]}
-          </span>
           {label}
         </button>
     );
@@ -146,25 +143,34 @@ const DataEntryPage: React.FC<DataEntryPageProps> = ({
       />
       
       <div className="max-w-[1600px] mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-            <div>
-                <h2 className="text-4xl font-black text-[var(--text-primary)] uppercase tracking-tighter">DATA ENTRY</h2>
-                <p className="text-[var(--text-secondary)] font-bold text-xs uppercase tracking-widest mt-1 opacity-70">Manage your school infrastructure</p>
-            </div>
-            <div className="flex-shrink-0 flex items-center gap-3">
-                 <button onClick={() => setIsCsvModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-xl border border-[var(--border-primary)] hover:border-[var(--accent-primary)] transition-all font-bold text-xs uppercase tracking-widest shadow-sm">
-                    <TransferIcon />
-                    {t.importExport}
-                 </button>
-                 <button onClick={onOpenSchoolInfo} className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl border border-indigo-400/30 hover:bg-indigo-700 transition-all font-bold text-xs uppercase tracking-widest shadow-sm">
-                    <SchoolIcon />
-                    {t.schoolInformation}
-                 </button>
-            </div>
+        <div className="mb-8">
+            <h2 className="text-3xl font-black text-[var(--text-primary)] uppercase tracking-tighter">DATA ENTRY</h2>
+            <p className="text-[var(--text-secondary)] font-bold text-xs uppercase tracking-widest mt-1 opacity-70">Manage school infrastructure</p>
         </div>
 
-        <div className="flex items-center justify-between pb-8 mb-8 border-b border-[var(--border-primary)] flex-wrap gap-6">
-            <div className="flex items-center space-x-3 overflow-x-auto no-scrollbar mask-gradient-right px-1">
+        <div className="grid grid-cols-2 gap-4 mb-8">
+             <button 
+                onClick={() => setIsCsvModalOpen(true)} 
+                className="flex items-center justify-center gap-2 px-4 py-4 bg-[#10b981] text-white rounded-2xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all group"
+             >
+                <div className="p-1.5 bg-white/20 rounded-full group-hover:scale-110 transition-transform">
+                    <TransferIcon />
+                </div>
+                <span className="font-bold text-sm uppercase tracking-wide">{t.importExport}</span>
+             </button>
+             <button 
+                onClick={onOpenSchoolInfo} 
+                className="flex items-center justify-center gap-2 px-4 py-4 bg-[#f59e0b] text-white rounded-2xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all group"
+             >
+                <div className="p-1.5 bg-white/20 rounded-full group-hover:scale-110 transition-transform">
+                    <SchoolIcon />
+                </div>
+                <span className="font-bold text-sm uppercase tracking-wide">{t.schoolInformation}</span>
+             </button>
+        </div>
+
+        <div className="flex justify-center mb-8">
+            <div className="inline-flex bg-slate-100 p-1.5 rounded-full shadow-inner">
                 <TabButton tabName="teacher" label={t.teacher} />
                 <TabButton tabName="subject" label={t.subject} />
                 <TabButton tabName="class" label={t.class} />

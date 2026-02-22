@@ -513,47 +513,113 @@ const AddLessonForm: React.FC<AddLessonFormProps> = ({
 
   const inputStyleClasses = "mt-1 block w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-md shadow-sm text-[var(--text-primary)] focus:outline-none focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] sm:text-sm";
 
+  const colorPalette = [
+    'border-l-emerald-500',
+    'border-l-amber-500',
+    'border-l-purple-500',
+    'border-l-blue-500',
+    'border-l-rose-500',
+    'border-l-cyan-500',
+    'border-l-indigo-500',
+    'border-l-teal-500'
+  ];
+
   return (
-    <div>
-      <div className="bg-[var(--bg-secondary)] rounded-xl shadow-md border border-[var(--border-primary)] overflow-hidden">
-          <div className="p-4 border-b border-[var(--border-primary)] bg-[var(--bg-tertiary)] flex justify-between items-center flex-wrap gap-4">
-              <h3 className="text-lg font-bold text-[var(--text-primary)]">{t.lessonList}</h3>
-              <button onClick={() => { resetForm(); setIsModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-primary)] text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-[var(--accent-primary-hover)] transition-colors shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                <span>{t.addLesson}</span>
-              </button>
-          </div>
-          <div className="divide-y divide-[var(--border-primary)]">
-              {sortedList.map(entity => (
-                  <div key={entity.id} className="bg-[var(--bg-secondary)]">
-                      <button onClick={() => setExpandedId(expandedId === entity.id ? null : entity.id)} className="w-full flex items-center justify-between p-4 text-left hover:bg-[var(--bg-tertiary)] transition-colors focus:outline-none">
-                          <div><span className="font-bold text-[var(--text-primary)]">{entity.label}</span> {entity.subLabel && <span className="ml-2 text-sm text-[var(--text-secondary)] font-urdu">{entity.subLabel}</span>} <span className="ml-3 text-xs px-2 py-0.5 bg-[var(--accent-secondary)] text-[var(--accent-primary)] rounded-full">{entity.items.length}</span></div>
-                          <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 text-[var(--text-secondary)] transform transition-transform ${expandedId === entity.id ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                      </button>
-                      {expandedId === entity.id && (
-                          <div className="bg-[var(--bg-tertiary)]/30 border-t border-[var(--border-primary)] animate-fade-in">
-                              {entity.items.length === 0 ? <p className="p-4 text-sm text-[var(--text-secondary)] italic text-center">No lessons found.</p> : (
-                                  <div className="grid grid-cols-1">
-                                      {entity.items.map((item: any) => (
-                                          <div key={item.key} className="flex items-center justify-between p-3 border-b border-[var(--border-secondary)] last:border-0 hover:bg-[var(--bg-secondary)] transition-colors">
-                                              <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2 items-center">
-                                                  <div className="flex flex-col"><span className="text-xs font-bold text-[var(--text-secondary)] uppercase">{t.subject}</span><span className="text-sm font-semibold text-[var(--text-primary)]">{item.displaySubject?.nameEn || 'Unknown'}</span></div>
-                                                  <div className="flex flex-col"><span className="text-xs font-bold text-[var(--text-secondary)] uppercase">{sortBy === 'class' ? t.teacher : t.class}</span><span className="text-sm text-[var(--text-primary)]">{sortBy === 'class' ? (item.displayTeacher?.nameEn || t.withoutTeacher) : (item.type === 'single' ? item.displayClass?.nameEn : item.displayClasses)}</span></div>
-                                                  <div className="flex flex-col"><span className="text-xs font-bold text-[var(--text-secondary)] uppercase">{t.periods}</span><div className="flex items-center gap-2 flex-wrap"><span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold">{item.type === 'single' ? item.subject.periodsPerWeek : item.jointPeriod.periodsPerWeek}</span>{item.type === 'joint' && !item.isDuty && sortBy === 'class' && <span className="text-[10px] text-orange-600 bg-orange-100 px-1.5 rounded border border-orange-200">Joint</span>}{item.groupName && <span className="text-[10px] text-purple-600 bg-purple-100 px-1.5 rounded border border-purple-200">{item.groupName}</span>}</div></div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+          <h3 className="text-3xl font-black text-[var(--text-primary)] tracking-tight">{t.lessonList}</h3>
+          <button 
+            onClick={() => { resetForm(); setIsModalOpen(true); }} 
+            className="flex items-center gap-2 px-6 py-3 bg-[#10b981] text-white text-sm font-black uppercase tracking-wider rounded-full hover:bg-[#059669] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+            <span>{t.addLesson}</span>
+          </button>
+      </div>
+
+      <div className="space-y-4">
+          {sortedList.map(entity => (
+              <div key={entity.id} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                  <button 
+                    onClick={() => setExpandedId(expandedId === entity.id ? null : entity.id)} 
+                    className="w-full flex items-center justify-between p-5 bg-slate-50/50 hover:bg-slate-100 transition-colors focus:outline-none group"
+                  >
+                      <div className="flex items-center gap-3">
+                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold shadow-sm group-hover:bg-blue-200 transition-colors">
+                            {entity.label}
+                        </span>
+                        {entity.subLabel && (
+                            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shadow-sm">
+                                13
+                            </div>
+                        )}
+                        {entity.subLabel && <span className="text-lg font-urdu text-slate-600">{entity.subLabel}</span>}
+                      </div>
+                      
+                      <div className="text-slate-400 group-hover:text-slate-600 transition-colors transform duration-200" style={{ transform: expandedId === entity.id ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                      </div>
+                  </button>
+                  
+                  {expandedId === entity.id && (
+                      <div className="p-4 bg-slate-50/30 animate-fade-in">
+                          {entity.items.length === 0 ? (
+                              <p className="p-8 text-center text-slate-400 italic">No lessons found for this class.</p>
+                          ) : (
+                              <div className="space-y-3">
+                                  {entity.items.map((item: any, index: number) => {
+                                      const periodsCount = item.type === 'single' ? item.subject.periodsPerWeek : item.jointPeriod.periodsPerWeek;
+                                      const borderColorClass = colorPalette[index % colorPalette.length];
+                                      
+                                      return (
+                                          <div key={item.key} className={`relative bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex justify-between items-start border-l-[6px] ${borderColorClass} hover:shadow-md transition-shadow`}>
+                                              {/* Left Content */}
+                                              <div className="space-y-4">
+                                                  <div>
+                                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">SUBJECT</p>
+                                                      <h4 className="text-xl font-black text-slate-800 leading-none tracking-tight">{item.displaySubject?.nameEn || 'Unknown'}</h4>
+                                                  </div>
+                                                  <div>
+                                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">PERIODS</p>
+                                                      <div className="flex items-center gap-2">
+                                                          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-black text-sm shadow-sm border border-indigo-100">
+                                                              {periodsCount}
+                                                          </span>
+                                                          {item.type === 'joint' && !item.isDuty && sortBy === 'class' && (
+                                                              <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md border border-orange-100 uppercase tracking-wide">Joint</span>
+                                                          )}
+                                                          {item.groupName && (
+                                                              <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-md border border-purple-100 uppercase tracking-wide">{item.groupName}</span>
+                                                          )}
+                                                      </div>
+                                                  </div>
                                               </div>
-                                              <div className="flex items-center gap-2 pl-2">
-                                                  <button type="button" onClick={() => handleEditClick(item)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>
-                                                  <button type="button" onClick={(e) => handleDeleteClick(e, item)} className="p-2 text-red-600 hover:bg-red-100 rounded-full transition-colors" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg></button>
+
+                                              {/* Right Content */}
+                                              <div className="text-right flex flex-col items-end justify-between h-full min-h-[90px]">
+                                                  <div className="mb-4">
+                                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">TEACHER</p>
+                                                      <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">{sortBy === 'class' ? (item.displayTeacher?.nameEn || t.withoutTeacher) : (item.type === 'single' ? item.displayClass?.nameEn : item.displayClasses)}</p>
+                                                  </div>
+                                                  
+                                                  <div className="flex items-center gap-4 mt-auto">
+                                                      <button type="button" onClick={() => handleEditClick(item)} className="text-blue-500 hover:text-blue-600 transition-colors p-1" title="Edit">
+                                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                      </button>
+                                                      <button type="button" onClick={(e) => handleDeleteClick(e, item)} className="text-red-400 hover:text-red-500 transition-colors p-1" title="Delete">
+                                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                      </button>
+                                                  </div>
                                               </div>
                                           </div>
-                                      ))}
-                                  </div>
-                              )}
-                          </div>
-                      )}
-                  </div>
-              ))}
-          </div>
+                                      );
+                                  })}
+                              </div>
+                          )}
+                      </div>
+                  )}
+              </div>
+          ))}
       </div>
 
       {isModalOpen && (
