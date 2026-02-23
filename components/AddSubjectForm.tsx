@@ -17,6 +17,7 @@ const AddSubjectForm: React.FC<AddSubjectFormProps> = ({ t, subjects, onAddSubje
   const [nameUr, setNameUr] = useState('');
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'serial' | 'nameEn' | 'nameUr'>('serial');
   
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -37,7 +38,6 @@ const AddSubjectForm: React.FC<AddSubjectFormProps> = ({ t, subjects, onAddSubje
 
   const handleEditClick = (subject: Subject) => {
     setEditingSubject(subject);
-    // Modal handles focus automatically usually, but if needed we can focus first input
   };
 
   const handleCancel = () => {
@@ -97,6 +97,15 @@ const AddSubjectForm: React.FC<AddSubjectFormProps> = ({ t, subjects, onAddSubje
   const handleDelete = (subject: Subject) => {
     onDeleteSubject(subject.id);
   };
+
+  const sortedSubjects = React.useMemo(() => {
+    return [...subjects].sort((a, b) => {
+        if (sortBy === 'serial') return 0; // Subjects might not have serial number in type, defaulting to insertion order or add if needed. Assuming no serial for now or just index.
+        if (sortBy === 'nameEn') return a.nameEn.localeCompare(b.nameEn);
+        if (sortBy === 'nameUr') return a.nameUr.localeCompare(b.nameUr);
+        return 0;
+    });
+  }, [subjects, sortBy]);
 
   const inputStyleClasses = "mt-1 block w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-md shadow-sm text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] sm:text-sm";
   
@@ -159,37 +168,47 @@ const AddSubjectForm: React.FC<AddSubjectFormProps> = ({ t, subjects, onAddSubje
         </div>
       )}
 
-      <div className="mt-10">
-        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-4">{t.existingSubjects}</h3>
-        <div className="bg-[var(--bg-secondary)] rounded-lg shadow-md border border-[var(--border-primary)]">
-            <ul className="divide-y divide-[var(--border-primary)]">
-                {subjects.map((subject, index) => (
-                    <li key={subject.id} className="hover:bg-[var(--bg-tertiary)] transition-colors">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0 w-12 text-center text-sm font-medium text-[var(--text-secondary)]">
-                                {index + 1}
-                            </div>
-                            <div className="flex-grow border-l border-[var(--border-primary)]">
-                                <SwipeableListItem
-                                    t={t}
-                                    item={subject}
-                                    onEdit={handleEditClick}
-                                    onDelete={handleDelete}
-                                    renderContent={(s) => {
-                                        return (
-                                            <div className="flex-1">
-                                                <p className="font-semibold text-[var(--text-primary)]">
-                                                    {s.nameEn} <span className="font-urdu">/ {s.nameUr}</span>
-                                                </p>
-                                            </div>
-                                        );
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    </li>
-                ))}
-            </ul>
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-[var(--text-primary)] uppercase tracking-wide">{t.existingSubjects}</h3>
+                <span className="bg-purple-100 text-purple-600 text-xs font-bold px-2.5 py-0.5 rounded-full">{sortedSubjects.length} Total</span>
+            </div>
+            <select 
+                value={sortBy} 
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-3 py-1.5 text-xs bg-transparent text-gray-500 font-medium focus:outline-none cursor-pointer hover:text-gray-700"
+            >
+                <option value="serial">Sort by: Default</option>
+                <option value="nameEn">Sort by: Name (En)</option>
+                <option value="nameUr">Sort by: Name (Ur)</option>
+            </select>
+        </div>
+
+        <div className="flex flex-col gap-3">
+            {sortedSubjects.map((subject, index) => (
+                <div key={subject.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                    <SwipeableListItem
+                        t={t}
+                        item={subject}
+                        onEdit={handleEditClick}
+                        onDelete={handleDelete}
+                        renderContent={(s) => {
+                            return (
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-lg font-bold">
+                                        {index + 1}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-900 text-base">{s.nameEn}</h4>
+                                        <p className="text-sm text-gray-500 font-urdu">{s.nameUr}</p>
+                                    </div>
+                                </div>
+                            );
+                        }}
+                    />
+                </div>
+            ))}
         </div>
       </div>
     </div>

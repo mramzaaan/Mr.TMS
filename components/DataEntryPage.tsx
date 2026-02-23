@@ -165,7 +165,7 @@ const DataEntryPage: React.FC<DataEntryPageProps> = ({
                 <div className="p-1.5 bg-white/20 rounded-full group-hover:scale-110 transition-transform">
                     <SchoolIcon />
                 </div>
-                <span className="font-bold text-sm uppercase tracking-wide">{t.schoolInformation}</span>
+                <span className="font-bold text-sm uppercase tracking-wide">School Info</span>
              </button>
         </div>
 

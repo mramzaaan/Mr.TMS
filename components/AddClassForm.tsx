@@ -192,13 +192,16 @@ const AddClassForm: React.FC<AddClassFormProps> = ({ t, subjects, teachers, clas
         </div>
       )}
 
-      <div className="mt-10">
-        <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-[var(--text-primary)]">{t.existingClasses}</h3>
+      <div className="mt-6">
+        <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-[var(--text-primary)] uppercase tracking-wide">{t.existingClasses}</h3>
+                <span className="bg-green-100 text-green-600 text-xs font-bold px-2.5 py-0.5 rounded-full">{sortedClasses.length} Total</span>
+            </div>
             <select 
                 value={sortBy} 
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-1.5 text-sm bg-[var(--bg-secondary)] border border-[var(--border-secondary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-[var(--accent-primary)] max-w-[140px]"
+                className="px-3 py-1.5 text-xs bg-transparent text-gray-500 font-medium focus:outline-none cursor-pointer hover:text-gray-700"
             >
                 <option value="serial">Sort by: Serial</option>
                 <option value="nameEn">Sort by: Name (En)</option>
@@ -206,39 +209,56 @@ const AddClassForm: React.FC<AddClassFormProps> = ({ t, subjects, teachers, clas
                 <option value="studentCount">Sort by: Students</option>
             </select>
         </div>
-        <div className="bg-[var(--bg-secondary)] rounded-lg shadow-md border border-[var(--border-primary)] max-h-[calc(100vh-160px)] overflow-y-auto custom-scrollbar">
-          <ul className="divide-y divide-[var(--border-primary)]">
+        
+        <div className="flex flex-col gap-3">
             {sortedClasses.map((schoolClass) => (
-              <li key={schoolClass.id} className="hover:bg-[var(--bg-tertiary)] transition-colors">
-                <div className="flex items-center">
-                    <div className="flex-shrink-0 w-12 text-center text-sm font-medium text-[var(--text-secondary)]">
-                        {schoolClass.serialNumber}
-                    </div>
-                    <div className="flex-grow border-l border-[var(--border-primary)]">
-                        <SwipeableListItem
-                          t={t}
-                          item={schoolClass}
-                          onEdit={handleEditClick}
-                          onDelete={(item) => onDeleteClass(item.id)}
-                          renderContent={(c) => {
-                            const inChargeTeacher = teachers.find(t => t.id === c.inCharge);
-                            return (
-                              <div>
-                                <p className="font-semibold text-[var(--text-primary)]">{c.nameEn} <span className="font-urdu">/ {c.nameUr}</span></p>
-                                <p className="text-sm text-[var(--text-secondary)]">
-                                  {c.category && <span className="font-semibold">{t[c.category.toLowerCase()]} | </span>}
-                                  {t.classInCharge}: {inChargeTeacher?.nameEn || c.inCharge}
-                                </p>
-                                <p className="text-sm text-[var(--text-secondary)]">Subjects: {c.subjects.length}</p>
-                              </div>
-                            );
-                          }}
-                        />
-                    </div>
-                </div>
-              </li>
+              <div key={schoolClass.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                <SwipeableListItem
+                  t={t}
+                  item={schoolClass}
+                  onEdit={handleEditClick}
+                  onDelete={(item) => onDeleteClass(item.id)}
+                  renderContent={(c) => {
+                    const inChargeTeacher = teachers.find(t => t.id === c.inCharge);
+                    return (
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-lg font-bold">
+                            {c.serialNumber || c.nameEn.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="font-bold text-gray-900 text-base">{c.nameEn} <span className="font-urdu text-sm font-normal text-gray-500">/ {c.nameUr}</span></h4>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                                {c.category && (
+                                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                        {t[c.category.toLowerCase()]}
+                                    </span>
+                                )}
+                                <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+                                    </svg>
+                                    {c.roomNumber}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                                    </svg>
+                                    {c.studentCount}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                    </svg>
+                                    {inChargeTeacher?.nameEn || c.inCharge}
+                                </div>
+                            </div>
+                        </div>
+                      </div>
+                    );
+                  }}
+                />
+              </div>
             ))}
-          </ul>
         </div>
       </div>
     </div>

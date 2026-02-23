@@ -221,7 +221,7 @@ const AddTeacherForm: React.FC<AddTeacherFormProps> = ({ t, teachers, onAddTeach
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${
                             item.gender === 'Female' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'
                         }`}>
-                            {item.nameEn.substring(0, 2).toUpperCase()}
+                            {item.serialNumber || item.nameEn.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
                             <h4 className="font-bold text-gray-900 text-base">{item.nameEn}</h4>
