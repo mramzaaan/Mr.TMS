@@ -694,9 +694,12 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
             {/* Mobile Toggle Button */}
             <button
                   onClick={() => setIsLessonListOpen(!isLessonListOpen)}
-                  className="lg:hidden w-full mb-4 bg-[var(--accent-primary)] text-white p-3 rounded-xl shadow-md flex items-center justify-between"
+                  className="lg:hidden w-full mb-4 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white p-4 rounded-xl shadow-lg flex items-center justify-between transform transition-transform active:scale-95"
               >
-                  <span className="font-bold">{t.unscheduledPeriods}</span>
+                  <div className="flex items-center gap-2">
+                      <span className="font-black text-lg tracking-wide">{t.unscheduledPeriods}</span>
+                      <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full font-bold">{Object.keys(groupedUnscheduled).length}</span>
+                  </div>
                   {isLessonListOpen ? <ChevronDownIcon /> : <ChevronRightIcon />}
             </button>
 
@@ -709,21 +712,22 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
             `}>
                 <div className="w-full min-w-[280px]">
                     <div 
-                        className={`bg-[var(--bg-secondary)] p-4 rounded-2xl shadow-xl border border-[var(--border-primary)] sticky top-24 transition-colors ${draggedData?.sourceDay || (moveSource?.sourceDay) ? 'unscheduled-drop-target cursor-pointer ring-2 ring-red-400' : ''}`}
+                        className={`bg-[var(--bg-secondary)] rounded-2xl shadow-xl border border-[var(--border-primary)] sticky top-24 transition-colors overflow-hidden ${draggedData?.sourceDay || (moveSource?.sourceDay) ? 'unscheduled-drop-target cursor-pointer ring-2 ring-red-400' : ''}`}
                         onDragOver={handleDragOver}
                         onDrop={handleSidebarDrop}
                         onClick={moveSource?.sourceDay ? handleUnschedule : undefined}
                     >
-                    <div className="flex justify-between items-center mb-4 border-b border-[var(--border-secondary)] pb-3">
+                    <div className="flex justify-between items-center p-4 bg-gradient-to-b from-[var(--bg-tertiary)]/50 to-transparent border-b border-[var(--border-secondary)]">
                         <h3 className="text-lg font-black text-[var(--text-primary)] flex items-center gap-2">
                             {t.unscheduledPeriods}
-                            <span className="bg-[var(--accent-primary)] text-white text-xs px-2 py-0.5 rounded-full">{Object.keys(groupedUnscheduled).length}</span>
+                            <span className="bg-[var(--accent-primary)] text-white text-xs px-2 py-0.5 rounded-full shadow-sm">{Object.keys(groupedUnscheduled).length}</span>
                         </h3>
-                        <button onClick={() => setIsLessonListOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 rounded-full hover:bg-[var(--bg-tertiary)] transition-colors lg:block hidden">
+                        <button onClick={() => setIsLessonListOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1.5 rounded-full hover:bg-[var(--bg-tertiary)] transition-colors lg:block hidden">
                             <ChevronLeftIcon />
                         </button>
                     </div>
-
+                    
+                    <div className="p-4 pt-2">
                     {moveSource && moveSource.sourceDay && (
                         <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-center animate-pulse cursor-pointer">
                             <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">Drop here to Unschedule</span>
@@ -767,6 +771,7 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
                         })}
                         </div>
                     )}
+                    </div>
                     </div>
                 </div>
             </div>
@@ -843,13 +848,11 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
                             {!isDisabled && teacherAvailabilityMap && (
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                                     {conflictText ? (
-                                        <div className="flex flex-col items-center animate-pulse">
-                                            {/* Error Mark */}
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600 dark:text-red-300 mb-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100/95 dark:bg-red-900/95 rounded-lg border-2 border-red-500/50 dark:border-red-400/50 shadow-md animate-pulse z-20 backdrop-blur-sm">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-700 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                                             </svg>
-                                            <span className="text-[10px] font-black uppercase text-red-700 dark:text-red-200 opacity-90 leading-tight">BUSY IN</span>
-                                            <span className="text-xs font-bold text-red-800 dark:text-red-100 text-center leading-tight px-1">{conflictText}</span>
+                                            <span className="text-xs font-black text-red-800 dark:text-red-100 whitespace-nowrap">{conflictText}</span>
                                         </div>
                                     ) : (
                                         // Only show 'Available' if slot is empty (no cards) and status is not 'here'
@@ -949,22 +952,26 @@ const ClassTimetablePage: React.FC<ClassTimetablePageProps> = ({ t, language, cl
                         <p className="text-sm text-[var(--text-secondary)] font-medium">No recent changes.</p>
                     </div>
                 ) : (
-                    <ul className="space-y-3">
+                    <ul className="space-y-2">
                         {classLogs.map((log) => (
-                            <li key={log.id} className="p-3 bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-secondary)] shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className={`text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider ${
-                                        log.type === 'delete' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 
-                                        log.type === 'add' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 
-                                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                            <li key={log.id} className={`p-3 rounded-xl border shadow-sm hover:shadow-md transition-all ${
+                                log.type === 'delete' ? 'bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800/50' :
+                                log.type === 'add' ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/50' :
+                                'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/50'
+                            }`}>
+                                <div className="flex justify-between items-center mb-1.5">
+                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                        log.type === 'delete' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : 
+                                        log.type === 'add' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 
+                                        'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
                                     }`}>
                                         {log.type}
                                     </span>
-                                    <span className="text-[10px] font-bold text-[var(--text-secondary)]">
-                                        {new Date(log.timestamp).toLocaleString()}
+                                    <span className="text-[10px] font-bold opacity-50">
+                                        {new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                     </span>
                                 </div>
-                                <p className="text-sm font-medium text-[var(--text-primary)] leading-snug">{log.details}</p>
+                                <p className="text-xs font-bold text-[var(--text-primary)] leading-tight opacity-90">{log.details}</p>
                             </li>
                         ))}
                     </ul>

@@ -1044,6 +1044,12 @@ export const TeacherTimetablePage: React.FC<TeacherTimetablePageProps> = ({
         designConfig={schoolConfig.downloadDesigns.teacher}
       />
 
+import { OnlineTeachersShareModal } from './OnlineTeachersShareModal';
+
+// ... inside component ...
+  const [isOnlineShareModalOpen, setIsOnlineShareModalOpen] = useState(false);
+
+// ... inside return ...
       {/* Header Section: Centered Dropdown and Action Buttons */}
       <div className="mb-8 flex flex-col items-center gap-6">
         

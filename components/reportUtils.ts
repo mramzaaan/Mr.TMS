@@ -19,8 +19,8 @@ export interface WorkloadStats {
   possiblePeriodsInRange?: number;
 }
 
-// Updated Robust Urdu Font Stack using Google Fonts (Gulzar is prioritized)
-const URDU_FONT_STACK = "'Gulzar', 'Noto Nastaliq Urdu', serif";
+// Updated Robust Urdu Font Stack using System Fonts
+const URDU_FONT_STACK = "sans-serif";
 
 const teacherColorNames = [
   'subject-sky', 'subject-green', 'subject-yellow', 'subject-red',
@@ -371,7 +371,7 @@ export const getPrintStyles = (design: DownloadDesignConfig) => {
     const width = page.orientation === 'portrait' ? (page.size === 'legal' ? '816px' : '794px') : (page.size === 'legal' ? '1344px' : '1123px');
     const height = page.orientation === 'portrait' ? (page.size === 'legal' ? '1344px' : '1123px') : (page.size === 'legal' ? '816px' : '794px');
 
-    const importsLatin = `@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Gulzar&family=Noto+Nastaliq+Urdu:wght@400;700&family=Anton&family=Antonio:wght@400;700&family=Bebas+Neue&family=Bodoni+Moda:opsz,wght@6..96,400..900&family=Bungee+Spice&family=Fjalla+One&family=Instrument+Serif:ital@0;1&family=Lato:wght@400;700&family=Merriweather:wght@400;700;900&family=Monoton&family=Montserrat:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Anton&family=Instrument+Serif:ital@0;1&family=Playwrite+CU:wght@100..400&family=Roboto:wght@400;500;700&family=Rubik+Mono+One&display=swap');`;
+    const importsLatin = ``;
 
     const vAlign = (table.verticalAlign as string) === 'center' ? 'middle' : (table.verticalAlign || 'top'); 
 
@@ -997,6 +997,10 @@ export const generateAdjustmentsReportHtml = (
     const locale = lang === 'ur' ? 'ur-PK-u-nu-latn' : 'en-GB';
     const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
     const dateStr = dateObj.toLocaleDateString(locale, dateOptions);
+    const showDate = design.header.showDate !== false;
+    const title = `${trLocal('substitution')}${showDate ? ` - ${dateStr}` : ''}`;
+    const subtitle = design.header.subtitle || '';
+
     const sortedAdjustments = [...adjustments].sort((a, b) => { const teacherA = teachers.find(t => t.id === a.originalTeacherId)?.nameEn || ''; const teacherB = teachers.find(t => t.id === b.originalTeacherId)?.nameEn || ''; return teacherA.localeCompare(teacherB) || a.periodIndex - b.periodIndex; });
     const onLeaveTeachers = [...new Set([...sortedAdjustments.map(adj => adj.originalTeacherId), ...absentTeacherIds])].map(id => teachers.find(t => t.id === id)).filter(Boolean) as Teacher[];
     const onLeaveText = onLeaveTeachers.map(t => { const en = t.nameEn.toUpperCase(); return renderText(lang, en, t.nameUr); }).join(', ');
@@ -1041,7 +1045,7 @@ export const generateAdjustmentsReportHtml = (
       // Signature Block injection
       const signatureHtml = `<div style="margin-top: 20px; display: flex; justify-content: flex-end;"><div style="text-align: center; border-top: 1px solid #000; padding-top: 5px; width: 200px; position: relative;">${signature ? `<img src="${signature}" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); max-height: 60px; pointer-events: none; filter: grayscale(1) contrast(150%);" />` : ''}<strong>${trLocal('signature')}</strong></div></div>`;
       const tableHtml = `${customStyles} ${teachersOnLeaveHtml}<table><thead><tr><th style="width: 10%;">${trLocal('absent')}</th><th style="width: 35px;">${trLocal('period')}</th><th>${trLocal('class')}</th><th>${trLocal('subject')}</th><th>${trLocal('substituteTeacher')}</th><th style="width: 15%;">${trLocal('signature')}</th></tr></thead><tbody>${tableRowsHtml}</tbody></table>${signatureHtml}`;
-      pages.push(generateReportHTML(schoolConfig, design, `${trLocal('substitution')} - ${dateStr}`, lang, tableHtml, '', i + 1, totalPages));
+      pages.push(generateReportHTML(schoolConfig, design, title, lang, tableHtml, subtitle, i + 1, totalPages));
     }
     return pages;
 };

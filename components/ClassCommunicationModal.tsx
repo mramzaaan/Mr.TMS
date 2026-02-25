@@ -194,7 +194,6 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
 
       const styles = `
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
           * { 
             box-sizing: border-box !important; 
             -webkit-text-size-adjust: none !important; 
@@ -241,7 +240,7 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             pointer-events: none;
           }
 
-          .font-urdu { font-family: 'Noto Nastaliq Urdu', serif !important; }
+          .font-urdu { font-family: sans-serif !important; }
           
           .img-header {
             flex-shrink: 0;

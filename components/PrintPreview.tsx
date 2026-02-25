@@ -60,18 +60,8 @@ const ChevronDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className=
 
 const fontOptions: { label: string, value: FontFamily }[] = [
     { label: 'System Default', value: 'sans-serif' as FontFamily },
-    { label: 'Gulzar (Urdu)', value: 'Gulzar' as FontFamily },
-    { label: 'Noto Nastaliq (Urdu)', value: 'Noto Nastaliq Urdu' as FontFamily },
-    { label: 'Arial', value: 'Arial' },
-    { label: 'Times New Roman', value: 'Times New Roman' },
-    { label: 'Impact', value: 'Impact' },
-    { label: 'Calibri', value: 'Calibri' },
-    { label: 'Roboto', value: 'Roboto' },
-    { label: 'Open Sans', value: 'Open Sans' },
-    { label: 'Montserrat', value: 'Montserrat' },
-    { label: 'Bebas Neue', value: 'Bebas Neue' },
-    { label: 'Playfair Display', value: 'Playfair Display' },
-    { label: 'Oswald', value: 'Oswald' },
+    { label: 'Serif', value: 'serif' as FontFamily },
+    { label: 'Monospace', value: 'monospace' as FontFamily },
 ];
 
 const cardStyleOptions: { label: string, value: CardStyle }[] = [
@@ -102,7 +92,7 @@ const SettingsSidebar: React.FC<{
     onApplyStyle: (property: string, value: string) => void,
     onExecCmd: (cmd: string, val?: string) => void,
 }> = ({ options, onUpdate, onSaveDesign, resetToDefaults, activeElement, activeElementStyles, onApplyStyle, onExecCmd }) => {
-    const [activeSection, setActiveSection] = useState<'page' | 'header' | 'table' | 'footer' | 'edit'>('page');
+    const [activeSection, setActiveSection] = useState<'page' | 'header' | 'table' | 'footer' | 'edit' | 'visibility' | 'presets'>('page');
     const [isSaving, setIsSaving] = useState(false);
 
     const handleValueChange = (path: string, value: any) => {
@@ -225,6 +215,31 @@ const SettingsSidebar: React.FC<{
         </div>
     );
 
+    const [presets, setPresets] = useState<{name: string, config: DownloadDesignConfig}[]>(() => {
+        try {
+            return JSON.parse(localStorage.getItem('print_presets') || '[]');
+        } catch { return []; }
+    });
+    const [newPresetName, setNewPresetName] = useState('');
+
+    const savePreset = () => {
+        if (!newPresetName) return;
+        const newPresets = [...presets, { name: newPresetName, config: options }];
+        setPresets(newPresets);
+        localStorage.setItem('print_presets', JSON.stringify(newPresets));
+        setNewPresetName('');
+    };
+
+    const loadPreset = (config: DownloadDesignConfig) => {
+        onUpdate(config);
+    };
+
+    const deletePreset = (index: number) => {
+        const newPresets = presets.filter((_, i) => i !== index);
+        setPresets(newPresets);
+        localStorage.setItem('print_presets', JSON.stringify(newPresets));
+    };
+
     return (
         <div className="w-72 bg-gray-900 border-r border-gray-800 flex flex-col h-full shadow-xl z-20">
             <div className="p-4 border-b border-gray-800 bg-gray-900">
@@ -236,6 +251,8 @@ const SettingsSidebar: React.FC<{
                 <SectionButton id="header" label="Header" icon={Icons.Header} />
                 <SectionButton id="table" label="Table" icon={Icons.Table} />
                 <SectionButton id="footer" label="Footer" icon={Icons.Footer} />
+                <SectionButton id="visibility" label="Visibility" icon={Icons.Check} />
+                <SectionButton id="presets" label="Presets" icon={Icons.Share} />
                 <SectionButton id="edit" label="Edit Text" icon={Icons.Edit} />
             </div>
 
@@ -246,6 +263,7 @@ const SettingsSidebar: React.FC<{
                             <NumberInput label="Rows (All Pages)" path="rowsPerPage" value={options.rowsPerPage} min={5} max={100} />
                             <NumberInput label="Rows (1st Page)" path="rowsPerFirstPage" value={options.rowsPerFirstPage || options.rowsPerPage} min={5} max={100} />
                             <SelectInput label="Color Mode" path="colorMode" value={options.colorMode} options={[{value: 'color', label: 'Color'}, {value: 'bw', label: 'Black & White'}]} />
+                            <NumberInput label="Content Scale" path="contentScale" value={options.contentScale || 1} min={0.5} max={2.0} step={0.05} />
                         </ControlGroup>
                         <ControlGroup label="Paper">
                             <SelectInput label="Size" path="page.size" value={options.page.size} options={[{value: 'a4', label: 'A4'}, {value: 'letter', label: 'Letter'}, {value: 'legal', label: 'Legal'}]} />
@@ -260,6 +278,41 @@ const SettingsSidebar: React.FC<{
                             <NumberInput label="Right" path="page.margins.right" value={options.page.margins.right} min={0} max={50} />
                         </ControlGroup>
                     </>
+                )}
+
+                {activeSection === 'visibility' && (
+                    <ControlGroup label="Show/Hide Elements">
+                        <ToggleInput label="Teacher Name" path="visibleElements.teacherName" value={options.visibleElements?.teacherName ?? true} />
+                        <ToggleInput label="Subject Name" path="visibleElements.subjectName" value={options.visibleElements?.subjectName ?? true} />
+                        <ToggleInput label="Room Number" path="visibleElements.roomNumber" value={options.visibleElements?.roomNumber ?? true} />
+                    </ControlGroup>
+                )}
+
+                {activeSection === 'presets' && (
+                    <ControlGroup label="Saved Presets">
+                        <div className="flex gap-2 mb-4">
+                            <input 
+                                type="text" 
+                                value={newPresetName} 
+                                onChange={(e) => setNewPresetName(e.target.value)}
+                                placeholder="Preset Name"
+                                className="flex-1 bg-gray-900 border border-gray-700 text-white text-xs rounded px-2 py-1.5 outline-none focus:border-teal-500"
+                            />
+                            <button onClick={savePreset} disabled={!newPresetName} className="px-3 py-1 bg-teal-600 text-white rounded text-xs font-bold hover:bg-teal-700 disabled:opacity-50">Save</button>
+                        </div>
+                        <div className="space-y-2">
+                            {presets.map((preset, idx) => (
+                                <div key={idx} className="flex items-center justify-between bg-gray-800 p-2 rounded border border-gray-700">
+                                    <span className="text-xs text-gray-300 font-medium">{preset.name}</span>
+                                    <div className="flex gap-1">
+                                        <button onClick={() => loadPreset(preset.config)} className="p-1 text-teal-400 hover:text-teal-300" title="Load"><Icons.Check /></button>
+                                        <button onClick={() => deletePreset(idx)} className="p-1 text-red-400 hover:text-red-300" title="Delete"><Icons.Close /></button>
+                                    </div>
+                                </div>
+                            ))}
+                            {presets.length === 0 && <p className="text-xs text-gray-500 text-center italic">No saved presets</p>}
+                        </div>
+                    </ControlGroup>
                 )}
 
                 {activeSection === 'header' && (
@@ -277,6 +330,8 @@ const SettingsSidebar: React.FC<{
                             {options.header.showTitle && (
                                 <NumberInput label="Title Size" path="header.title.fontSize" value={options.header.title?.fontSize || 18} min={10} max={80} />
                             )}
+                            <ToggleInput label="Show Date" path="header.showDate" value={options.header.showDate} />
+                            <TextInput label="Subtitle" path="header.subtitle" value={options.header.subtitle} />
                             <ToggleInput label="Show Divider" path="header.divider" value={options.header.divider} />
                             <ColorInput label="Background" path="header.bgColor" value={options.header.bgColor} />
                         </ControlGroup>
@@ -578,6 +633,12 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                           -moz-osx-font-smoothing: grayscale !important;
                           line-height: 1.2 !important;
                       }
+                      /* Visibility Styles */
+                      ${options.visibleElements?.teacherName === false ? '.period-teacher, .teacher-text { display: none !important; }' : ''}
+                      ${options.visibleElements?.subjectName === false ? '.period-subject, .subject-text { display: none !important; }' : ''}
+                      ${options.visibleElements?.roomNumber === false ? '.header-details > div > div:nth-child(3) { display: none !important; }' : ''}
+                      /* Scale */
+                      .page { zoom: ${options.contentScale || 1}; }
                   `;
                   clonedDoc.head.appendChild(style);
               }
@@ -674,6 +735,12 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                               -moz-osx-font-smoothing: grayscale !important;
                               line-height: 1.2 !important;
                           }
+                          /* Visibility Styles */
+                          ${options.visibleElements?.teacherName === false ? '.period-teacher, .teacher-text { display: none !important; }' : ''}
+                          ${options.visibleElements?.subjectName === false ? '.period-subject, .subject-text { display: none !important; }' : ''}
+                          ${options.visibleElements?.roomNumber === false ? '.header-details > div > div:nth-child(3) { display: none !important; }' : ''}
+                          /* Scale */
+                          .page { zoom: ${options.contentScale || 1}; }
                       `;
                       clonedDoc.head.appendChild(style);
                   }
@@ -740,6 +807,16 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                       }
                       /* Ensure iframe content is visible when printing */
                       html, body { height: 100%; width: 100%; background: #ffffff; }
+
+                      /* Visibility Styles */
+                      ${options.visibleElements?.teacherName === false ? '.period-teacher, .teacher-text { display: none !important; }' : ''}
+                      ${options.visibleElements?.subjectName === false ? '.period-subject, .subject-text { display: none !important; }' : ''}
+                      ${options.visibleElements?.roomNumber === false ? '.header-details > div > div:nth-child(3) { display: none !important; }' : ''}
+
+                      /* Scale */
+                      .page {
+                          zoom: ${options.contentScale || 1};
+                      }
                   </style>
               </head>
               <body>
@@ -818,6 +895,14 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                             <button onClick={() => setLang('both')} className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md transition-colors ${lang === 'both' ? 'bg-teal-600 text-white' : 'text-gray-400 hover:text-white'}`}>Both</button>
                         </div>
 
+                        <div className="flex items-center bg-gray-800 rounded-lg border border-gray-700 p-1 gap-1 flex-shrink-0">
+                            <button onClick={() => setZoomLevel(z => Math.max(20, z - 10))} className="p-1.5 hover:bg-gray-700 rounded text-gray-400 hover:text-white" title="Zoom Out"><ZoomOutIcon /></button>
+                            <span className="text-xs font-bold text-gray-400 w-8 text-center">{zoomLevel}%</span>
+                            <button onClick={() => setZoomLevel(z => Math.min(200, z + 10))} className="p-1.5 hover:bg-gray-700 rounded text-gray-400 hover:text-white" title="Zoom In"><ZoomInIcon /></button>
+                        </div>
+
+                        <div className="w-px h-6 bg-gray-700 mx-1 flex-shrink-0"></div>
+
                         {/* Action Buttons */}
                         <div className="flex items-center bg-gray-800 rounded-lg border border-gray-700 p-1 gap-1 flex-shrink-0">
                             <button onClick={handleUndo} disabled={historyIndex <= 0} className="p-1.5 hover:bg-gray-700 rounded disabled:opacity-30 text-gray-400 hover:text-white" title="Undo"><UndoIcon /></button>
@@ -894,13 +979,6 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                     dangerouslySetInnerHTML={{ __html: pages[currentPage] || '' }}
                 />
 
-                {/* Zoom Controls Floating */}
-                <div className="fixed bottom-6 right-6 flex flex-col gap-2 bg-white shadow-lg border border-gray-200 rounded-lg p-1 z-30">
-                    <button onClick={() => setZoomLevel(z => Math.min(200, z + 10))} className="p-2 hover:bg-gray-100 rounded text-gray-600"><ZoomInIcon /></button>
-                    <span className="text-xs font-bold text-center text-gray-500">{zoomLevel}%</span>
-                    <button onClick={() => setZoomLevel(z => Math.max(20, z - 10))} className="p-2 hover:bg-gray-100 rounded text-gray-600"><ZoomOutIcon /></button>
-                </div>
-
                 <style>{`
                     [data-selected="true"] {
                         outline: 2px solid #3b82f6 !important;
@@ -911,6 +989,16 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                     .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
                     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
                     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+
+                    /* Visibility Styles */
+                    ${options.visibleElements?.teacherName === false ? '.period-teacher, .teacher-text { display: none !important; }' : ''}
+                    ${options.visibleElements?.subjectName === false ? '.period-subject, .subject-text { display: none !important; }' : ''}
+                    ${options.visibleElements?.roomNumber === false ? '.header-details > div > div:nth-child(3) { display: none !important; }' : ''}
+
+                    /* Scale */
+                    .page {
+                        zoom: ${options.contentScale || 1};
+                    }
                 `}</style>
             </div>
         </div>

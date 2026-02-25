@@ -67,17 +67,18 @@ const hexToRgba = (hex: string, alpha: number) => {
 const defaultDesignV3: DownloadDesignConfig = {
     version: 3,
     page: { size: 'a4', orientation: 'portrait', margins: { top: 4, right: 4, bottom: 4, left: 4 }, watermarkOpacity: 0.07 },
-    header: { showLogo: true, logoSize: 80, logoPosition: 'left', schoolName: { fontFamily: 'Roboto', fontSize: 24, fontWeight: 'bold', align: 'left', color: '#000000' }, showTitle: true, title: { fontFamily: 'Roboto', fontSize: 18, fontWeight: 'bold', align: 'left', color: '#444444' }, details: { fontFamily: 'Roboto', fontSize: 14, fontWeight: 'normal', align: 'left', color: '#000000' }, divider: true, bgColor: '#FFFFFF' },
-    table: { fontFamily: 'Roboto', fontSize: 14, cellPadding: 8, headerBgColor: '#1e293b', headerColor: '#FFFFFF', bodyBgColor: '#FFFFFF', bodyColor: '#000000', borderColor: '#000000', periodColumnWidth: 40, periodColumnBgColor: '#f1f5f9', periodColumnColor: '#000000', altRowColor: '#FFFFFF', gridStyle: 'solid', borderWidth: 1, headerFontSize: 14, cardStyle: 'minimal-left', triangleCorner: 'bottom-left', outlineWidth: 2 },
-    footer: { show: false, text: 'Mr.🇵🇰', fontFamily: 'Roboto', fontSize: 12, align: 'center', includePageNumber: false, color: '#4b5563', includeTimestamp: false },
+    header: { showLogo: true, logoSize: 80, logoPosition: 'left', schoolName: { fontFamily: 'sans-serif', fontSize: 24, fontWeight: 'bold', align: 'left', color: '#000000' }, showTitle: true, title: { fontFamily: 'sans-serif', fontSize: 18, fontWeight: 'bold', align: 'left', color: '#444444' }, details: { fontFamily: 'sans-serif', fontSize: 14, fontWeight: 'normal', align: 'left', color: '#000000' }, divider: true, bgColor: '#FFFFFF' },
+    table: { fontFamily: 'sans-serif', fontSize: 14, cellPadding: 8, headerBgColor: '#1e293b', headerColor: '#FFFFFF', bodyBgColor: '#FFFFFF', bodyColor: '#000000', borderColor: '#000000', periodColumnWidth: 40, periodColumnBgColor: '#f1f5f9', periodColumnColor: '#000000', altRowColor: '#FFFFFF', gridStyle: 'solid', borderWidth: 1, headerFontSize: 14, cardStyle: 'minimal-left', triangleCorner: 'bottom-left', outlineWidth: 2 },
+    footer: { show: false, text: 'Mr.🇵🇰', fontFamily: 'sans-serif', fontSize: 12, align: 'center', includePageNumber: false, color: '#4b5563', includeTimestamp: false },
     colorMode: 'color', rowsPerPage: 50, rowsPerFirstPage: 50, daysPerPage: 7, watermarkText: '', compactMode: false,
+    visibleElements: { teacherName: true, subjectName: true, roomNumber: true }, contentScale: 1,
 };
 const defaultDownloadDesigns: DownloadDesigns = { 
     class: { ...defaultDesignV3, page: { ...defaultDesignV3.page, orientation: 'landscape' } }, 
     teacher: { ...defaultDesignV3, page: { ...defaultDesignV3.page, orientation: 'landscape' } }, 
     workload: { ...defaultDesignV3, page: { ...defaultDesignV3.page, orientation: 'portrait' }, table: { ...defaultDesignV3.table, cellPadding: 1 } },
-    alternative: { ...defaultDesignV3, table: { ...defaultDesignV3.table, cellPadding: 0, fontSize: 13, fontFamily: 'Antonio', verticalAlign: 'middle' } }, 
-    adjustments: { ...defaultDesignV3, table: { ...defaultDesignV3.table, fontFamily: 'Arial', fontSize: 13, cellPadding: 0, altRowColor: '#f5f5f5' } },
+    alternative: { ...defaultDesignV3, table: { ...defaultDesignV3.table, cellPadding: 0, fontSize: 13, fontFamily: 'sans-serif', verticalAlign: 'middle' } }, 
+    adjustments: { ...defaultDesignV3, table: { ...defaultDesignV3.table, fontFamily: 'sans-serif', fontSize: 13, cellPadding: 0, altRowColor: '#f5f5f5' } },
     basicInfo: { ...defaultDesignV3, table: { ...defaultDesignV3.table, cellPadding: 2, fontSize: 16 } }, 
     attendance: { ...defaultDesignV3, table: { ...defaultDesignV3.table, cellPadding: 4, fontSize: 14 } }, 
     schoolTimings: { 
@@ -86,7 +87,7 @@ const defaultDownloadDesigns: DownloadDesigns = {
             ...defaultDesignV3.header,
             schoolName: {
                 ...defaultDesignV3.header.schoolName,
-                fontFamily: 'Bebas Neue',
+                fontFamily: 'sans-serif',
                 fontSize: 51
             }
         },
@@ -187,7 +188,7 @@ const App: React.FC = () => {
                 st.table.periodColumnBgColor = '#86efac';
              }
              if (st.header.schoolName.fontFamily === 'Roboto' && st.header.schoolName.fontSize === 24) {
-                 st.header.schoolName.fontFamily = 'Bebas Neue';
+                 st.header.schoolName.fontFamily = 'sans-serif';
                  st.header.schoolName.fontSize = 51;
              }
              if (!st.table.borderWidth || st.table.borderWidth === 1) {
@@ -340,7 +341,7 @@ const App: React.FC = () => {
         const styleId = 'global-app-font-style';
         let style = document.getElementById(styleId);
         if (!style) { style = document.createElement('style'); style.id = styleId; document.head.appendChild(style); }
-        const importsLatin = `@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Gulzar&family=Noto+Nastaliq+Urdu:wght@400;700&family=Anton&family=Antonio:wght@400;700&family=Bebas+Neue&family=Bodoni+Moda:opsz,wght@6..96,400..900&family=Bungee+Spice&family=Fjalla+One&family=Instrument+Serif:ital@0;1&family=Lato:wght@400;700&family=Merriweather:wght@400;700;900&family=Monoton&family=Montserrat:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Orbitron:wght@400;700&family=Oswald:wght@400;700&family=Anton&family=Instrument+Serif:ital@0;1&family=Playwrite+CU:wght@100..400&family=Roboto:wght@400;500;700&family=Rubik+Mono+One&display=swap');`;
+        const importsLatin = ``;
         let finalFontStack = 'sans-serif';
         if (appFont) { let primaryFont = `"${appFont}"`; finalFontStack = `${primaryFont}, sans-serif`; } else { finalFontStack = 'sans-serif'; }
         style.innerHTML = `${importsLatin} :root { --font-app-primary: ${finalFontStack}; } body { font-family: var(--font-app-primary); } button, input, select, textarea { font-family: var(--font-app-primary); }`;

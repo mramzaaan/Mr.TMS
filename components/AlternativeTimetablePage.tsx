@@ -538,6 +538,77 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps & 
   } | null>(null);
   const teacherShareRef = useRef<HTMLDivElement>(null);
 
+  // Multi-teacher slip state
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [selectedTeachersForSlip, setSelectedTeachersForSlip] = useState<string[]>([]);
+  const [multiTeacherSlipData, setMultiTeacherSlipData] = useState<{
+      date: string;
+      teachers: {
+          id: string;
+          nameEn: string;
+          nameUr: string;
+          substitutions: SubstitutionGroup[];
+      }[];
+  } | null>(null);
+  const multiTeacherSlipRef = useRef<HTMLDivElement>(null);
+
+  const handleGenerateMultiSlip = async () => {
+      const selected = teachers.filter(t => selectedTeachersForSlip.includes(t.id));
+      if (selected.length === 0) return;
+
+      const data = {
+          date: selectedDate,
+          teachers: selected.map(t => ({
+              id: t.id,
+              nameEn: t.nameEn,
+              nameUr: t.nameUr,
+              substitutions: substitutionGroups.filter(g => g.absentEntity.id === t.id)
+          }))
+      };
+
+      setMultiTeacherSlipData(data);
+      setIsShareModalOpen(false);
+
+      // Wait for render
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      if (multiTeacherSlipRef.current) {
+          try {
+              const canvas = await html2canvas(multiTeacherSlipRef.current, { 
+                  scale: 2, 
+                  backgroundColor: '#ffffff',
+                  onclone: (clonedDoc: Document) => {
+                      const style = clonedDoc.createElement('style');
+                      style.innerHTML = `
+                          * {
+                              text-rendering: geometricPrecision !important;
+                              -webkit-font-smoothing: antialiased !important;
+                              -moz-osx-font-smoothing: grayscale !important;
+                              line-height: 1.2 !important;
+                          }
+                      `;
+                      clonedDoc.head.appendChild(style);
+                  }
+              });
+              const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+              if (blob) {
+                  try {
+                      await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+                      alert("Substitution slip copied to clipboard!");
+                  } catch (err) {
+                      console.error("Clipboard write failed", err);
+                      alert("Could not auto-copy image. Please use screenshot.");
+                  }
+              }
+          } catch (err) {
+              console.error("Image generation failed", err);
+              alert("Failed to generate image.");
+          }
+      }
+      
+      setTimeout(() => setMultiTeacherSlipData(null), 1000);
+  };
+
   const [modalState, setModalState] = useState<{
       isOpen: boolean;
       mode: 'teacher' | 'class';
@@ -1364,6 +1435,111 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps & 
 
       {isSignModalOpen && (<SignatureModal t={t} isOpen={isSignModalOpen} onClose={() => setIsSignModalOpen(false)} onFinalSave={handleSignAndShare} />)}
 
+      {isShareModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[150] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setIsShareModalOpen(false)}>
+            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-2xl w-full max-w-md border border-[var(--border-primary)] overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b border-[var(--border-secondary)] bg-[var(--bg-tertiary)] flex justify-between items-center">
+                    <h3 className="font-bold text-lg text-[var(--text-primary)]">Generate Substitution Slip</h3>
+                    <button onClick={() => setIsShareModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div className="p-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">Select Teachers</span>
+                        <button 
+                            onClick={() => {
+                                if (selectedTeachersForSlip.length === absentTeachers.length) setSelectedTeachersForSlip([]);
+                                else setSelectedTeachersForSlip(absentTeachers.map(t => t.id));
+                            }}
+                            className="text-xs text-[var(--accent-primary)] font-bold hover:underline"
+                        >
+                            {selectedTeachersForSlip.length === absentTeachers.length ? 'Deselect All' : 'Select All'}
+                        </button>
+                    </div>
+                    <div className="space-y-2">
+                        {absentTeachers.map(teacher => (
+                            <label key={teacher.id} className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-secondary)] hover:bg-[var(--bg-tertiary)] cursor-pointer transition-colors">
+                                <input 
+                                    type="checkbox" 
+                                    checked={selectedTeachersForSlip.includes(teacher.id)}
+                                    onChange={(e) => {
+                                        if (e.target.checked) setSelectedTeachersForSlip(prev => [...prev, teacher.id]);
+                                        else setSelectedTeachersForSlip(prev => prev.filter(id => id !== teacher.id));
+                                    }}
+                                    className="w-5 h-5 rounded text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] bg-[var(--bg-tertiary)] border-[var(--border-secondary)]"
+                                />
+                                <span className="font-bold text-[var(--text-primary)]">{language === 'ur' ? teacher.nameUr : teacher.nameEn}</span>
+                            </label>
+                        ))}
+                        {absentTeachers.length === 0 && <p className="text-center text-[var(--text-secondary)] italic py-4">No absent teachers today.</p>}
+                    </div>
+                </div>
+                <div className="p-4 border-t border-[var(--border-secondary)] bg-[var(--bg-tertiary)]">
+                    <button 
+                        onClick={handleGenerateMultiSlip}
+                        disabled={selectedTeachersForSlip.length === 0}
+                        className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl shadow-lg hover:shadow-indigo-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:-translate-y-1 active:scale-[0.98]"
+                    >
+                        Generate & Copy Image
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* Hidden Multi-Teacher Slip */}
+      <div style={{ position: 'fixed', top: 0, left: 0, zIndex: -50, pointerEvents: 'none', opacity: 0 }}>
+        {multiTeacherSlipData && (
+            <div ref={multiTeacherSlipRef} className="w-[800px] bg-white font-sans text-slate-800 p-8 border border-slate-200">
+                <div className="text-center mb-8 border-b-2 border-slate-100 pb-6">
+                    <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-2">{schoolConfig.schoolNameEn}</h2>
+                    <p className="text-xl text-slate-500 font-medium">
+                        {new Date(multiTeacherSlipData.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                    <p className="text-sm text-slate-400 font-bold uppercase tracking-widest mt-2">Daily Substitution Report</p>
+                </div>
+                
+                <div className="flex flex-col gap-8">
+                    {multiTeacherSlipData.teachers.map((teacher, idx) => (
+                        <div key={idx} className="break-inside-avoid">
+                            <h3 className="text-xl font-black text-slate-800 mb-4 border-l-4 border-indigo-500 pl-3 uppercase">
+                                {teacher.nameEn} <span className="text-slate-400 text-sm font-medium ml-2 normal-case">({language === 'ur' ? teacher.nameUr : ''})</span>
+                            </h3>
+                            <div className="flex flex-col gap-2">
+                                {teacher.substitutions.length > 0 ? teacher.substitutions.map((sub, sIdx) => {
+                                    const assignedAdj = dailyAdjustments.find(a => a.periodIndex === sub.periodIndex && a.originalTeacherId === sub.absentEntity.id);
+                                    const subTeacher = teachers.find(t => t.id === assignedAdj?.substituteTeacherId);
+                                    return (
+                                        <div key={sIdx} className="flex items-center p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                            <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg border border-slate-200 font-black text-slate-600 mr-4 shadow-sm">
+                                                {sub.periodIndex + 1}
+                                            </div>
+                                            <div className="flex-grow">
+                                                <p className="font-bold text-slate-800 text-sm">{sub.combinedClassNames.en}</p>
+                                                <p className="text-xs text-slate-500 uppercase tracking-wider">{sub.subjectInfo.en}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Substitute</p>
+                                                <p className={`font-bold ${subTeacher ? 'text-emerald-600' : 'text-red-400'}`}>
+                                                    {subTeacher ? (language === 'ur' ? subTeacher.nameUr : subTeacher.nameEn) : 'Unassigned'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                }) : <p className="text-slate-400 italic text-sm pl-4">No periods found.</p>}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center">
+                    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Generated by MR. TMS</span>
+                </div>
+            </div>
+        )}
+      </div>
+
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-wrap">
             <h2 className="text-2xl font-bold text-[var(--text-primary)]">{t.dailyAdjustments}</h2>
@@ -1373,6 +1549,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps & 
         </div>
         
         <div className="flex items-center gap-3 flex-wrap">
+            <button onClick={() => { setSelectedTeachersForSlip(absentTeachers.map(t => t.id)); setIsShareModalOpen(true); }} className="p-3 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] rounded-xl transition-colors border border-transparent hover:border-[var(--border-secondary)]" title="Share Slips"><ShareIcon /></button>
             <button onClick={() => setIsImportExportOpen(true)} className="p-3 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] rounded-xl transition-colors border border-transparent hover:border-[var(--border-secondary)]" title="Import/Export Adjustments"><ImportExportIcon /></button>
             <button onClick={() => setIsPrintPreviewOpen(true)} className="p-3 text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded-xl transition-colors border border-[var(--border-secondary)] shadow-sm" title={t.printViewAction}><PrintIcon /></button>
         </div>
@@ -1409,15 +1586,6 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps & 
 
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-1 opacity-100 transition-opacity">
-                                        {!isClass && (
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); handleShareTeacher(entity.id); }} 
-                                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                                title="Share Teacher Report"
-                                            >
-                                                <ShareIcon />
-                                            </button>
-                                        )}
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); openModal(entity.type, entity.id); }} 
                                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

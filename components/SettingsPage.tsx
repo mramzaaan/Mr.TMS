@@ -87,36 +87,9 @@ const triangleCornerOptions: { label: string, value: TriangleCorner }[] = [
 
 const appFontOptions = [
     { label: 'System Default', value: '' },
-    { label: 'Gulzar (Urdu)', value: 'Gulzar' },
-    { label: 'Noto Nastaliq Urdu (Google)', value: 'Noto Nastaliq Urdu' },
-    { label: 'Amiri (Naskh)', value: 'Amiri' },
-    { label: 'Aref Ruqaa (Calligraphic)', value: 'Aref Ruqaa' },
-    { label: 'Times New Roman', value: 'Times New Roman' },
-    { label: 'Arial', value: 'Arial' },
-    { label: 'Impact', value: 'Impact' },
-    { label: 'Calibri', value: 'Calibri' },
-    { label: 'Verdana', value: 'Verdana' },
-    { label: 'Tahoma', value: 'Tahoma' },
-    { label: 'Trebuchet MS', value: 'Trebuchet MS' },
-    { label: 'Segoe UI', value: 'Segoe UI' },
-    { label: 'Comic Sans MS', value: 'Comic Sans MS' },
-    { label: 'Lato', value: 'Lato' },
-    { label: 'Roboto', value: 'Roboto' },
-    { label: 'Open Sans', value: 'Open Sans' },
-    { label: 'Montserrat', value: 'Montserrat' },
-    { label: 'Antonio', value: 'Antonio' },
-    { label: 'Monoton', value: 'Monoton' },
-    { label: 'Rubik Mono One', value: 'Rubik Mono One' },
-    { label: 'Bodoni Moda', value: 'Bodoni Moda' },
-    { label: 'Bungee Spice', value: 'Bungee Spice' },
-    { label: 'Bebas Neue', value: 'Bebas Neue' },
-    { label: 'Playfair Display', value: 'Playfair Display' },
-    { label: 'Oswald', value: 'Oswald' },
-    { label: 'Anton', value: 'Anton' },
-    { label: 'Instrument Serif', value: 'Instrument Serif' },
-    { label: 'Orbitron', value: 'Orbitron' },
-    { label: 'Fjalla One', value: 'Fjalla One' },
-    { label: 'Playwrite', value: 'Playwrite CU' },
+    { label: 'Sans-Serif', value: 'sans-serif' },
+    { label: 'Serif', value: 'serif' },
+    { label: 'Monospace', value: 'monospace' },
 ];
 
 const AboutIcon = () => (
@@ -213,23 +186,23 @@ const ColorPickerInput = ({ label, value, onChange }: { label: string, value: st
 };
 
 const OpacityControl = ({ label, value, onChange }: { label: string, value: number, onChange: (val: number) => void }) => (
-    <div className="space-y-1">
-        <label className="text-[10px] font-bold text-[var(--text-secondary)] truncate block uppercase" title={label}>{label}</label>
-        <div className="flex items-center bg-[var(--bg-tertiary)]/30 rounded-lg border border-[var(--border-secondary)] overflow-hidden h-7">
+    <div className="space-y-2">
+        <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider block">{label}</label>
+        <div className="flex items-center bg-[var(--bg-primary)] rounded-xl border border-[var(--border-secondary)] h-10 px-1 w-full shadow-inner">
             <button 
                 onClick={() => onChange(Math.max(0, parseFloat((value - 0.05).toFixed(2))))} 
-                className="w-7 h-full flex items-center justify-center hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors border-r border-[var(--border-secondary)] active:bg-[var(--accent-secondary)]/50"
+                className="w-10 h-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors text-lg font-bold"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" /></svg>
+                —
             </button>
-            <div className="flex-grow text-center text-xs font-bold text-[var(--text-primary)] tabular-nums">
+            <div className="flex-grow text-center text-sm font-bold text-[var(--text-primary)] tabular-nums">
                 {Math.round(value * 100)}%
             </div>
             <button 
                 onClick={() => onChange(Math.min(1, parseFloat((value + 0.05).toFixed(2))))} 
-                className="w-7 h-full flex items-center justify-center hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors border-l border-[var(--border-secondary)] active:bg-[var(--accent-secondary)]/50"
+                className="w-10 h-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors text-lg font-bold"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                +
             </button>
         </div>
     </div>
@@ -658,94 +631,135 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
             <div className={`grid transition-all duration-500 ${isInterfaceOptionsOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                 {/* ... (Interface Settings content unchanged) ... */}
                 <div className="overflow-hidden">
-                    <div className="p-4 pt-0 space-y-4">
+                    <div className="p-6 pt-0 space-y-8">
+                         {/* GENERAL */}
                          <div>
-                            <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2 border-b border-[var(--border-secondary)] pb-1">{t.general}</h4>
-                            <div className="flex items-center justify-between bg-[var(--bg-tertiary)] p-2 rounded-lg border border-[var(--border-secondary)]">
+                            <h4 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-4 ml-1">{t.general}</h4>
+                            <div className="bg-[var(--bg-tertiary)] rounded-2xl p-5 border border-[var(--border-secondary)] flex items-center justify-between shadow-sm">
                                 <div>
-                                    <span className="block text-sm font-medium text-[var(--text-primary)]">{t.appLanguage}</span>
-                                    <span className="text-[10px] text-[var(--text-secondary)]">{t.switchLanguageDesc}</span>
+                                    <h5 className="text-base font-bold text-[var(--text-primary)] mb-1">{t.appLanguage}</h5>
+                                    <p className="text-xs text-[var(--text-secondary)]">{t.switchLanguageDesc}</p>
                                 </div>
-                                <button onClick={() => setLanguage(language === 'en' ? 'ur' : 'en')} className="flex items-center gap-2 px-2 py-1 bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-md shadow-sm border border-[var(--border-secondary)] hover:border-[var(--accent-primary)] transition-all">
-                                    <div className="p-0.5 bg-[var(--accent-secondary)] rounded-full text-[var(--accent-primary)]"><LanguageIcon /></div>
-                                    <span className={`font-bold text-xs ${language === 'ur' ? 'font-urdu' : ''}`}>{language === 'en' ? 'English' : 'اردو'}</span>
-                                </button>
+                                <div className="flex bg-[var(--bg-primary)] rounded-lg p-1 border border-[var(--border-secondary)] shadow-inner">
+                                    <button
+                                        onClick={() => setLanguage('en')}
+                                        className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${language === 'en' ? 'bg-[var(--bg-secondary)] text-[var(--accent-primary)] shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                                    >
+                                        English
+                                    </button>
+                                    <button
+                                        onClick={() => setLanguage('ur')}
+                                        className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all font-urdu ${language === 'ur' ? 'bg-[var(--bg-secondary)] text-[var(--accent-primary)] shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                                    >
+                                        اردو
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
+                         {/* GLOBAL TYPOGRAPHY */}
                          <div>
-                            <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2 border-b border-[var(--border-secondary)] pb-1">{t.globalTypography}</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <h4 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-4 ml-1">{t.globalTypography}</h4>
+                            
+                            <div className="space-y-6">
+                                {/* Font Size */}
                                 <div>
-                                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">{t.globalFontSize}: {fontSize}px</label>
-                                    <div className="flex items-center gap-2 bg-[var(--bg-tertiary)] p-2 rounded-lg border border-[var(--border-secondary)]">
-                                        <span className="text-[10px]">A</span>
-                                        <input type="range" min="10" max="16" step="1" value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))} className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent-primary)]" />
-                                        <span className="text-sm">A</span>
+                                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-3 ml-1">Global Font Size: {fontSize}px</label>
+                                    <div className="bg-[var(--bg-tertiary)] rounded-2xl p-5 border border-[var(--border-secondary)] flex items-center gap-4 shadow-sm">
+                                        <span className="text-xs font-bold text-[var(--text-secondary)]">A</span>
+                                        <input 
+                                            type="range" 
+                                            min="10" 
+                                            max="16" 
+                                            step="1" 
+                                            value={fontSize} 
+                                            onChange={(e) => setFontSize(parseInt(e.target.value))} 
+                                            className="w-full h-1.5 bg-[var(--bg-primary)] rounded-lg appearance-none cursor-pointer accent-[var(--accent-primary)]" 
+                                        />
+                                        <span className="text-lg font-bold text-[var(--text-primary)]">A</span>
                                     </div>
                                 </div>
-                                
+
+                                {/* App Font */}
                                 <div>
-                                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">{t.appFont}</label>
-                                    <select value={appFont} onChange={(e) => setAppFont(e.target.value)} className="w-full py-1.5 px-2 bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] rounded-lg text-[var(--text-primary)] focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] appearance-none text-xs" style={{ fontFamily: appFont === 'CustomAppFont' ? 'inherit' : appFont }}>
-                                        {appFontOptions.map((opt) => (
-                                            <option key={opt.value} value={opt.value} style={{ fontFamily: opt.value === 'CustomAppFont' ? 'inherit' : opt.value }}>{opt.label}</option>
-                                        ))}
-                                    </select>
+                                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-3 ml-1">{t.appFont}</label>
+                                    <div className="relative group">
+                                        <select 
+                                            value={appFont} 
+                                            onChange={(e) => setAppFont(e.target.value)} 
+                                            className="w-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-sm font-medium rounded-2xl p-4 border border-[var(--border-secondary)] appearance-none outline-none focus:border-[var(--accent-primary)] transition-colors shadow-sm cursor-pointer"
+                                            style={{ fontFamily: appFont === 'CustomAppFont' ? 'inherit' : appFont }}
+                                        >
+                                            {appFontOptions.map((opt) => (
+                                                <option key={opt.value} value={opt.value} style={{ fontFamily: opt.value === 'CustomAppFont' ? 'inherit' : opt.value }}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none text-[var(--text-secondary)] group-hover:text-[var(--accent-primary)] transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
+                        {/* NAVIGATION BAR */}
                         <div>
-                            <h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2 border-b border-[var(--border-secondary)] pb-1">{t.navigationBar}</h4>
+                            <h4 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-4 ml-1">{t.navigationBar}</h4>
                             
-                            <div className="grid grid-cols-1 gap-3">
-                                <div className="bg-[var(--bg-tertiary)]/30 p-2 rounded-lg border border-[var(--border-secondary)] space-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                {/* Button Labels */}
+                                <div className="bg-[var(--bg-tertiary)] rounded-2xl p-5 border border-[var(--border-secondary)] flex items-center justify-between shadow-sm">
+                                    <span className="text-sm font-bold text-[var(--text-primary)] leading-tight">{t.showButtonLabels}</span>
+                                    <button 
+                                        onClick={() => setNavShowLabels(!navShowLabels)} 
+                                        className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${navShowLabels ? 'bg-[var(--accent-primary)]' : 'bg-gray-300 dark:bg-gray-600'}`}
+                                    >
+                                        <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${navShowLabels ? 'translate-x-5' : 'translate-x-0'}`} />
+                                    </button>
+                                </div>
 
-                                    <div className="flex justify-between gap-4">
-                                        <div className="flex items-center gap-2">
-                                            <button onClick={() => setNavShowLabels(!navShowLabels)} className={`relative inline-flex h-3.5 w-6 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${navShowLabels ? 'bg-[var(--accent-primary)]' : 'bg-gray-300'}`}>
-                                                <span className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${navShowLabels ? 'translate-x-2.5' : 'translate-x-0'}`} />
-                                            </button>
-                                            <span className="text-[10px] font-medium text-[var(--text-secondary)]">{t.showButtonLabels}</span>
+                                {/* Animate */}
+                                <div className="bg-[var(--bg-tertiary)] rounded-2xl p-5 border border-[var(--border-secondary)] flex items-center justify-between shadow-sm">
+                                    <span className="text-sm font-bold text-[var(--text-primary)] leading-tight">Animate</span>
+                                    <button 
+                                        onClick={() => setNavAnimation(!navAnimation)} 
+                                        className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${navAnimation ? 'bg-[var(--accent-primary)]' : 'bg-gray-300 dark:bg-gray-600'}`}
+                                    >
+                                        <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${navAnimation ? 'translate-x-5' : 'translate-x-0'}`} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Opacity & Surface Card */}
+                            <div className="bg-[var(--bg-tertiary)] rounded-2xl p-6 border border-[var(--border-secondary)] space-y-8 shadow-sm">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                    <OpacityControl label={t.selectedOpacity} value={navBtnAlphaSelected} onChange={setNavBtnAlphaSelected} />
+                                    <OpacityControl label={t.unselectedOpacity} value={navBtnAlphaUnselected} onChange={setNavBtnAlphaUnselected} />
+                                </div>
+                                
+                                <div className="h-px bg-[var(--border-secondary)] w-full"></div>
+
+                                <div className="flex flex-wrap items-center justify-between gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">BAR SURFACE</span>
+                                        {navBarColor && (
+                                            <button onClick={() => setNavBarColor('')} className="text-[10px] font-bold text-red-500 hover:text-red-400 uppercase tracking-wider transition-colors">RESET</button>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-4">
+                                         <div className="relative w-10 h-10 rounded-full shadow-sm border border-[var(--border-secondary)] overflow-hidden cursor-pointer hover:scale-110 transition-transform ring-2 ring-transparent hover:ring-[var(--accent-primary)]">
+                                             <div className="absolute inset-0" style={{ backgroundColor: navBarColor || 'transparent', backgroundImage: navBarColor ? 'none' : 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)', backgroundSize: '8px 8px' }}></div>
+                                             <input type="color" value={navBarColor || '#ffffff'} onChange={(e) => setNavBarColor(e.target.value)} className="opacity-0 absolute inset-0 cursor-pointer" />
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <button onClick={() => setNavAnimation(!navAnimation)} className={`relative inline-flex h-3.5 w-6 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${navAnimation ? 'bg-[var(--accent-primary)]' : 'bg-gray-300'}`}>
-                                                <span className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${navAnimation ? 'translate-x-2.5' : 'translate-x-0'}`} />
-                                            </button>
-                                            <span className="text-[10px] font-medium text-[var(--text-secondary)]">Animate</span>
+                                        
+                                        <div className="flex items-center bg-[var(--bg-primary)] rounded-xl border border-[var(--border-secondary)] h-10 px-1 shadow-inner">
+                                            <button onClick={() => setNavBarAlpha(Math.max(0, parseFloat((navBarAlpha - 0.1).toFixed(1))))} className="w-10 h-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors text-lg font-bold">—</button>
+                                            <span className="w-12 text-center text-sm font-bold text-[var(--text-primary)] tabular-nums">{Math.round(navBarAlpha * 100)}%</span>
+                                            <button onClick={() => setNavBarAlpha(Math.min(1, parseFloat((navBarAlpha + 0.1).toFixed(1))))} className="w-10 h-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors text-lg font-bold">+</button>
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="bg-[var(--bg-tertiary)]/30 p-2 rounded-lg border border-[var(--border-secondary)] space-y-2">
-                                     <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                                        <OpacityControl label={t.selectedOpacity} value={navBtnAlphaSelected} onChange={setNavBtnAlphaSelected} />
-                                        <OpacityControl label={t.unselectedOpacity} value={navBtnAlphaUnselected} onChange={setNavBtnAlphaUnselected} />
-                                        
-                                        <div className="col-span-2 w-full h-px bg-[var(--border-secondary)] my-0.5"></div>
-
-                                        <div className="col-span-2 flex items-center justify-between">
-                                            <div className="flex items-center gap-1.5">
-                                                <span className="text-[10px] font-bold text-[var(--text-primary)] uppercase">Bar Surface</span>
-                                                {navBarColor && <button onClick={() => setNavBarColor('')} className="text-[9px] text-red-500 hover:underline">Reset</button>}
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <div className="relative w-5 h-5 rounded-full shadow-sm border border-[var(--border-secondary)] overflow-hidden cursor-pointer">
-                                                     <div className="absolute inset-0" style={{ backgroundColor: navBarColor || 'transparent', backgroundImage: navBarColor ? 'none' : 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)', backgroundSize: '6px 6px', backgroundPosition: '0 0, 0 3px, 3px -3px, -3px 0px' }}></div>
-                                                     <input type="color" value={navBarColor || '#ffffff'} onChange={(e) => setNavBarColor(e.target.value)} className="opacity-0 absolute inset-0 cursor-pointer" />
-                                                </div>
-                                                <div className="flex items-center bg-[var(--bg-tertiary)] rounded-md border border-[var(--border-secondary)] h-5">
-                                                    <button onClick={() => setNavBarAlpha(Math.max(0, parseFloat((navBarAlpha - 0.1).toFixed(1))))} className="w-5 h-full flex items-center justify-center hover:bg-[var(--accent-secondary)] text-[var(--text-secondary)] text-[10px] font-bold">-</button>
-                                                    <span className="w-7 text-center text-[9px] font-mono">{Math.round(navBarAlpha * 100)}%</span>
-                                                    <button onClick={() => setNavBarAlpha(Math.min(1, parseFloat((navBarAlpha + 0.1).toFixed(1))))} className="w-5 h-full flex items-center justify-center hover:bg-[var(--accent-secondary)] text-[var(--text-secondary)] text-[10px] font-bold">+</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                     </div>
-                                </div>
-
-
                             </div>
                         </div>
                     </div>

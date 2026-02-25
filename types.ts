@@ -202,7 +202,7 @@ export interface SchoolClass {
 
 export type DownloadFormat = 'pdf-full' | 'pdf-summary' | 'excel';
 export type DownloadLanguage = 'en' | 'ur' | 'both';
-export type FontFamily = 'sans-serif' | 'Lato' | 'Roboto' | 'Open Sans' | 'Montserrat' | 'Times New Roman' | 'Merriweather' | 'Arial' | 'Impact' | 'Calibri' | 'Verdana' | 'Tahoma' | 'Antonio' | 'Monoton' | 'Rubik Mono One' | 'Bodoni Moda' | 'Bungee Spice' | 'Bebas Neue' | 'Playfair Display' | 'Oswald' | 'Anton' | 'Instrument Serif' | 'Orbitron' | 'Fjalla One' | 'Playwrite CU' | 'Trebuchet MS' | 'Segoe UI' | 'Comic Sans MS' | 'Noto Nastaliq Urdu' | 'Gulzar' | 'Amiri' | 'Aref Ruqaa';
+export type FontFamily = 'sans-serif' | 'serif' | 'monospace';
 
 export type CardStyle = 'full' | 'outline' | 'text' | 'triangle' | 'glass' | 'gradient' | 'minimal-left' | 'badge';
 export type TriangleCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
@@ -243,6 +243,8 @@ export interface DownloadDesignConfig {
         };
         divider: boolean;
         bgColor: string;
+        showDate?: boolean;
+        subtitle?: string;
     };
     table: {
         fontFamily: FontFamily;
@@ -283,6 +285,12 @@ export interface DownloadDesignConfig {
     daysPerPage?: number; // Option for splitting table columns (days) across pages
     watermarkText?: string;
     compactMode?: boolean;
+    contentScale?: number;
+    visibleElements?: {
+        teacherName?: boolean;
+        subjectName?: boolean;
+        roomNumber?: boolean;
+    };
 }
 
 export interface DownloadDesigns {
