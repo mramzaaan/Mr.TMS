@@ -161,9 +161,35 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
       } else if (cardStyle === 'gradient') {
           cardStyleCss = 'background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.1) 100%) !important;';
       } else if (cardStyle === 'minimal-left') {
-          cardStyleCss = 'background-color: #f8fafc !important; border-left: 5px solid currentColor !important; border-top: none !important; border-right: none !important; border-bottom: none !important; box-shadow: none !important; border-radius: 2px !important;';
+          cardStyleCss = 'background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; position: relative !important; box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;';
+          // Updated Minimal Design: Rounded line and larger circles
+          separatorHtml = `
+            <div style="position: absolute; top: 50%; left: 15%; right: 15%; display: flex; align-items: center; justify-content: center; opacity: 0.4; transform: translateY(-50%);">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+                <div style="height: 1.5px; flex-grow: 1; border-radius: 99px; background-color: currentColor; margin: 0 4px;"></div>
+                <div style="width: 8px; height: 8px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+            </div>
+          `;
       } else if (cardStyle === 'badge') {
           cardStyleCss = 'background-color: transparent !important; border: none !important; box-shadow: none !important;';
+      }
+
+      // Header Style Logic
+      let headerStyleCss = '';
+      if (cardStyle === 'full') {
+          headerStyleCss = `background-color: ${themeColors.accent}; color: #ffffff; border-radius: 12px; padding: 10px 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);`;
+      } else if (cardStyle === 'outline') {
+          headerStyleCss = `border: 3px solid ${themeColors.accent}; color: ${themeColors.accent}; border-radius: 12px; padding: 10px 30px; background: #fff;`;
+      } else if (cardStyle === 'glass') {
+          headerStyleCss = `background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); color: ${themeColors.text}; border-radius: 12px; padding: 10px 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);`;
+      } else if (cardStyle === 'gradient') {
+          headerStyleCss = `background: linear-gradient(135deg, ${themeColors.accent} 0%, ${themeColors.accent}dd 100%); color: #ffffff; border-radius: 12px; padding: 10px 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);`;
+      } else if (cardStyle === 'minimal-left') {
+          headerStyleCss = `border-left: 10px solid ${themeColors.accent}; background-color: #f1f5f9; color: ${themeColors.text}; padding: 10px 30px; border-radius: 4px;`;
+      } else if (cardStyle === 'badge') {
+          headerStyleCss = `background-color: ${themeColors.accent}; color: #ffffff; border-radius: 999px; padding: 10px 40px;`;
+      } else {
+           headerStyleCss = `color: ${themeColors.text}; padding: 10px 0;`;
       }
 
       const styles = `
@@ -251,11 +277,7 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             font-weight: 900; 
             text-transform: uppercase; 
             line-height: 1.1;
-            background-color: ${themeColors.accent}; 
-            color: #ffffff; 
-            border-radius: 12px; 
-            padding: 10px 30px; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            ${headerStyleCss}
           }
           
           .info-stats-side { 
@@ -489,6 +511,15 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
 
                   const triangleHtml = (cardStyle === 'triangle' || cardStyle === 'full') ? `<div class="card-triangle"></div>` : '';
                   
+                  let separatorHtml = '';
+                  if (cardStyle === 'minimal-left') {
+                      separatorHtml = `<div style="position: absolute; top: 50%; left: 15%; right: 15%; display: flex; align-items: center; justify-content: center; opacity: 0.5; transform: translateY(-50%);">
+                          <div style="width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+                          <div style="height: 2px; flex-grow: 1; border-radius: 99px; background-color: currentColor; margin: 0 8px;"></div>
+                          <div style="width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; flex-shrink: 0;"></div>
+                      </div>`;
+                  }
+
                   let subjectBadgeStyle = '';
                   let classBadgeStyle = '';
                   if (cardStyle === 'badge') {
@@ -751,7 +782,11 @@ export const TeacherCommunicationModal: React.FC<TeacherCommunicationModalProps>
             });
             setIsGenerating(false);
             return;
-        } catch (error) {
+        } catch (error: any) {
+            if (error.name === 'AbortError') {
+                setIsGenerating(false);
+                return;
+            }
             console.log("Share cancelled or failed, falling back to download.");
         }
     }

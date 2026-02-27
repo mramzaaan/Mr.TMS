@@ -53,6 +53,7 @@ const UndoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-
 const RedoIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>;
 const ZoomInIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" /></svg>;
 const ZoomOutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" /></svg>;
+const FullscreenIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>;
 const ChevronLeftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>;
 const ChevronRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>;
 const ChevronUpIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>;
@@ -364,6 +365,7 @@ const SettingsSidebar: React.FC<{
                             <SelectInput label="Font Family" path="table.fontFamily" value={options.table.fontFamily} options={fontOptions} />
                             <NumberInput label="Body Size" path="table.fontSize" value={options.table.fontSize} min={8} max={32} />
                             <NumberInput label="Header Size" path="table.headerFontSize" value={options.table.headerFontSize || options.table.fontSize} min={8} max={40} />
+                            <NumberInput label="Line Height" path="table.lineHeight" value={options.table.lineHeight || 1.1} min={0.8} max={3.0} step={0.1} />
                             <NumberInput label="Cell Padding" path="table.cellPadding" value={options.table.cellPadding} min={0} max={30} />
                         </ControlGroup>
 
@@ -896,9 +898,14 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
                         </div>
 
                         <div className="flex items-center bg-gray-800 rounded-lg border border-gray-700 p-1 gap-1 flex-shrink-0">
+                            <button onClick={() => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }} className="p-1.5 hover:bg-gray-700 rounded text-gray-400 hover:text-white" title="Toggle Fullscreen"><FullscreenIcon /></button>
+                        </div>
+
+                        <div className="flex items-center bg-gray-800 rounded-lg border border-gray-700 p-1 gap-1 flex-shrink-0">
                             <button onClick={() => setZoomLevel(z => Math.max(20, z - 10))} className="p-1.5 hover:bg-gray-700 rounded text-gray-400 hover:text-white" title="Zoom Out"><ZoomOutIcon /></button>
                             <span className="text-xs font-bold text-gray-400 w-8 text-center">{zoomLevel}%</span>
                             <button onClick={() => setZoomLevel(z => Math.min(200, z + 10))} className="p-1.5 hover:bg-gray-700 rounded text-gray-400 hover:text-white" title="Zoom In"><ZoomInIcon /></button>
+                            <button onClick={() => setZoomLevel(70)} className="px-2 py-1 text-[10px] font-bold text-gray-400 hover:text-white hover:bg-gray-700 rounded" title="Fit to Screen">Fit</button>
                         </div>
 
                         <div className="w-px h-6 bg-gray-700 mx-1 flex-shrink-0"></div>
@@ -957,7 +964,7 @@ const PrintPreview: React.FC<PrintPreviewProps> = ({ t, isOpen, onClose, title, 
             </div>
 
             {/* Preview Area */}
-            <div className="flex-1 overflow-auto p-8 relative flex flex-col items-center bg-gray-500/10 custom-scrollbar" ref={previewRef}>
+            <div className="flex-1 overflow-auto p-8 relative flex flex-col items-center bg-gray-900/50 custom-scrollbar" ref={previewRef}>
                 {pages.length > 1 && (
                     <div className="sticky top-0 z-20 mb-4 bg-white/90 backdrop-blur shadow-sm rounded-full px-4 py-2 flex items-center gap-4 text-sm font-bold text-gray-600 border border-gray-200">
                         <button onClick={() => handlePageChange(Math.max(0, currentPage - 1))} disabled={currentPage === 0} className="hover:text-teal-600 disabled:opacity-30">&larr;</button>

@@ -268,6 +268,7 @@ export interface DownloadDesignConfig {
         outlineWidth?: number;
         mergeIdenticalPeriods?: boolean;
         badgeTarget?: 'subject' | 'teacher' | 'class'; // For badge style configuration
+        lineHeight?: number;
     };
     footer: {
         show: boolean;

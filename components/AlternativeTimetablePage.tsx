@@ -1578,7 +1578,7 @@ export const AlternativeTimetablePage: React.FC<AlternativeTimetablePageProps & 
                                 onClick={() => toggleTeacherCollapse(entity.id)}
                             >
                                 <div className="flex items-center gap-3">
-                                    <h3 className={`text-sm font-black ${isClass ? 'text-blue-900 dark:text-blue-100' : 'text-red-900 dark:text-red-100'} uppercase tracking-tight ml-2`}>
+                                    <h3 className={`text-sm font-black ${isClass ? 'text-blue-900 dark:text-blue-100' : 'text-red-900 dark:text-red-500'} uppercase tracking-tight ml-2`}>
                                         {getName(entity)}
                                         {isClass && <span className="ml-2 text-xs opacity-60 font-medium normal-case">(Class Leave)</span>}
                                     </h3>

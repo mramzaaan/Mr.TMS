@@ -777,7 +777,11 @@ export const ClassCommunicationModal: React.FC<ClassCommunicationModalProps> = (
             });
             setIsGenerating(false);
             return;
-        } catch (error) {
+        } catch (error: any) {
+            if (error.name === 'AbortError') {
+                setIsGenerating(false);
+                return;
+            }
             console.log("Share cancelled or failed, falling back to download.");
         }
     }
