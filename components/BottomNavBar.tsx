@@ -85,7 +85,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ t, currentPage, setCurrentP
 
   return (
     <div className={`xl:hidden fixed bottom-6 left-4 right-4 z-50 transition-transform duration-300 ${isCollapsed ? 'translate-y-[200%]' : 'translate-y-0'}`}>
-      <div className="w-full bg-[var(--bg-secondary)]/95 backdrop-blur-md h-16 rounded-full shadow-2xl border border-[var(--border-secondary)] flex items-center justify-between px-2 relative">
+      <div className="w-full bg-[var(--bg-secondary)]/95 backdrop-blur-md h-16 rounded-full shadow-2xl border border-[var(--border-secondary)] flex items-center justify-between px-2 relative overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         
         {navItems.map((item) => {
             const isActive = item.page === currentPage;
@@ -96,7 +96,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ t, currentPage, setCurrentP
                 <button 
                     key={item.page}
                     onClick={() => { setCurrentPage(item.page); setIsCollapsed(false); }}
-                    className={`relative flex items-center justify-center h-12 rounded-full transition-all duration-300 focus:outline-none group ${isActive ? 'px-5' : 'flex-1'}`}
+                    className={`relative flex items-center justify-center h-12 rounded-full transition-all duration-300 focus:outline-none group flex-shrink-0 ${isActive ? 'px-4 sm:px-5' : 'w-10 sm:w-12'}`}
                 >
                     {isActive && (
                         <motion.div
@@ -116,9 +116,9 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ t, currentPage, setCurrentP
                         {isActive && (
                             <motion.span 
                                 initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                                animate={{ opacity: 1, width: 'auto', marginLeft: 8 }}
+                                animate={{ opacity: 1, width: 'auto', marginLeft: 6 }}
                                 exit={{ opacity: 0, width: 0, marginLeft: 0 }}
-                                className="text-sm font-bold whitespace-nowrap text-white"
+                                className="text-xs sm:text-sm font-bold whitespace-nowrap text-white"
                             >
                                 {t[item.labelKey].split(' ')[0]}
                             </motion.span>
